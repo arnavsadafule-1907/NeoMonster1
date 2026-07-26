@@ -25,7 +25,6 @@ class ReportModal(discord.ui.Modal, title="Report Message"):
         self.add_item(self.reason)
 
     async def on_submit(self, interaction: discord.Interaction):
-        # Always send a response, even if something fails.
         try:
             # 1. Get the report channel for this guild
             channel_id = await self.get_report_channel(interaction.guild_id)
@@ -69,7 +68,6 @@ class ReportModal(discord.ui.Modal, title="Report Message"):
                 embed.add_field(name="Attachments", value=urls, inline=False)
 
             embed.set_footer(text=f"Message ID: {self.message.id} • Click to jump")
-            # Make the embed clickable to the message
             jump_link = f"https://discord.com/channels/{interaction.guild_id}/{self.message.channel.id}/{self.message.id}"
             embed.description = f"[Jump to message]({jump_link})"
 
@@ -83,7 +81,6 @@ class ReportModal(discord.ui.Modal, title="Report Message"):
             )
 
         except Exception as e:
-            # Log the full error for debugging, but still reply to the user
             print(f"Error in report modal: {e}")
             traceback.print_exc()
             try:
@@ -92,7 +89,7 @@ class ReportModal(discord.ui.Modal, title="Report Message"):
                     ephemeral=False
                 )
             except:
-                pass  # If we can't respond, we can't do anything else
+                pass
 
     @staticmethod
     async def get_report_channel(guild_id: int) -> int | None:
@@ -113,7 +110,6 @@ class ReportModal(discord.ui.Modal, title="Report Message"):
 #  1) Context menu: "Report Message" (right‑click a message)
 # -------------------------------------------------------------------
 @app_commands.context_menu(name="Report Message")
-@app_commands.checks.cooldown(1, 30, key=lambda i: i.user.id)
 async def report_message_context(interaction: discord.Interaction, message: discord.Message):
     # Prevent reporting your own messages
     if message.author == interaction.user:
@@ -132,9 +128,7 @@ async def report_message_context(interaction: discord.Interaction, message: disc
 # -------------------------------------------------------------------
 @app_commands.command(name="report", description="Report a message by its ID")
 @app_commands.describe(message_id="The ID of the message you want to report", reason="Reason for reporting (optional)")
-@app_commands.checks.cooldown(1, 30, key=lambda i: i.user.id)
 async def report_slash(interaction: discord.Interaction, message_id: str, reason: str = None):
-    # Convert message_id to int
     try:
         msg_id = int(message_id)
     except ValueError:
@@ -170,7 +164,6 @@ async def report_slash(interaction: discord.Interaction, message_id: str, reason
 
     # If a reason was provided, we can directly send the report without modal
     if reason:
-        # Direct report with reason
         channel_id = await ReportModal.get_report_channel(interaction.guild_id)
         if channel_id is None:
             await interaction.response.send_message(
@@ -215,7 +208,6 @@ async def report_slash(interaction: discord.Interaction, message_id: str, reason
             ephemeral=False
         )
     else:
-        # No reason provided: open the modal
         modal = ReportModal(message)
         await interaction.response.prompt_modal(modal)
 
