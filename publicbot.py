@@ -41,7 +41,7 @@ class PublicBot(commands.Cog):
                 "• `/antinuke logchannel #logs` – Set security alerts\n"
                 "• `/antinuke whitelist add @you` – Protect yourself\n"
                 "• `/help` – See all commands\n\n"
-                "**Need help?** Join our support server: https://discord.gg/c5Y79DA542"
+                "**Need help?** Join our support server: https://discord.gg/f8zTc4tmHx"
             )
             await guild.owner.send(embed=embed)
         except:
@@ -89,7 +89,7 @@ class PublicBot(commands.Cog):
             "• 📧 Email: contact@olympusbot.in\n"
             "• 🌐 Website: https://neomonster1-production.up.railway.app/\n"
             "• 📚 Documentation: `/help`\n"
-            "• 🎫 Support Server: [Join](https://discord.gg/c5Y79DA542)\n\n"
+            "• 🎫 Support Server: [Join](https://discord.gg/f8zTc4tmHx)\n\n"
             "Our team typically responds within 24 hours."
         )
         await interaction.response.send_message(embed=embed)

@@ -375,7 +375,7 @@ LANDING_HTML = """
         <p style="margin-top: 5px;">
             <a href="https://discord.com/oauth2/authorize?client_id=1528368412093579376&permissions=1100473370870&integration_type=0&scope=bot+applications.commands" target="_blank">Invite</a> •
             <a href="mailto:contact@olympusbot.in">Contact</a> •
-            <a href="https://discord.gg/c5Y79DA542" target="_blank">Support Server</a>
+            <a href="https://discord.gg/f8zTc4tmHx" target="_blank">Support Server</a>
         </p>
     </footer>
 </body>
