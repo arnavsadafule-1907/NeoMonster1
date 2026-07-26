@@ -1,0 +1,11 @@
+venv/
+.env
+__pycache__/
+*.pyc
+data/
+bot.log.env 
+.env 
+.env 
+.env 
+.env 
+.env  
