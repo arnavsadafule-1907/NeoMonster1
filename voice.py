@@ -25,18 +25,23 @@ class Voice(commands.Cog):
     @app_commands.choices(action=[
         app_commands.Choice(name="kick", value="kick"),
         app_commands.Choice(name="mute", value="mute"),
+        app_commands.Choice(name="unmute", value="unmute")     # ← new
     ])
     @admin_only()
     async def vc(self, interaction: discord.Interaction, action: str, member: discord.Member):
         if not member.voice or not member.voice.channel:
             embed = BotEmbed.error("Not in Voice", f"{member.mention} is not in a voice channel.")
             return await interaction.response.send_message(embed=embed, ephemeral=True)
+
         if action == "kick":
             await member.move_to(None, reason="VC kick")
             embed = BotEmbed.success("Voice Kick", f"{member.mention} has been kicked from voice.")
         elif action == "mute":
             await member.edit(mute=True, reason="VC mute")
             embed = BotEmbed.success("Voice Mute", f"{member.mention} has been muted in voice.")
+        elif action == "unmute":                           # ← new
+            await member.edit(mute=False, reason="VC unmute")
+            embed = BotEmbed.success("Voice Unmute", f"{member.mention} has been unmuted.")
         await interaction.response.send_message(embed=embed)
 
 async def setup(bot):
