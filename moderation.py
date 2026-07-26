@@ -1,6 +1,7 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
+from datetime import timedelta          # <-- fix: import timedelta
 from checks import admin_only
 from formatter import BotEmbed
 
@@ -40,7 +41,7 @@ class Moderation(commands.Cog):
         if member.is_timed_out():
             embed = BotEmbed.warning("Already Muted", f"{member.mention} is already muted.")
             return await interaction.response.send_message(embed=embed, ephemeral=True)
-        until = discord.utils.utcnow() + discord.timedelta(minutes=duration)
+        until = discord.utils.utcnow() + timedelta(minutes=duration)   # <-- fixed
         await member.timeout(until, reason=reason)
         embed = BotEmbed.success(
             title="Member Muted",
