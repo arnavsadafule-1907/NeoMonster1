@@ -3541,3 +3541,45 @@ Traceback (most recent call last):
     raise ClientConnectorDNSError(req.connection_key, exc) from exc
 aiohttp.client_exceptions.ClientConnectorDNSError: Cannot connect to host gateway-us-east1-b.discord.gg:443 ssl:default [getaddrinfo failed]
 2026-07-26 14:43:26,389 [INFO] discord.gateway: Shard ID None has successfully RESUMED session c1d1a62f40c86405bc4208dbfeed03f8.
+2026-07-26 16:07:42,826 [WARNING] discord.client: PyNaCl is not installed, voice will NOT be supported
+2026-07-26 16:07:42,827 [WARNING] discord.client: davey is not installed, voice will NOT be supported
+2026-07-26 16:07:42,829 [INFO] discord: Dashboard started on http://0.0.0.0:5000
+2026-07-26 16:07:42,832 [INFO] discord.client: logging in using static token
+2026-07-26 16:07:44,770 [INFO] discord: Database ready
+2026-07-26 16:07:44,775 [INFO] discord: Loaded antinuke
+2026-07-26 16:07:44,801 [INFO] discord: Loaded config
+2026-07-26 16:07:44,814 [INFO] discord: Loaded recovery
+2026-07-26 16:07:44,824 [INFO] discord: Loaded help
+2026-07-26 16:07:44,842 [INFO] discord: Loaded moderation
+2026-07-26 16:07:44,846 [INFO] discord: Loaded utility
+2026-07-26 16:07:44,857 [INFO] discord: Loaded automod
+2026-07-26 16:07:44,870 [INFO] discord: Loaded welcoming
+2026-07-26 16:07:44,885 [INFO] discord: Loaded customroles
+2026-07-26 16:07:44,915 [INFO] discord: Loaded giveaway
+2026-07-26 16:07:44,926 [INFO] discord: Loaded boycott
+2026-07-26 16:07:44,934 [INFO] discord: Loaded automations
+2026-07-26 16:07:44,938 [INFO] discord: Loaded fun
+2026-07-26 16:07:44,945 [INFO] discord: Loaded voice
+2026-07-26 16:07:44,949 [INFO] discord: Loaded adminsetup
+2026-07-26 16:07:44,952 [INFO] discord: Loaded ignore
+2026-07-26 16:07:44,956 [INFO] discord: Loaded roleassign
+2026-07-26 16:07:44,970 [INFO] discord: Loaded report
+2026-07-26 16:07:44,979 [INFO] discord: Loaded antispam
+2026-07-26 16:07:45,001 [INFO] discord: Loaded messagelog
+2026-07-26 16:07:45,010 [INFO] discord: Loaded botprofile
+2026-07-26 16:07:45,025 [INFO] discord: Loaded backup
+2026-07-26 16:07:45,048 [INFO] discord: Loaded altdetector
+2026-07-26 16:07:45,055 [INFO] discord: Loaded slowmode
+2026-07-26 16:07:45,075 [INFO] discord: Loaded raidalert
+2026-07-26 16:07:45,084 [INFO] discord: Loaded chatbot
+2026-07-26 16:07:45,098 [INFO] discord: Loaded massmention
+2026-07-26 16:07:45,110 [INFO] discord: Loaded antivanity
+2026-07-26 16:07:45,129 [INFO] discord: Loaded stafflog
+2026-07-26 16:07:45,137 [INFO] discord: Loaded ownerrecovery
+2026-07-26 16:07:45,176 [INFO] discord: Loaded polish
+2026-07-26 16:07:45,179 [INFO] discord: Loaded publicbot
+2026-07-26 16:07:45,185 [INFO] discord: Loaded globalblacklist
+2026-07-26 16:07:45,189 [INFO] discord: Loaded announce
+2026-07-26 16:07:46,568 [INFO] discord: Command tree synced
+2026-07-26 16:07:48,077 [INFO] discord.gateway: Shard ID None has connected to Gateway (Session ID: 17cfcadfcf13508fb2694a0b0facd318).
+2026-07-26 16:07:50,402 [INFO] discord: 🛡️ Security Bot online as NeoMonster#5217 (ID: 1528368412093579376)

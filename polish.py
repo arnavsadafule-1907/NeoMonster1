@@ -46,7 +46,8 @@ class Polish(commands.Cog):
                     "• `/help` – View all commands\n\n"
                     "**Links:**\n"
                     f"• Invite: https://discord.com/oauth2/authorize?client_id={self.bot.user.id}&permissions=8&scope=bot%20applications.commands\n"
-                    "• Website: http://localhost:5000"
+                    "• Website: https://neomonster1-production.up.railway.app/"
+
                 ),
                 color=discord.Color.green()
             )
