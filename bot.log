@@ -3892,3 +3892,614 @@ Traceback (most recent call last):
   File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\app_commands\commands.py", line 877, in _do_call
     raise CommandInvokeError(self, e) from e
 discord.app_commands.errors.CommandInvokeError: Command 'invite' raised an exception: NotFound: 404 Not Found (error code: 10062): Unknown interaction
+2026-07-26 16:47:13,480 [ERROR] discord.app_commands.tree: Ignoring exception in command 'support'
+Traceback (most recent call last):
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\app_commands\commands.py", line 858, in _do_call
+    return await self._callback(self.binding, interaction, **params)  # type: ignore
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\publicbot.py", line 95, in support
+    await interaction.response.send_message(embed=embed)
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\interactions.py", line 1085, in send_message
+    data = await adapter.create_interaction_response(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\webhook\async_.py", line 224, in request
+    raise NotFound(response, data)
+discord.errors.NotFound: 404 Not Found (error code: 10062): Unknown interaction
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\app_commands\tree.py", line 1302, in _call
+    await command._invoke_with_namespace(interaction, namespace)
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\app_commands\commands.py", line 884, in _invoke_with_namespace
+    return await self._do_call(interaction, transformed_values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\app_commands\commands.py", line 877, in _do_call
+    raise CommandInvokeError(self, e) from e
+discord.app_commands.errors.CommandInvokeError: Command 'support' raised an exception: NotFound: 404 Not Found (error code: 10062): Unknown interaction
+2026-07-26 16:47:40,627 [ERROR] discord.app_commands.tree: Ignoring exception in command 'support'
+Traceback (most recent call last):
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\app_commands\commands.py", line 858, in _do_call
+    return await self._callback(self.binding, interaction, **params)  # type: ignore
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\publicbot.py", line 95, in support
+    await interaction.response.send_message(embed=embed)
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\interactions.py", line 1085, in send_message
+    data = await adapter.create_interaction_response(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\webhook\async_.py", line 226, in request
+    raise HTTPException(response, data)
+discord.errors.HTTPException: 400 Bad Request (error code: 40060): Interaction has already been acknowledged.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\app_commands\tree.py", line 1302, in _call
+    await command._invoke_with_namespace(interaction, namespace)
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\app_commands\commands.py", line 884, in _invoke_with_namespace
+    return await self._do_call(interaction, transformed_values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\app_commands\commands.py", line 877, in _do_call
+    raise CommandInvokeError(self, e) from e
+discord.app_commands.errors.CommandInvokeError: Command 'support' raised an exception: HTTPException: 400 Bad Request (error code: 40060): Interaction has already been acknowledged.
+2026-07-26 16:48:01,226 [ERROR] discord.app_commands.tree: Ignoring exception in command 'backup'
+Traceback (most recent call last):
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\app_commands\commands.py", line 858, in _do_call
+    return await self._callback(self.binding, interaction, **params)  # type: ignore
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\backup.py", line 20, in backup_create
+    await interaction.response.defer(ephemeral=True)
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\interactions.py", line 892, in defer
+    response = await adapter.create_interaction_response(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\webhook\async_.py", line 226, in request
+    raise HTTPException(response, data)
+discord.errors.HTTPException: 400 Bad Request (error code: 40060): Interaction has already been acknowledged.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\app_commands\tree.py", line 1302, in _call
+    await command._invoke_with_namespace(interaction, namespace)
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\app_commands\commands.py", line 884, in _invoke_with_namespace
+    return await self._do_call(interaction, transformed_values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\app_commands\commands.py", line 877, in _do_call
+    raise CommandInvokeError(self, e) from e
+discord.app_commands.errors.CommandInvokeError: Command 'backup' raised an exception: HTTPException: 400 Bad Request (error code: 40060): Interaction has already been acknowledged.
+2026-07-26 16:48:33,225 [ERROR] discord.app_commands.tree: Ignoring exception in command 'invite'
+Traceback (most recent call last):
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\app_commands\commands.py", line 858, in _do_call
+    return await self._callback(self.binding, interaction, **params)  # type: ignore
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\publicbot.py", line 106, in invite
+    await interaction.response.send_message(embed=embed)
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\interactions.py", line 1085, in send_message
+    data = await adapter.create_interaction_response(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\webhook\async_.py", line 226, in request
+    raise HTTPException(response, data)
+discord.errors.HTTPException: 400 Bad Request (error code: 40060): Interaction has already been acknowledged.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\app_commands\tree.py", line 1302, in _call
+    await command._invoke_with_namespace(interaction, namespace)
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\app_commands\commands.py", line 884, in _invoke_with_namespace
+    return await self._do_call(interaction, transformed_values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\app_commands\commands.py", line 877, in _do_call
+    raise CommandInvokeError(self, e) from e
+discord.app_commands.errors.CommandInvokeError: Command 'invite' raised an exception: HTTPException: 400 Bad Request (error code: 40060): Interaction has already been acknowledged.
+2026-07-26 16:49:10,942 [ERROR] discord.app_commands.tree: Ignoring exception in command 'backup'
+Traceback (most recent call last):
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\app_commands\commands.py", line 858, in _do_call
+    return await self._callback(self.binding, interaction, **params)  # type: ignore
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\backup.py", line 20, in backup_create
+    await interaction.response.defer(ephemeral=True)
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\interactions.py", line 892, in defer
+    response = await adapter.create_interaction_response(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\webhook\async_.py", line 226, in request
+    raise HTTPException(response, data)
+discord.errors.HTTPException: 400 Bad Request (error code: 40060): Interaction has already been acknowledged.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\app_commands\tree.py", line 1302, in _call
+    await command._invoke_with_namespace(interaction, namespace)
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\app_commands\commands.py", line 884, in _invoke_with_namespace
+    return await self._do_call(interaction, transformed_values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\app_commands\commands.py", line 877, in _do_call
+    raise CommandInvokeError(self, e) from e
+discord.app_commands.errors.CommandInvokeError: Command 'backup' raised an exception: HTTPException: 400 Bad Request (error code: 40060): Interaction has already been acknowledged.
+2026-07-26 16:49:19,240 [ERROR] discord.app_commands.tree: Ignoring exception in command 'restore'
+Traceback (most recent call last):
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\app_commands\commands.py", line 858, in _do_call
+    return await self._callback(self.binding, interaction, **params)  # type: ignore
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\backup.py", line 85, in restore_backup
+    [f for f in os.listdir(BACKUP_DIR) if f.startswith(str(guild.id))],
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\interactions.py", line 892, in defer
+    response = await adapter.create_interaction_response(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\webhook\async_.py", line 226, in request
+    raise HTTPException(response, data)
+discord.errors.HTTPException: 400 Bad Request (error code: 40060): Interaction has already been acknowledged.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\app_commands\tree.py", line 1302, in _call
+    await command._invoke_with_namespace(interaction, namespace)
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\app_commands\commands.py", line 884, in _invoke_with_namespace
+    return await self._do_call(interaction, transformed_values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\app_commands\commands.py", line 877, in _do_call
+    raise CommandInvokeError(self, e) from e
+discord.app_commands.errors.CommandInvokeError: Command 'restore' raised an exception: HTTPException: 400 Bad Request (error code: 40060): Interaction has already been acknowledged.
+2026-07-26 16:50:23,770 [ERROR] discord.app_commands.tree: Ignoring exception in command 'backup'
+Traceback (most recent call last):
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\app_commands\commands.py", line 858, in _do_call
+    return await self._callback(self.binding, interaction, **params)  # type: ignore
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\backup.py", line 20, in backup_create
+    await interaction.response.defer(ephemeral=True)
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\interactions.py", line 892, in defer
+    response = await adapter.create_interaction_response(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\webhook\async_.py", line 226, in request
+    raise HTTPException(response, data)
+discord.errors.HTTPException: 400 Bad Request (error code: 40060): Interaction has already been acknowledged.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\app_commands\tree.py", line 1302, in _call
+    await command._invoke_with_namespace(interaction, namespace)
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\app_commands\commands.py", line 884, in _invoke_with_namespace
+    return await self._do_call(interaction, transformed_values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\app_commands\commands.py", line 877, in _do_call
+    raise CommandInvokeError(self, e) from e
+discord.app_commands.errors.CommandInvokeError: Command 'backup' raised an exception: HTTPException: 400 Bad Request (error code: 40060): Interaction has already been acknowledged.
+2026-07-26 16:56:46,158 [ERROR] discord.app_commands.tree: Ignoring exception in command 'roleassign'
+Traceback (most recent call last):
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\app_commands\commands.py", line 858, in _do_call
+    return await self._callback(self.binding, interaction, **params)  # type: ignore
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\roleassign.py", line 49, in roleassign
+    return await interaction.response.send_message(embed=embed, ephemeral=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\interactions.py", line 1085, in send_message
+    data = await adapter.create_interaction_response(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\webhook\async_.py", line 226, in request
+    raise HTTPException(response, data)
+discord.errors.HTTPException: 400 Bad Request (error code: 40060): Interaction has already been acknowledged.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\app_commands\tree.py", line 1302, in _call
+    await command._invoke_with_namespace(interaction, namespace)
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\app_commands\commands.py", line 884, in _invoke_with_namespace
+    return await self._do_call(interaction, transformed_values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\app_commands\commands.py", line 877, in _do_call
+    raise CommandInvokeError(self, e) from e
+discord.app_commands.errors.CommandInvokeError: Command 'roleassign' raised an exception: HTTPException: 400 Bad Request (error code: 40060): Interaction has already been acknowledged.
+2026-07-26 17:00:58,616 [ERROR] discord.app_commands.tree: Ignoring exception in command 'warn'
+Traceback (most recent call last):
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\app_commands\commands.py", line 858, in _do_call
+    return await self._callback(self.binding, interaction, **params)  # type: ignore
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\moderation.py", line 60, in warn
+    await interaction.response.send_message(embed=embed)
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\interactions.py", line 1085, in send_message
+    data = await adapter.create_interaction_response(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\webhook\async_.py", line 226, in request
+    raise HTTPException(response, data)
+discord.errors.HTTPException: 400 Bad Request (error code: 40060): Interaction has already been acknowledged.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\app_commands\tree.py", line 1302, in _call
+    await command._invoke_with_namespace(interaction, namespace)
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\app_commands\commands.py", line 884, in _invoke_with_namespace
+    return await self._do_call(interaction, transformed_values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\app_commands\commands.py", line 877, in _do_call
+    raise CommandInvokeError(self, e) from e
+discord.app_commands.errors.CommandInvokeError: Command 'warn' raised an exception: HTTPException: 400 Bad Request (error code: 40060): Interaction has already been acknowledged.
+2026-07-26 17:01:36,967 [ERROR] discord.app_commands.tree: Ignoring exception in command 'help'
+Traceback (most recent call last):
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\app_commands\commands.py", line 858, in _do_call
+    return await self._callback(self.binding, interaction, **params)  # type: ignore
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\help.py", line 253, in help_command
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\interactions.py", line 1085, in send_message
+    data = await adapter.create_interaction_response(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\webhook\async_.py", line 226, in request
+    raise HTTPException(response, data)
+discord.errors.HTTPException: 400 Bad Request (error code: 40060): Interaction has already been acknowledged.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\app_commands\tree.py", line 1302, in _call
+    await command._invoke_with_namespace(interaction, namespace)
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\app_commands\commands.py", line 884, in _invoke_with_namespace
+    return await self._do_call(interaction, transformed_values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\app_commands\commands.py", line 877, in _do_call
+    raise CommandInvokeError(self, e) from e
+discord.app_commands.errors.CommandInvokeError: Command 'help' raised an exception: HTTPException: 400 Bad Request (error code: 40060): Interaction has already been acknowledged.
+2026-07-26 17:36:48,952 [ERROR] discord.ext.tasks: Handling exception in internal background task Polish.status_rotation. Retrying in 1.88s
+Traceback (most recent call last):
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\ext\tasks\__init__.py", line 247, in _loop
+    await self.coro(*args, **kwargs)
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\polish.py", line 28, in status_rotation
+    await self.bot.change_presence(activity=status)
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\client.py", line 2156, in change_presence
+    await self.ws.change_presence(activity=activity, status=status_str)
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\gateway.py", line 723, in change_presence
+    await self.send(sent)
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\gateway.py", line 677, in send
+    await self.socket.send_str(data)
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\aiohttp\client_ws.py", line 289, in send_str
+    await self._writer.send_frame(
+        data.encode("utf-8"), WSMsgType.TEXT, compress=compress
+    )
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\aiohttp\_websocket\writer.py", line 78, in send_frame
+    raise ClientConnectionResetError("Cannot write to closing transport")
+aiohttp.client_exceptions.ClientConnectionResetError: Cannot write to closing transport
+2026-07-26 17:36:49,942 [ERROR] discord.client: Attempting a reconnect in 1.24s
+Traceback (most recent call last):
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\aiohttp\connector.py", line 1571, in _create_direct_connection
+    hosts = await self._resolve_host(host, port, traces=traces)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\aiohttp\connector.py", line 1181, in _resolve_host
+    return await asyncio.shield(resolved_host_task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\aiohttp\connector.py", line 1212, in _resolve_host_with_throttle
+    addrs = await self._resolver.resolve(host, port, family=self._family)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\aiohttp\resolver.py", line 40, in resolve
+    infos = await self._loop.getaddrinfo(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<5 lines>...
+    )
+    ^
+  File "C:\Users\aarya\AppData\Local\Python\pythoncore-3.14-64\Lib\asyncio\base_events.py", line 936, in getaddrinfo
+    return await self.run_in_executor(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        None, getaddr_func, host, port, family, type, proto, flags)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\aarya\AppData\Local\Python\pythoncore-3.14-64\Lib\concurrent\futures\thread.py", line 86, in run
+    result = ctx.run(self.task)
+  File "C:\Users\aarya\AppData\Local\Python\pythoncore-3.14-64\Lib\concurrent\futures\thread.py", line 73, in run
+    return fn(*args, **kwargs)
+  File "C:\Users\aarya\AppData\Local\Python\pythoncore-3.14-64\Lib\socket.py", line 987, in getaddrinfo
+    for res in _socket.getaddrinfo(host, port, family, type, proto, flags):
+               ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+socket.gaierror: [Errno 11001] getaddrinfo failed
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\client.py", line 728, in connect
+    self.ws = await asyncio.wait_for(coro, timeout=60.0)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\aarya\AppData\Local\Python\pythoncore-3.14-64\Lib\asyncio\tasks.py", line 488, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\gateway.py", line 392, in from_client
+    socket = await client.http.ws_connect(str(url))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\http.py", line 571, in ws_connect
+    return await self.__session.ws_connect(url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\aiohttp\client.py", line 1244, in _ws_connect
+    resp = await self.request(
+           ^^^^^^^^^^^^^^^^^^^
+    ...<11 lines>...
+    )
+    ^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\aiohttp\client.py", line 856, in _request
+    resp = await handler(req)
+           ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\aiohttp\client.py", line 810, in _connect_and_send_request
+    conn = await self._connector.connect(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        req, traces=traces, timeout=real_timeout
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\aiohttp\connector.py", line 657, in connect
+    proto = await self._create_connection(req, traces, timeout)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\aiohttp\connector.py", line 1242, in _create_connection
+    _, proto = await self._create_direct_connection(req, traces, timeout)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\aiohttp\connector.py", line 1577, in _create_direct_connection
+    raise ClientConnectorDNSError(req.connection_key, exc) from exc
+aiohttp.client_exceptions.ClientConnectorDNSError: Cannot connect to host gateway-us-east1-c.discord.gg:443 ssl:default [getaddrinfo failed]
+2026-07-26 17:36:51,515 [ERROR] discord.client: Attempting a reconnect in 1.93s
+Traceback (most recent call last):
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\aiohttp\connector.py", line 1571, in _create_direct_connection
+    hosts = await self._resolve_host(host, port, traces=traces)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\aiohttp\connector.py", line 1181, in _resolve_host
+    return await asyncio.shield(resolved_host_task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\aiohttp\connector.py", line 1212, in _resolve_host_with_throttle
+    addrs = await self._resolver.resolve(host, port, family=self._family)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\aiohttp\resolver.py", line 40, in resolve
+    infos = await self._loop.getaddrinfo(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<5 lines>...
+    )
+    ^
+  File "C:\Users\aarya\AppData\Local\Python\pythoncore-3.14-64\Lib\asyncio\base_events.py", line 936, in getaddrinfo
+    return await self.run_in_executor(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        None, getaddr_func, host, port, family, type, proto, flags)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\aarya\AppData\Local\Python\pythoncore-3.14-64\Lib\concurrent\futures\thread.py", line 86, in run
+    result = ctx.run(self.task)
+  File "C:\Users\aarya\AppData\Local\Python\pythoncore-3.14-64\Lib\concurrent\futures\thread.py", line 73, in run
+    return fn(*args, **kwargs)
+  File "C:\Users\aarya\AppData\Local\Python\pythoncore-3.14-64\Lib\socket.py", line 987, in getaddrinfo
+    for res in _socket.getaddrinfo(host, port, family, type, proto, flags):
+               ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+socket.gaierror: [Errno 11001] getaddrinfo failed
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\client.py", line 728, in connect
+    self.ws = await asyncio.wait_for(coro, timeout=60.0)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\aarya\AppData\Local\Python\pythoncore-3.14-64\Lib\asyncio\tasks.py", line 488, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\gateway.py", line 392, in from_client
+    socket = await client.http.ws_connect(str(url))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\http.py", line 571, in ws_connect
+    return await self.__session.ws_connect(url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\aiohttp\client.py", line 1244, in _ws_connect
+    resp = await self.request(
+           ^^^^^^^^^^^^^^^^^^^
+    ...<11 lines>...
+    )
+    ^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\aiohttp\client.py", line 856, in _request
+    resp = await handler(req)
+           ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\aiohttp\client.py", line 810, in _connect_and_send_request
+    conn = await self._connector.connect(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        req, traces=traces, timeout=real_timeout
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\aiohttp\connector.py", line 657, in connect
+    proto = await self._create_connection(req, traces, timeout)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\aiohttp\connector.py", line 1242, in _create_connection
+    _, proto = await self._create_direct_connection(req, traces, timeout)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\aiohttp\connector.py", line 1577, in _create_direct_connection
+    raise ClientConnectorDNSError(req.connection_key, exc) from exc
+aiohttp.client_exceptions.ClientConnectorDNSError: Cannot connect to host gateway-us-east1-c.discord.gg:443 ssl:default [getaddrinfo failed]
+2026-07-26 17:36:51,788 [ERROR] discord.ext.tasks: Handling exception in internal background task Polish.status_rotation. Retrying in 1.82s
+Traceback (most recent call last):
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\ext\tasks\__init__.py", line 247, in _loop
+    await self.coro(*args, **kwargs)
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\polish.py", line 28, in status_rotation
+    await self.bot.change_presence(activity=status)
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\client.py", line 2156, in change_presence
+    await self.ws.change_presence(activity=activity, status=status_str)
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\gateway.py", line 723, in change_presence
+    await self.send(sent)
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\gateway.py", line 677, in send
+    await self.socket.send_str(data)
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\aiohttp\client_ws.py", line 289, in send_str
+    await self._writer.send_frame(
+        data.encode("utf-8"), WSMsgType.TEXT, compress=compress
+    )
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\aiohttp\_websocket\writer.py", line 78, in send_frame
+    raise ClientConnectionResetError("Cannot write to closing transport")
+aiohttp.client_exceptions.ClientConnectionResetError: Cannot write to closing transport
+2026-07-26 17:36:53,644 [ERROR] discord.client: Attempting a reconnect in 7.21s
+Traceback (most recent call last):
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\aiohttp\connector.py", line 1571, in _create_direct_connection
+    hosts = await self._resolve_host(host, port, traces=traces)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\aiohttp\connector.py", line 1181, in _resolve_host
+    return await asyncio.shield(resolved_host_task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\aiohttp\connector.py", line 1212, in _resolve_host_with_throttle
+    addrs = await self._resolver.resolve(host, port, family=self._family)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\aiohttp\resolver.py", line 40, in resolve
+    infos = await self._loop.getaddrinfo(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<5 lines>...
+    )
+    ^
+  File "C:\Users\aarya\AppData\Local\Python\pythoncore-3.14-64\Lib\asyncio\base_events.py", line 936, in getaddrinfo
+    return await self.run_in_executor(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        None, getaddr_func, host, port, family, type, proto, flags)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\aarya\AppData\Local\Python\pythoncore-3.14-64\Lib\concurrent\futures\thread.py", line 86, in run
+    result = ctx.run(self.task)
+  File "C:\Users\aarya\AppData\Local\Python\pythoncore-3.14-64\Lib\concurrent\futures\thread.py", line 73, in run
+    return fn(*args, **kwargs)
+  File "C:\Users\aarya\AppData\Local\Python\pythoncore-3.14-64\Lib\socket.py", line 987, in getaddrinfo
+    for res in _socket.getaddrinfo(host, port, family, type, proto, flags):
+               ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+socket.gaierror: [Errno 11001] getaddrinfo failed
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\client.py", line 728, in connect
+    self.ws = await asyncio.wait_for(coro, timeout=60.0)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\aarya\AppData\Local\Python\pythoncore-3.14-64\Lib\asyncio\tasks.py", line 488, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\gateway.py", line 392, in from_client
+    socket = await client.http.ws_connect(str(url))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\http.py", line 571, in ws_connect
+    return await self.__session.ws_connect(url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\aiohttp\client.py", line 1244, in _ws_connect
+    resp = await self.request(
+           ^^^^^^^^^^^^^^^^^^^
+    ...<11 lines>...
+    )
+    ^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\aiohttp\client.py", line 856, in _request
+    resp = await handler(req)
+           ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\aiohttp\client.py", line 810, in _connect_and_send_request
+    conn = await self._connector.connect(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        req, traces=traces, timeout=real_timeout
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\aiohttp\connector.py", line 657, in connect
+    proto = await self._create_connection(req, traces, timeout)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\aiohttp\connector.py", line 1242, in _create_connection
+    _, proto = await self._create_direct_connection(req, traces, timeout)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\aiohttp\connector.py", line 1577, in _create_direct_connection
+    raise ClientConnectorDNSError(req.connection_key, exc) from exc
+aiohttp.client_exceptions.ClientConnectorDNSError: Cannot connect to host gateway-us-east1-c.discord.gg:443 ssl:default [getaddrinfo failed]
+2026-07-26 17:36:53,708 [ERROR] discord.ext.tasks: Handling exception in internal background task Polish.status_rotation. Retrying in 1.07s
+Traceback (most recent call last):
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\ext\tasks\__init__.py", line 247, in _loop
+    await self.coro(*args, **kwargs)
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\polish.py", line 28, in status_rotation
+    await self.bot.change_presence(activity=status)
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\client.py", line 2156, in change_presence
+    await self.ws.change_presence(activity=activity, status=status_str)
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\gateway.py", line 723, in change_presence
+    await self.send(sent)
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\gateway.py", line 677, in send
+    await self.socket.send_str(data)
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\aiohttp\client_ws.py", line 289, in send_str
+    await self._writer.send_frame(
+        data.encode("utf-8"), WSMsgType.TEXT, compress=compress
+    )
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\aiohttp\_websocket\writer.py", line 78, in send_frame
+    raise ClientConnectionResetError("Cannot write to closing transport")
+aiohttp.client_exceptions.ClientConnectionResetError: Cannot write to closing transport
+2026-07-26 17:36:54,877 [ERROR] discord.ext.tasks: Handling exception in internal background task Polish.status_rotation. Retrying in 1.31s
+Traceback (most recent call last):
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\ext\tasks\__init__.py", line 247, in _loop
+    await self.coro(*args, **kwargs)
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\polish.py", line 28, in status_rotation
+    await self.bot.change_presence(activity=status)
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\client.py", line 2156, in change_presence
+    await self.ws.change_presence(activity=activity, status=status_str)
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\gateway.py", line 723, in change_presence
+    await self.send(sent)
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\gateway.py", line 677, in send
+    await self.socket.send_str(data)
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\aiohttp\client_ws.py", line 289, in send_str
+    await self._writer.send_frame(
+        data.encode("utf-8"), WSMsgType.TEXT, compress=compress
+    )
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\aiohttp\_websocket\writer.py", line 78, in send_frame
+    raise ClientConnectionResetError("Cannot write to closing transport")
+aiohttp.client_exceptions.ClientConnectionResetError: Cannot write to closing transport
+2026-07-26 17:36:56,344 [ERROR] discord.ext.tasks: Handling exception in internal background task Polish.status_rotation. Retrying in 10.74s
+Traceback (most recent call last):
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\ext\tasks\__init__.py", line 247, in _loop
+    await self.coro(*args, **kwargs)
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\polish.py", line 28, in status_rotation
+    await self.bot.change_presence(activity=status)
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\client.py", line 2156, in change_presence
+    await self.ws.change_presence(activity=activity, status=status_str)
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\gateway.py", line 723, in change_presence
+    await self.send(sent)
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\gateway.py", line 677, in send
+    await self.socket.send_str(data)
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\aiohttp\client_ws.py", line 289, in send_str
+    await self._writer.send_frame(
+        data.encode("utf-8"), WSMsgType.TEXT, compress=compress
+    )
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\aiohttp\_websocket\writer.py", line 78, in send_frame
+    raise ClientConnectionResetError("Cannot write to closing transport")
+aiohttp.client_exceptions.ClientConnectionResetError: Cannot write to closing transport
+2026-07-26 17:37:01,744 [INFO] discord.gateway: Shard ID None session has been invalidated.
+2026-07-26 17:37:07,165 [ERROR] discord.ext.tasks: Handling exception in internal background task Polish.status_rotation. Retrying in 27.19s
+Traceback (most recent call last):
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\ext\tasks\__init__.py", line 247, in _loop
+    await self.coro(*args, **kwargs)
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\polish.py", line 28, in status_rotation
+    await self.bot.change_presence(activity=status)
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\client.py", line 2156, in change_presence
+    await self.ws.change_presence(activity=activity, status=status_str)
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\gateway.py", line 723, in change_presence
+    await self.send(sent)
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\gateway.py", line 677, in send
+    await self.socket.send_str(data)
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\aiohttp\client_ws.py", line 289, in send_str
+    await self._writer.send_frame(
+        data.encode("utf-8"), WSMsgType.TEXT, compress=compress
+    )
+  File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\aiohttp\_websocket\writer.py", line 78, in send_frame
+    raise ClientConnectionResetError("Cannot write to closing transport")
+aiohttp.client_exceptions.ClientConnectionResetError: Cannot write to closing transport
+2026-07-26 17:37:08,004 [INFO] discord.gateway: Shard ID None has connected to Gateway (Session ID: 91571908d59967d93f32048850ccd3f5).
+2026-07-26 17:37:10,737 [INFO] discord: 🛡️ Security Bot online as NeoMonster#5217 (ID: 1528368412093579376)

@@ -75,7 +75,7 @@ class PublicBot(commands.Cog):
         embed = BotEmbed.info(
             "🗳️ Vote for NeoMonster",
             "Help us grow by voting!\n\n"
-            "**[Vote on top.gg](https://1528368412093579376/vote)**\n"
+            "**[Vote on top.gg](https://top.gg/bot/1528368412093579376/vote)**\n"
             "Voting helps more servers discover our security bot."
         )
         await interaction.response.send_message(embed=embed)
