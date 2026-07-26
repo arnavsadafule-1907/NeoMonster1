@@ -23,7 +23,11 @@ class SecurityBot(commands.Bot):
         self.owner_ids = set(map(int, os.getenv("OWNER_IDS", "").split(",")))
 
     async def setup_hook(self):
-        # Load all cogs
+        # 1. Create database directory and tables FIRST
+        await init_db()
+        logger.info("Database ready")
+
+        # 2. Now load all cogs (they can safely connect to the existing database)
         cogs = [
             "antinuke", "config", "recovery", "help",
             "moderation", "utility", "automod", "welcoming",
@@ -41,8 +45,6 @@ class SecurityBot(commands.Bot):
             except Exception as e:
                 logger.error(f"Failed to load {cog}: {e}")
 
-        await init_db()
-        logger.info("Database ready")
         await self.tree.sync()
         logger.info("Command tree synced")
 
