@@ -7,7 +7,7 @@ from datetime import datetime
 from formatter import BotEmbed
 from checks import admin_only
 
-BACKUP_DIR = "./data/backups"
+BACKUP_DIR = "/data/backups"
 
 class Backup(commands.Cog):
     def __init__(self, bot):
