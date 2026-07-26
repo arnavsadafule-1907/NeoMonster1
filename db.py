@@ -11,6 +11,9 @@ async def get_db():
     return db
 
 async def init_db():
+    # 🔧 Create the database folder if it doesn't exist
+    os.makedirs(os.path.dirname(DATABASE_PATH), exist_ok=True)
+
     async with aiosqlite.connect(DATABASE_PATH) as db:
         await db.execute('''
             CREATE TABLE IF NOT EXISTS guild_settings (
