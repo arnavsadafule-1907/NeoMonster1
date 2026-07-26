@@ -1,7 +1,7 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
-from datetime import timedelta          # <-- fix: import timedelta
+from datetime import timedelta
 from checks import admin_only
 from formatter import BotEmbed
 
@@ -16,22 +16,22 @@ class Moderation(commands.Cog):
         if member.top_role >= interaction.user.top_role and interaction.user != interaction.guild.owner:
             embed = BotEmbed.error("Permission Denied", "You cannot ban this member.")
             return await interaction.response.send_message(embed=embed, ephemeral=True)
-        await member.ban(reason=reason)
-        embed = BotEmbed.success(
-            title="Member Banned",
-            description=f"{member.mention} has been banned.\n**Reason:** {reason}"
-        )
+        try:
+            await member.ban(reason=reason)
+            embed = BotEmbed.success("Member Banned", f"{member.mention} has been banned.\n**Reason:** {reason}")
+        except discord.Forbidden:
+            embed = BotEmbed.error("Missing Permissions", "I don't have permission to ban this member. Check my role position and permissions.")
         await interaction.response.send_message(embed=embed)
 
     @app_commands.command(name="kick", description="Kick a member")
     @app_commands.describe(member="Member to kick", reason="Reason for kick")
     @admin_only()
     async def kick(self, interaction: discord.Interaction, member: discord.Member, reason: str = "No reason provided"):
-        await member.kick(reason=reason)
-        embed = BotEmbed.success(
-            title="Member Kicked",
-            description=f"{member.mention} has been kicked.\n**Reason:** {reason}"
-        )
+        try:
+            await member.kick(reason=reason)
+            embed = BotEmbed.success("Member Kicked", f"{member.mention} has been kicked.\n**Reason:** {reason}")
+        except discord.Forbidden:
+            embed = BotEmbed.error("Missing Permissions", "I don't have permission to kick this member. Check my role position and permissions.")
         await interaction.response.send_message(embed=embed)
 
     @app_commands.command(name="mute", description="Timeout a member")
@@ -41,12 +41,26 @@ class Moderation(commands.Cog):
         if member.is_timed_out():
             embed = BotEmbed.warning("Already Muted", f"{member.mention} is already muted.")
             return await interaction.response.send_message(embed=embed, ephemeral=True)
-        until = discord.utils.utcnow() + timedelta(minutes=duration)   # <-- fixed
-        await member.timeout(until, reason=reason)
-        embed = BotEmbed.success(
-            title="Member Muted",
-            description=f"{member.mention} has been muted for {duration} minutes.\n**Reason:** {reason}"
-        )
+        try:
+            until = discord.utils.utcnow() + timedelta(minutes=duration)
+            await member.timeout(until, reason=reason)
+            embed = BotEmbed.success("Member Muted", f"{member.mention} has been muted for {duration} minutes.\n**Reason:** {reason}")
+        except discord.Forbidden:
+            embed = BotEmbed.error("Permission Denied", "I cannot mute this member. Ensure I have the **Moderate Members** permission and my role is above theirs.")
+        await interaction.response.send_message(embed=embed)
+
+    @app_commands.command(name="unmute", description="Remove a timeout from a member")
+    @app_commands.describe(member="Member to unmute")
+    @admin_only()
+    async def unmute(self, interaction: discord.Interaction, member: discord.Member):
+        if not member.is_timed_out():
+            embed = BotEmbed.warning("Not Muted", f"{member.mention} is not currently timed out.")
+            return await interaction.response.send_message(embed=embed, ephemeral=True)
+        try:
+            await member.timeout(None, reason="Unmute")
+            embed = BotEmbed.success("Member Unmuted", f"{member.mention} has been unmuted.")
+        except discord.Forbidden:
+            embed = BotEmbed.error("Permission Denied", "I cannot unmute this member. Check my role position and permissions.")
         await interaction.response.send_message(embed=embed)
 
     @app_commands.command(name="warn", description="Warn a member (log only)")
@@ -68,8 +82,11 @@ class Moderation(commands.Cog):
             embed = BotEmbed.error("Invalid Amount", "Please enter a number between 1 and 100.")
             return await interaction.response.send_message(embed=embed, ephemeral=True)
         await interaction.response.defer(ephemeral=True)
-        deleted = await interaction.channel.purge(limit=amount)
-        embed = BotEmbed.success("Messages Purged", f"Deleted {len(deleted)} messages.")
+        try:
+            deleted = await interaction.channel.purge(limit=amount)
+            embed = BotEmbed.success("Messages Purged", f"Deleted {len(deleted)} messages.")
+        except discord.Forbidden:
+            embed = BotEmbed.error("Missing Permissions", "I need the **Manage Messages** permission to purge.")
         await interaction.followup.send(embed=embed, ephemeral=True)
 
 async def setup(bot):
