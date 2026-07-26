@@ -8,12 +8,11 @@ BLUE_ACCENT = 0x60A5FA
 
 class HelpView(View):
     def __init__(self, bot: commands.Bot):
-        super().__init__(timeout=60)  # auto‑disable after 60 seconds
+        super().__init__(timeout=60)
         self.bot = bot
         self.current_page = 0
         self.message = None
 
-        # Modules list (Home + all categories)
         self.modules = [
             "🏠 Home",
             "🛡️ Security",
@@ -29,7 +28,6 @@ class HelpView(View):
             "⚡ Automations",
         ]
 
-        # Data for each module
         self.module_data = {
             "🏠 Home": {
                 "description": "Welcome to NeoMonster – your ultimate Discord security and community bot!",
@@ -122,7 +120,6 @@ class HelpView(View):
             },
         }
 
-        # Dropdown options (skip Home)
         self.dropdown_options = []
         for idx, module in enumerate(self.modules[1:]):
             emoji = module.split()[0]
@@ -143,7 +140,6 @@ class HelpView(View):
         self.select_menu.callback = self.select_callback
         self.add_item(self.select_menu)
 
-        # Navigation buttons
         self.add_item(NavButton("◀ First", "first", discord.ButtonStyle.secondary, 1))
         self.add_item(NavButton("⬅ Previous", "prev", discord.ButtonStyle.secondary, 1))
         self.add_item(NavButton("❌ Close", "close", discord.ButtonStyle.danger, 1))
@@ -167,7 +163,7 @@ class HelpView(View):
                 value=(
                     "**Server Prefix:** `/`\n"
                     "**Total Commands:** `65+`\n"
-                    "🌐 [Website](http://localhost:5000)\n"
+                    "🌐 [Website](https://neomonster1-production.up.railway.app/)\n"
                     "📧 coming soon"
                 ),
                 inline=False,
@@ -177,7 +173,6 @@ class HelpView(View):
                 value="```\n/help <command>\n/help moderation\n/help giveaway\n/help security\n```",
                 inline=False,
             )
-            # Categories list
             cat_lines = []
             for mod in self.modules[1:]:
                 emoji = mod.split()[0]
@@ -186,14 +181,10 @@ class HelpView(View):
                 cat_lines.append(f"{emoji} **{name}** – {desc}")
             embed.add_field(name="📂 Main Categories", value="\n".join(cat_lines), inline=False)
 
-        else:  # Category page
+        else:
             cmds = data.get("commands", [])
             if cmds:
-                embed.add_field(
-                    name="📋 Commands",
-                    value="\n".join(cmds),
-                    inline=False,
-                )
+                embed.add_field(name="📋 Commands", value="\n".join(cmds), inline=False)
             else:
                 embed.add_field(name="📋 Commands", value="No commands available yet.", inline=False)
 
