@@ -19,6 +19,7 @@ class SecurityBot(commands.Bot):
         intents.members = True
         intents.guilds = True
         intents.bans = True
+        intents.voice_states = True
         super().__init__(command_prefix="/", intents=intents)
         self.owner_ids = set(map(int, os.getenv("OWNER_IDS", "").split(",")))
 
