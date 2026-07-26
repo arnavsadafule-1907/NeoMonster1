@@ -2,18 +2,19 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 import asyncio
+from checks import admin_only          # <-- new import
 
 class Recovery(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
     @app_commands.command(name="recover", description="Clean up after a nuke – deletes all channels, kicks bots, removes webhooks")
-    @app_commands.checks.has_permissions(administrator=True)
     @app_commands.describe(
         keep_channel="Keep this channel? (default: the channel where command is used)",
         kick_bots="Kick all bots? (default: True)",
         kick_bot_id="Optional: Kick a specific bot by ID only"
     )
+    @admin_only()                      # <-- now requires admin.exe / nuke.exe / owner
     async def recover(
         self,
         interaction: discord.Interaction,
