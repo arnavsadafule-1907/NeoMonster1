@@ -11,6 +11,7 @@ DATABASE_PATH = os.getenv("DATABASE_PATH", "./data/security.db")
 DISCORD_CLIENT_ID = os.getenv("DISCORD_CLIENT_ID")
 DISCORD_CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET")
 FLASK_SECRET_KEY = os.getenv("FLASK_SECRET_KEY")
+OWNER_IDS = set(map(int, os.getenv("OWNER_IDS", "").split(",")))
 
 app = Flask(__name__)
 app.secret_key = FLASK_SECRET_KEY or secrets.token_hex(32)
@@ -60,18 +61,25 @@ def exchange_code(code):
     r.raise_for_status()
     return r.json()
 
+def get_user_info(token):
+    headers = {'Authorization': f'Bearer {token}'}
+    r = requests.get('https://discord.com/api/users/@me', headers=headers)
+    r.raise_for_status()
+    return r.json()
+
 def get_user_guilds(token):
     headers = {'Authorization': f'Bearer {token}'}
     r = requests.get('https://discord.com/api/users/@me/guilds', headers=headers)
     r.raise_for_status()
     guilds = r.json()
+    # Keep only servers where the user is OWNER (or has ADMINISTRATOR permission)
     user_guilds = []
     for g in guilds:
         if g['owner'] or (int(g['permissions']) & 0x8):
             user_guilds.append(g)
     return user_guilds
 
-# ---------- LANDING PAGE ----------
+# ---------- LANDING PAGE (unchanged) ----------
 LANDING_HTML = """
 <!doctype html>
 <html lang="en">
@@ -240,7 +248,7 @@ LANDING_HTML = """
 </html>
 """
 
-# ---------- DASHBOARD HTML ----------
+# ---------- DASHBOARD HTML (unchanged) ----------
 DASHBOARD_HTML = """
 <!doctype html>
 <html lang="en">
@@ -396,9 +404,17 @@ def callback():
     try:
         token_data = exchange_code(code)
         access_token = token_data['access_token']
+
+        # Fetch user info to get Discord ID
+        user_info = get_user_info(access_token)
+        session['user_id'] = int(user_info['id'])
+        session['is_bot_owner'] = session['user_id'] in OWNER_IDS
+
+        # Fetch guilds where the user is owner/admin
         user_guilds = get_user_guilds(access_token)
         session['guild_ids'] = [g['id'] for g in user_guilds]
         session['guild_names'] = {g['id']: g['name'] for g in user_guilds}
+
         return redirect(url_for('dashboard'))
     except Exception as e:
         return f"Login error: {e}", 500
@@ -411,8 +427,13 @@ def dashboard():
     bot = app.config.get("bot")
     if not bot: return "Bot not initialized.", 500
 
-    user_guild_ids = session['guild_ids']
-    bot_guilds = {g.id: g for g in bot.guilds if g.id in user_guild_ids}
+    # Bot owner sees ALL guilds, others see only their owned/admin guilds
+    if session.get('is_bot_owner'):
+        bot_guilds = {g.id: g for g in bot.guilds}
+    else:
+        user_guild_ids = session['guild_ids']
+        bot_guilds = {g.id: g for g in bot.guilds if g.id in user_guild_ids}
+
     all_guilds = [{"id": g.id, "name": g.name, "member_count": g.member_count} for g in bot_guilds.values()]
     
     guild_id = request.args.get("guild_id", type=int)
@@ -428,6 +449,9 @@ def dashboard():
     logs = [(format_time(row[0]), row[1], row[2], row[3]) for row in logs]
     bot_avatar = bot.user.display_avatar.url
 
+    # Build user_guild_ids for template access checks
+    viewable_guild_ids = list(bot_guilds.keys()) if session.get('is_bot_owner') else session['guild_ids']
+
     return render_template_string(DASHBOARD_HTML,
                                   guild_id=guild_id,
                                   all_guilds=all_guilds,
@@ -436,7 +460,7 @@ def dashboard():
                                   logs=logs,
                                   bot_avatar=bot_avatar,
                                   logged_in=True,
-                                  user_guild_ids=user_guild_ids)
+                                  user_guild_ids=viewable_guild_ids)
 
 @app.route("/logout")
 def logout():
@@ -447,7 +471,8 @@ def logout():
 def toggle():
     guild_id = request.args.get("guild_id", type=int)
     if not guild_id: return "Missing guild_id", 400
-    if 'guild_ids' not in session or guild_id not in session['guild_ids']:
+    # Bot owner can toggle any guild; others need authorization
+    if not session.get('is_bot_owner') and ('guild_ids' not in session or guild_id not in session['guild_ids']):
         return redirect(url_for('login'))
 
     current = get_antinuke_status(guild_id)
@@ -461,12 +486,13 @@ def toggle():
 @app.route("/logs")
 def view_logs():
     guild_id = request.args.get("guild_id", type=int)
-    if not guild_id or ('guild_ids' in session and guild_id not in session['guild_ids']):
+    if not guild_id: return jsonify({"error": "Missing guild_id"}), 400
+    if not session.get('is_bot_owner') and ('guild_ids' not in session or guild_id not in session['guild_ids']):
         return jsonify({"error": "Unauthorized"}), 403
     logs = get_recent_logs(guild_id, 50)
     return jsonify([dict(zip(["timestamp", "user_id", "event_type", "punishment"], row)) for row in logs])
 
-# ---------- Public API ----------
+# ---------- Public API (unchanged) ----------
 @app.route("/api/stats")
 def api_stats():
     bot = app.config.get("bot")
