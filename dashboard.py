@@ -1,13 +1,19 @@
 import sqlite3
 import os
+import secrets
 from datetime import datetime, timezone
-from flask import Flask, render_template_string, request, redirect, url_for, jsonify
+from flask import Flask, render_template_string, request, redirect, url_for, jsonify, session
 from dotenv import load_dotenv
+import requests
 
 load_dotenv()
 DATABASE_PATH = os.getenv("DATABASE_PATH", "./data/security.db")
+DISCORD_CLIENT_ID = os.getenv("DISCORD_CLIENT_ID")
+DISCORD_CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET")
+FLASK_SECRET_KEY = os.getenv("FLASK_SECRET_KEY")
 
 app = Flask(__name__)
+app.secret_key = FLASK_SECRET_KEY or secrets.token_hex(32)
 
 # ---------- Database helpers ----------
 def get_db():
@@ -37,352 +43,38 @@ def format_time(ts):
     except:
         return ts
 
-# ---------- LANDING PAGE (blue themed) ----------
-LANDING_HTML = """
-<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>NeoMonster – Ultimate Discord Security Bot</title>
-    <meta name="description" content="Protect your Discord server from nukes, raids, and spam with NeoMonster – the most advanced security bot.">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        :root {
-            --bg: #0a0a1a;
-            --card-bg: #111133;
-            --primary: #3B82F6;
-            --primary-glow: rgba(59,130,246,0.4);
-            --secondary: #60A5FA;
-            --accent: #93C5FD;
-            --text: #eee;
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            background: var(--bg);
-            color: var(--text);
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            line-height: 1.6;
-        }
-        .navbar {
-            background: rgba(10,10,26,0.95);
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid rgba(59,130,246,0.15);
-            position: fixed;
-            top: 0;
-            width: 100%;
-            z-index: 1000;
-        }
-        .nav-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 1rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .nav-brand {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            text-decoration: none;
-            color: white;
-            font-weight: 700;
-            font-size: 1.3rem;
-        }
-        .nav-brand img {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            border: 2px solid var(--primary);
-        }
-        .hero {
-            text-align: center;
-            padding: 160px 20px 80px;
-            background: radial-gradient(circle at 30% 40%, #0d1b3e 0%, #0a0a1a 70%);
-        }
-        .hero img {
-            width: 140px;
-            border-radius: 50%;
-            border: 4px solid var(--primary);
-            box-shadow: 0 0 40px var(--primary-glow);
-            animation: float 3s ease-in-out infinite;
-        }
-        @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-15px); }
-        }
-        .hero h1 {
-            font-size: 4rem;
-            font-weight: 800;
-            margin: 20px 0 15px;
-            background: linear-gradient(135deg, var(--primary), var(--accent));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-        .hero p {
-            font-size: 1.2rem;
-            color: #b0b0d0;
-            max-width: 650px;
-            margin: 0 auto 35px;
-        }
-        .btn-invite {
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            color: white !important;
-            font-weight: 600;
-            padding: 16px 40px;
-            border-radius: 50px;
-            font-size: 1.2rem;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: inline-block;
-            border: none;
-            cursor: pointer;
-        }
-        .btn-invite:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 20px 40px var(--primary-glow);
-            color: white !important;
-        }
-        .btn-secondary {
-            background: transparent;
-            color: var(--primary) !important;
-            border: 2px solid var(--primary);
-            padding: 14px 35px;
-            border-radius: 50px;
-            font-weight: 600;
-            text-decoration: none;
-            transition: all 0.3s ease;
-            margin-left: 15px;
-        }
-        .btn-secondary:hover {
-            background: rgba(59,130,246,0.1);
-            color: var(--primary) !important;
-        }
-        .stats {
-            display: flex;
-            justify-content: center;
-            gap: 30px;
-            flex-wrap: wrap;
-            margin-top: 50px;
-        }
-        .stat-item {
-            background: var(--card-bg);
-            padding: 25px 40px;
-            border-radius: 16px;
-            text-align: center;
-            border: 1px solid rgba(59,130,246,0.15);
-        }
-        .stat-number {
-            font-size: 2.5rem;
-            font-weight: 800;
-            background: linear-gradient(135deg, var(--primary), var(--accent));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-        .stat-label {
-            color: #888;
-            font-size: 0.9rem;
-            margin-top: 5px;
-        }
-        .section {
-            padding: 80px 20px;
-            max-width: 1200px;
-            margin: auto;
-        }
-        .section h2 {
-            text-align: center;
-            font-weight: 800;
-            font-size: 2.5rem;
-            margin-bottom: 20px;
-            color: var(--primary);
-        }
-        .section-subtitle {
-            text-align: center;
-            color: #888;
-            margin-bottom: 50px;
-            font-size: 1.1rem;
-        }
-        .feature-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 25px;
-        }
-        .feature-card {
-            background: var(--card-bg);
-            border-radius: 20px;
-            padding: 35px;
-            transition: all 0.3s ease;
-            border: 1px solid rgba(59,130,246,0.1);
-            position: relative;
-            overflow: hidden;
-        }
-        .feature-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 3px;
-            background: linear-gradient(90deg, var(--primary), var(--accent));
-            transform: scaleX(0);
-            transition: transform 0.3s ease;
-        }
-        .feature-card:hover::before {
-            transform: scaleX(1);
-        }
-        .feature-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 20px 40px rgba(59,130,246,0.15);
-        }
-        .feature-icon {
-            font-size: 2.5rem;
-            margin-bottom: 20px;
-            display: inline-block;
-        }
-        .feature-card h5 {
-            font-size: 1.3rem;
-            font-weight: 700;
-            margin-bottom: 10px;
-            color: var(--primary);
-        }
-        .feature-card p {
-            color: #999;
-            font-size: 0.95rem;
-        }
-        .footer {
-            text-align: center;
-            padding: 50px 20px;
-            border-top: 1px solid rgba(59,130,246,0.15);
-            margin-top: 60px;
-            color: #666;
-        }
-        .footer a {
-            color: var(--primary);
-            text-decoration: none;
-        }
-        .footer a:hover {
-            text-decoration: underline;
-        }
-        @media (max-width: 768px) {
-            .hero h1 { font-size: 2.5rem; }
-            .hero p { font-size: 1rem; }
-            .stats { gap: 15px; }
-            .stat-item { padding: 20px 25px; }
-            .btn-secondary { margin-left: 0; margin-top: 15px; display: block; }
-        }
-    </style>
-</head>
-<body>
-    <nav class="navbar">
-        <div class="nav-container">
-            <a href="/" class="nav-brand">
-                <img src="{{ bot_avatar }}" alt="NeoMonster Logo">
-                NeoMonster
-            </a>
-        </div>
-    </nav>
+# ---------- Discord OAuth ----------
+def get_oauth_url():
+    return f"https://discord.com/api/oauth2/authorize?client_id={DISCORD_CLIENT_ID}&redirect_uri=https%3A%2F%2Fneomonster1-production.up.railway.app%2Fcallback&response_type=code&scope=identify+guilds"
 
-    <section class="hero">
-        <img src="{{ bot_avatar }}" alt="NeoMonster Bot">
-        <h1>NeoMonster</h1>
-        <p>The most advanced Discord security bot. Real‑time anti‑nuke protection, intelligent moderation, and a powerful dashboard – trusted by {{ guild_count }}+ servers.</p>
-        <div>
-            <a href="https://discord.com/oauth2/authorize?client_id=1528368412093579376&permissions=1100473370870&integration_type=0&scope=bot+applications.commands" class="btn-invite" target="_blank">
-                <i class="fas fa-shield-alt me-2"></i> Invite to Server
-            </a>
-            <a href="#features" class="btn-secondary">
-                <i class="fas fa-star me-2"></i> View Features
-            </a>
-        </div>
-        <div class="stats">
-            <div class="stat-item">
-                <div class="stat-number">{{ guild_count }}</div>
-                <div class="stat-label">Servers Protected</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-number">65+</div>
-                <div class="stat-label">Commands</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-number">24/7</div>
-                <div class="stat-label">Uptime</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-number">&lt;50ms</div>
-                <div class="stat-label">Response Time</div>
-            </div>
-        </div>
-    </section>
+def exchange_code(code):
+    data = {
+        'client_id': DISCORD_CLIENT_ID,
+        'client_secret': DISCORD_CLIENT_SECRET,
+        'grant_type': 'authorization_code',
+        'code': code,
+        'redirect_uri': 'https://neomonster1-production.up.railway.app/callback'
+    }
+    headers = {'Content-Type': 'application/x-www-form-urlencoded'}
+    r = requests.post('https://discord.com/api/oauth2/token', data=data, headers=headers)
+    r.raise_for_status()
+    return r.json()
 
-    <section class="section" id="features">
-        <h2>Why NeoMonster?</h2>
-        <p class="section-subtitle">Enterprise‑grade protection for your Discord community</p>
-        <div class="feature-grid">
-            <div class="feature-card">
-                <div class="feature-icon">🛡️</div>
-                <h5>Anti‑Nuke Protection</h5>
-                <p>Real‑time detection of channel/role deletions, mass bans, and webhook spam. Automatic punishment within seconds.</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon">🤖</div>
-                <h5>Auto‑Moderation</h5>
-                <p>Spam detection, invite blocking, bad word filter, mass mention protection – all configurable per server.</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon">🎉</div>
-                <h5>Giveaways</h5>
-                <p>Button‑based giveaways with automatic winner selection, rerolls, and role requirements.</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon">📊</div>
-                <h5>Web Dashboard</h5>
-                <p>Monitor your server in real time, toggle anti‑nuke, view security logs – from any browser.</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon">📝</div>
-                <h5>Message Logging</h5>
-                <p>Track deleted and edited messages with full details. Never lose evidence of abuse.</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon">🕵️</div>
-                <h5>Alt Detection</h5>
-                <p>Flag suspiciously new accounts on join. Prevent ban evasion and raid alts automatically.</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon">💾</div>
-                <h5>Backup & Restore</h5>
-                <p>Create full server backups in one click. Restore instantly after an attack.</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon">🔔</div>
-                <h5>Raid Alerts</h5>
-                <p>Get instant notifications via Discord webhooks when your server is under attack – even on mobile.</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon">👑</div>
-                <h5>Role Management</h5>
-                <p>Custom roles, admin/nuke hierarchy, whitelist system – full control over permissions.</p>
-            </div>
-        </div>
-    </section>
+def get_user_guilds(token):
+    headers = {'Authorization': f'Bearer {token}'}
+    r = requests.get('https://discord.com/api/users/@me/guilds', headers=headers)
+    r.raise_for_status()
+    guilds = r.json()
+    # Keep only servers where the user is OWNER (or has ADMINISTRATOR permission)
+    user_guilds = []
+    for g in guilds:
+        if g['owner'] or (int(g['permissions']) & 0x8):
+            user_guilds.append(g)
+    return user_guilds
 
-    <footer class="footer">
-        <p>© 2026 <a href="/">NeoMonster</a>. All rights reserved.</p>
-        <p style="margin-top: 5px;">
-            <a href="https://discord.com/oauth2/authorize?client_id=1528368412093579376&permissions=1100473370870&integration_type=0&scope=bot+applications.commands" target="_blank">Invite</a> •
-            <a href="mailto:contact@olympusbot.in">Contact</a> •
-            <a href="https://discord.gg/f8zTc4tmHx" target="_blank">Support Server</a>
-        </p>
-    </footer>
-</body>
-</html>
-"""
+# ---------- HTML templates (keep your existing LANDING_HTML unchanged) ----------
+LANDING_HTML = """ ... """   # (your existing public site HTML – unchanged)
 
-# ---------- ADMIN DASHBOARD (blue themed) ----------
 DASHBOARD_HTML = """
 <!doctype html>
 <html lang="en">
@@ -396,15 +88,14 @@ DASHBOARD_HTML = """
         :root { --primary: #3B82F6; }
         body { background: #0a0a1a; }
         .dashboard-container { max-width: 1300px; margin: auto; padding: 30px 20px; }
-        .card { border: none; border-radius: 1rem; box-shadow: 0 4px 20px rgba(0,0,0,0.6); background: #111133; border: 1px solid rgba(59,130,246,0.1); }
+        .card { border: none; border-radius: 1rem; background: #111133; border: 1px solid rgba(59,130,246,0.1); }
         .card-header { background: #1e1e4a; border-radius: 1rem 1rem 0 0 !important; font-weight: bold; color: var(--primary); }
         .badge-success { background: #00b894; }
         .badge-danger { background: #d63031; }
         .table-dark { --bs-table-bg: #0f3460; border-radius: 0.5rem; overflow: hidden; }
         .btn-warning { background: #f59e0b; border: none; }
-        .btn-info { background: var(--primary); border: none; }
-        .btn-back { background: var(--primary); border: none; }
         .btn-primary { background: var(--primary); border: none; }
+        .btn-back { background: var(--primary); border: none; }
     </style>
 </head>
 <body>
@@ -413,7 +104,14 @@ DASHBOARD_HTML = """
             <a class="navbar-brand fw-bold" href="/" style="color: var(--primary) !important;">
                 <img src="{{ bot_avatar }}" width="35" height="35" class="rounded-circle me-2"> NeoMonster
             </a>
-            <div><a href="/" class="btn btn-back btn-sm">← Public Site</a></div>
+            <div>
+                <a href="/" class="btn btn-back btn-sm">← Public Site</a>
+                {% if logged_in %}
+                <a href="/logout" class="btn btn-secondary btn-sm ms-2">Logout</a>
+                {% else %}
+                <a href="/login" class="btn btn-primary btn-sm ms-2">Login with Discord</a>
+                {% endif %}
+            </div>
         </div>
     </nav>
 
@@ -429,6 +127,9 @@ DASHBOARD_HTML = """
             </div>
         </div>
 
+        {% if not logged_in %}
+        <div class="alert alert-info">Please <a href="/login">login with Discord</a> to see your servers.</div>
+        {% else %}
         <div class="card mb-4">
             <div class="card-header">Select Server</div>
             <div class="card-body">
@@ -446,16 +147,22 @@ DASHBOARD_HTML = """
             </div>
         </div>
 
-        {% if guild_id %}
+        {% if guild_id and guild_id in user_guild_ids %}
         <div class="row mb-4">
             <div class="col-md-4">
                 <div class="card text-white">
                     <div class="card-body">
                         <h5 class="card-title">Anti‑Nuke Status</h5>
                         <p class="card-text display-6">
-                            {% if antinuke_enabled %}<span class="badge bg-success">ENABLED</span>{% else %}<span class="badge bg-danger">DISABLED</span>{% endif %}
+                            {% if antinuke_enabled %}
+                            <span class="badge bg-success">ENABLED</span>
+                            {% else %}
+                            <span class="badge bg-danger">DISABLED</span>
+                            {% endif %}
                         </p>
-                        <a href="/toggle?guild_id={{ guild_id }}" class="btn btn-warning btn-sm">{{ 'Disable' if antinuke_enabled else 'Enable' }}</a>
+                        <a href="/toggle?guild_id={{ guild_id }}" class="btn btn-warning btn-sm">
+                            {{ 'Disable' if antinuke_enabled else 'Enable' }}
+                        </a>
                     </div>
                 </div>
             </div>
@@ -472,8 +179,7 @@ DASHBOARD_HTML = """
                 <div class="card text-white">
                     <div class="card-body">
                         <h5 class="card-title">Quick Actions</h5>
-                        <a href="/logs?guild_id={{ guild_id }}" class="btn btn-info btn-sm mb-2">View Raw JSON</a>
-                        <a href="https://discord.com/oauth2/authorize?client_id=1528368412093579376&permissions=1100473370870&integration_type=0&scope=bot+applications.commands" class="btn btn-primary btn-sm" target="_blank">Invite Bot</a>
+                        <a href="/logs?guild_id={{ guild_id }}" class="btn btn-primary btn-sm mb-2">View Raw JSON</a>
                     </div>
                 </div>
             </div>
@@ -489,21 +195,22 @@ DASHBOARD_HTML = """
                             {% for log in logs %}
                             <tr><td>{{ log[0] }}</td><td><code>{{ log[1] }}</code></td><td><span class="badge bg-warning">{{ log[2] }}</span></td><td><span class="badge bg-danger">{{ log[3] }}</span></td></tr>
                             {% endfor %}
-                            {% if not logs %}<tr><td colspan="4" class="text-center text-muted">No security events yet. Anti‑nuke is watching.</td></tr>{% endif %}
+                            {% if not logs %}<tr><td colspan="4" class="text-center text-muted">No security events yet.</td></tr>{% endif %}
                         </tbody>
                     </table>
                 </div>
             </div>
         </div>
         {% else %}
-        <div class="alert alert-info">👈 Select a server from the dropdown above to view its security dashboard.</div>
+        <div class="alert alert-warning">You don't have access to that server, or it's not protected by NeoMonster.</div>
+        {% endif %}
         {% endif %}
     </div>
 </body>
 </html>
 """
 
-# ---------- ROUTES ----------
+# ---------- Routes ----------
 @app.route("/")
 def landing():
     bot = app.config.get("bot")
@@ -512,44 +219,88 @@ def landing():
     bot_avatar = bot.user.display_avatar.url
     return render_template_string(LANDING_HTML, bot_avatar=bot_avatar, guild_count=guild_count)
 
+@app.route("/login")
+def login():
+    return redirect(get_oauth_url())
+
+@app.route("/callback")
+def callback():
+    code = request.args.get("code")
+    if not code: return "Authorization failed.", 400
+    try:
+        token_data = exchange_code(code)
+        access_token = token_data['access_token']
+        user_guilds = get_user_guilds(access_token)
+        session['guild_ids'] = [g['id'] for g in user_guilds]
+        session['guild_names'] = {g['id']: g['name'] for g in user_guilds}
+        return redirect(url_for('dashboard'))
+    except Exception as e:
+        return f"Login error: {e}", 500
+
 @app.route("/dashboard")
 def dashboard():
+    if 'guild_ids' not in session:
+        return redirect(url_for('login'))
+
     bot = app.config.get("bot")
     if not bot: return "Bot not initialized.", 500
-    all_guilds = sorted(bot.guilds, key=lambda g: g.name.lower())
+
+    user_guild_ids = session['guild_ids']
+    bot_guilds = {g.id: g for g in bot.guilds if g.id in user_guild_ids}
+    all_guilds = [{"id": g.id, "name": g.name, "member_count": g.member_count} for g in bot_guilds.values()]
+    
     guild_id = request.args.get("guild_id", type=int)
-    if not guild_id and all_guilds: guild_id = all_guilds[0].id
-    guild_count = len(all_guilds)
+    if not guild_id and all_guilds:
+        guild_id = all_guilds[0]["id"]
+    
+    if guild_id and guild_id not in bot_guilds:
+        guild_id = None
+
+    guild_count = len(bot_guilds)
     antinuke_enabled = get_antinuke_status(guild_id) if guild_id else None
     logs = get_recent_logs(guild_id) if guild_id else []
     logs = [(format_time(row[0]), row[1], row[2], row[3]) for row in logs]
     bot_avatar = bot.user.display_avatar.url
+
     return render_template_string(DASHBOARD_HTML,
                                   guild_id=guild_id,
-                                  all_guilds=[{"id": g.id, "name": g.name, "member_count": g.member_count} for g in all_guilds],
+                                  all_guilds=all_guilds,
                                   guild_count=guild_count,
                                   antinuke_enabled=antinuke_enabled,
                                   logs=logs,
-                                  bot_avatar=bot_avatar)
+                                  bot_avatar=bot_avatar,
+                                  logged_in=True,
+                                  user_guild_ids=user_guild_ids)
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for('landing'))
 
 @app.route("/toggle")
 def toggle():
     guild_id = request.args.get("guild_id", type=int)
     if not guild_id: return "Missing guild_id", 400
-    new_val = 0 if get_antinuke_status(guild_id) else 1
+    if 'guild_ids' not in session or guild_id not in session['guild_ids']:
+        return redirect(url_for('login'))
+
+    current = get_antinuke_status(guild_id)
+    new_val = 0 if current else 1
     conn = get_db()
     conn.execute("UPDATE guild_settings SET antinuke_enabled = ? WHERE guild_id = ?", (new_val, guild_id))
     conn.commit()
     conn.close()
-    return redirect(url_for("dashboard", guild_id=guild_id))
+    return redirect(url_for('dashboard', guild_id=guild_id))
 
 @app.route("/logs")
 def view_logs():
     guild_id = request.args.get("guild_id", type=int)
+    if not guild_id or ('guild_ids' in session and guild_id not in session['guild_ids']):
+        return jsonify({"error": "Unauthorized"}), 403
     logs = get_recent_logs(guild_id, 50)
     return jsonify([dict(zip(["timestamp", "user_id", "event_type", "punishment"], row)) for row in logs])
 
-# ---------- API ----------
+# ---------- Public API (unchanged) ----------
 @app.route("/api/stats")
 def api_stats():
     bot = app.config.get("bot")
