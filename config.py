@@ -42,7 +42,7 @@ class Config(commands.GroupCog, name="antinuke"):
         embed.add_field(name="/antinuke quarantine-role", value="Set the quarantine role", inline=False)
         embed.add_field(name="/antinuke logchannel", value="Set the alert log channel", inline=False)
         embed.add_field(name="/antinuke emergency", value="Lockdown / kick nuker", inline=False)
-        embed.add_field(name="/antinuke whitelist", value="Manage immune users/roles", inline=False)
+        embed.add_field(name="/antinuke whitelist", value="Manage immune users/roles (nuke only)", inline=False)
         embed.set_footer(text="Use /help for the full bot command list")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
@@ -225,12 +225,12 @@ class Config(commands.GroupCog, name="antinuke"):
         embed = BotEmbed.success("Log Channel Set", f"Alerts will be sent to {channel.mention}.")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    # ---------- Whitelist group (admin only) ----------
+    # ---------- Whitelist group (nuke only) ----------
     whitelist_group = app_commands.Group(name="whitelist", description="Manage anti‑nuke whitelist")
 
     @whitelist_group.command(name="add", description="Add a user or role to the whitelist")
     @app_commands.describe(user="User to whitelist", role="Role to whitelist")
-    @admin_only()
+    @nuke_only()   # <-- changed from admin_only
     async def whitelist_add(self, interaction: discord.Interaction, user: discord.User = None, role: discord.Role = None):
         if not user and not role:
             return await interaction.response.send_message(embed=BotEmbed.error("Missing Target", "Provide a user or role."), ephemeral=True)
@@ -248,7 +248,7 @@ class Config(commands.GroupCog, name="antinuke"):
 
     @whitelist_group.command(name="remove", description="Remove from whitelist")
     @app_commands.describe(user="User to remove", role="Role to remove")
-    @admin_only()
+    @nuke_only()   # <-- changed from admin_only
     async def whitelist_remove(self, interaction: discord.Interaction, user: discord.User = None, role: discord.Role = None):
         if not user and not role:
             return await interaction.response.send_message(embed=BotEmbed.error("Missing Target", "Provide a user or role."), ephemeral=True)
@@ -262,7 +262,7 @@ class Config(commands.GroupCog, name="antinuke"):
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @whitelist_group.command(name="list", description="Show current whitelist")
-    @admin_only()
+    @nuke_only()   # <-- changed from admin_only
     async def whitelist_list(self, interaction: discord.Interaction):
         async with aiosqlite.connect(self.db_path) as db:
             db.row_factory = aiosqlite.Row
