@@ -65,16 +65,182 @@ def get_user_guilds(token):
     r = requests.get('https://discord.com/api/users/@me/guilds', headers=headers)
     r.raise_for_status()
     guilds = r.json()
-    # Keep only servers where the user is OWNER (or has ADMINISTRATOR permission)
     user_guilds = []
     for g in guilds:
         if g['owner'] or (int(g['permissions']) & 0x8):
             user_guilds.append(g)
     return user_guilds
 
-# ---------- HTML templates (keep your existing LANDING_HTML unchanged) ----------
-LANDING_HTML = """ ... """   # (your existing public site HTML – unchanged)
+# ---------- LANDING PAGE ----------
+LANDING_HTML = """
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>NeoMonster – Ultimate Discord Security Bot</title>
+    <meta name="description" content="Protect your Discord server from nukes, raids, and spam with NeoMonster – the most advanced security bot.">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg: #0a0a1a;
+            --card-bg: #111133;
+            --primary: #3B82F6;
+            --primary-glow: rgba(59,130,246,0.4);
+            --secondary: #60A5FA;
+            --accent: #93C5FD;
+            --text: #eee;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; line-height: 1.6; }
+        .navbar { background: rgba(10,10,26,0.95); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(59,130,246,0.15); position: fixed; top: 0; width: 100%; z-index: 1000; }
+        .nav-container { max-width: 1200px; margin: 0 auto; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+        .nav-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: white; font-weight: 700; font-size: 1.3rem; }
+        .nav-brand img { width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--primary); }
+        .hero { text-align: center; padding: 160px 20px 80px; background: radial-gradient(circle at 30% 40%, #0d1b3e 0%, #0a0a1a 70%); }
+        .hero img { width: 140px; border-radius: 50%; border: 4px solid var(--primary); box-shadow: 0 0 40px var(--primary-glow); animation: float 3s ease-in-out infinite; }
+        @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
+        .hero h1 { font-size: 4rem; font-weight: 800; margin: 20px 0 15px; background: linear-gradient(135deg, var(--primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .hero p { font-size: 1.2rem; color: #b0b0d0; max-width: 650px; margin: 0 auto 35px; }
+        .btn-invite { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white !important; font-weight: 600; padding: 16px 40px; border-radius: 50px; font-size: 1.2rem; transition: all 0.3s ease; text-decoration: none; display: inline-block; border: none; cursor: pointer; }
+        .btn-invite:hover { transform: translateY(-3px); box-shadow: 0 20px 40px var(--primary-glow); color: white !important; }
+        .btn-secondary { background: transparent; color: var(--primary) !important; border: 2px solid var(--primary); padding: 14px 35px; border-radius: 50px; font-weight: 600; text-decoration: none; transition: all 0.3s ease; margin-left: 15px; }
+        .btn-secondary:hover { background: rgba(59,130,246,0.1); color: var(--primary) !important; }
+        .stats { display: flex; justify-content: center; gap: 30px; flex-wrap: wrap; margin-top: 50px; }
+        .stat-item { background: var(--card-bg); padding: 25px 40px; border-radius: 16px; text-align: center; border: 1px solid rgba(59,130,246,0.15); }
+        .stat-number { font-size: 2.5rem; font-weight: 800; background: linear-gradient(135deg, var(--primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .stat-label { color: #888; font-size: 0.9rem; margin-top: 5px; }
+        .section { padding: 80px 20px; max-width: 1200px; margin: auto; }
+        .section h2 { text-align: center; font-weight: 800; font-size: 2.5rem; margin-bottom: 20px; color: var(--primary); }
+        .section-subtitle { text-align: center; color: #888; margin-bottom: 50px; font-size: 1.1rem; }
+        .feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 25px; }
+        .feature-card { background: var(--card-bg); border-radius: 20px; padding: 35px; transition: all 0.3s; border: 1px solid rgba(59,130,246,0.1); position: relative; overflow: hidden; }
+        .feature-card::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 3px; background: linear-gradient(90deg, var(--primary), var(--accent)); transform: scaleX(0); transition: transform 0.3s ease; }
+        .feature-card:hover::before { transform: scaleX(1); }
+        .feature-card:hover { transform: translateY(-8px); box-shadow: 0 20px 40px rgba(59,130,246,0.15); }
+        .feature-icon { font-size: 2.5rem; margin-bottom: 20px; display: inline-block; }
+        .feature-card h5 { font-size: 1.3rem; font-weight: 700; margin-bottom: 10px; color: var(--primary); }
+        .feature-card p { color: #999; font-size: 0.95rem; }
+        .footer { text-align: center; padding: 50px 20px; border-top: 1px solid rgba(59,130,246,0.15); margin-top: 60px; color: #666; }
+        .footer a { color: var(--primary); text-decoration: none; }
+        .footer a:hover { text-decoration: underline; }
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 2.5rem; }
+            .hero p { font-size: 1rem; }
+            .stats { gap: 15px; }
+            .stat-item { padding: 20px 25px; }
+            .btn-secondary { margin-left: 0; margin-top: 15px; display: block; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="nav-brand">
+                <img src="{{ bot_avatar }}" alt="NeoMonster Logo">
+                NeoMonster
+            </a>
+        </div>
+    </nav>
 
+    <section class="hero">
+        <img src="{{ bot_avatar }}" alt="NeoMonster Bot">
+        <h1>NeoMonster</h1>
+        <p>The most advanced Discord security bot. Real‑time anti‑nuke protection, intelligent moderation, and a powerful dashboard – trusted by {{ guild_count }}+ servers.</p>
+        <div>
+            <a href="https://discord.com/oauth2/authorize?client_id=1528368412093579376&permissions=1100473370870&integration_type=0&scope=bot+applications.commands" class="btn-invite" target="_blank">
+                <i class="fas fa-shield-alt me-2"></i> Invite to Server
+            </a>
+            <a href="#features" class="btn-secondary">
+                <i class="fas fa-star me-2"></i> View Features
+            </a>
+        </div>
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-number">{{ guild_count }}</div>
+                <div class="stat-label">Servers Protected</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">65+</div>
+                <div class="stat-label">Commands</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">24/7</div>
+                <div class="stat-label">Uptime</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">&lt;50ms</div>
+                <div class="stat-label">Response Time</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section" id="features">
+        <h2>Why NeoMonster?</h2>
+        <p class="section-subtitle">Enterprise‑grade protection for your Discord community</p>
+        <div class="feature-grid">
+            <div class="feature-card">
+                <div class="feature-icon">🛡️</div>
+                <h5>Anti‑Nuke Protection</h5>
+                <p>Real‑time detection of channel/role deletions, mass bans, and webhook spam. Automatic punishment within seconds.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🤖</div>
+                <h5>Auto‑Moderation</h5>
+                <p>Spam detection, invite blocking, bad word filter, mass mention protection – all configurable per server.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🎉</div>
+                <h5>Giveaways</h5>
+                <p>Button‑based giveaways with automatic winner selection, rerolls, and role requirements.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📊</div>
+                <h5>Web Dashboard</h5>
+                <p>Monitor your server in real time, toggle anti‑nuke, view security logs – from any browser.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📝</div>
+                <h5>Message Logging</h5>
+                <p>Track deleted and edited messages with full details. Never lose evidence of abuse.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🕵️</div>
+                <h5>Alt Detection</h5>
+                <p>Flag suspiciously new accounts on join. Prevent ban evasion and raid alts automatically.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">💾</div>
+                <h5>Backup & Restore</h5>
+                <p>Create full server backups in one click. Restore instantly after an attack.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🔔</div>
+                <h5>Raid Alerts</h5>
+                <p>Get instant notifications via Discord webhooks when your server is under attack – even on mobile.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">👑</div>
+                <h5>Role Management</h5>
+                <p>Custom roles, admin/nuke hierarchy, whitelist system – full control over permissions.</p>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <p>© 2026 <a href="/">NeoMonster</a>. All rights reserved.</p>
+        <p style="margin-top: 5px;">
+            <a href="https://discord.com/oauth2/authorize?client_id=1528368412093579376&permissions=1100473370870&integration_type=0&scope=bot+applications.commands" target="_blank">Invite</a> •
+            <a href="mailto:contact@olympusbot.in">Contact</a> •
+            <a href="https://discord.gg/f8zTc4tmHx" target="_blank">Support Server</a>
+        </p>
+    </footer>
+</body>
+</html>
+"""
+
+# ---------- DASHBOARD HTML ----------
 DASHBOARD_HTML = """
 <!doctype html>
 <html lang="en">
@@ -300,7 +466,7 @@ def view_logs():
     logs = get_recent_logs(guild_id, 50)
     return jsonify([dict(zip(["timestamp", "user_id", "event_type", "punishment"], row)) for row in logs])
 
-# ---------- Public API (unchanged) ----------
+# ---------- Public API ----------
 @app.route("/api/stats")
 def api_stats():
     bot = app.config.get("bot")
