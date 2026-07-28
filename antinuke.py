@@ -7,7 +7,7 @@ import time
 import json
 import logging
 import os
-from db import add_log  # new import
+from db import add_log
 
 logger = logging.getLogger("discord.cogs.antinuke")
 
@@ -145,8 +145,10 @@ class AntiNuke(commands.Cog):
             logger.error(f"Punishment failed for {user}: {e}")
 
     async def process_event(self, guild: discord.Guild, user: discord.Member, event_type: str):
-        if user.bot:
+        # 🛡️ ONLY ignore our own bot – all other bots (nuke bots) ARE punished
+        if user.id == self.bot.user.id:
             return
+
         settings = await self.get_guild_settings(guild.id)
         # ** Check if anti-nuke is enabled **
         if not settings.get("antinuke_enabled", 1):
