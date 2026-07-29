@@ -384,6 +384,34 @@ DASHBOARD_HTML = """
 </html>
 """
 
+# ---------- Debug route (NEW) ----------
+@app.route("/debug")
+def debug():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    bot = app.config.get("bot")
+    if not bot: return "Bot not initialized.", 500
+
+    token = session.get('access_token')
+    if token:
+        try:
+            user_guilds = get_user_guilds(token)
+            oauth_guilds = [{"id": g['id'], "name": g['name'], "owner": g['owner'], "permissions": g['permissions']} for g in user_guilds]
+        except:
+            oauth_guilds = "Failed to fetch"
+    else:
+        oauth_guilds = "No token"
+
+    bot_guilds = [{"id": g.id, "name": g.name} for g in bot.guilds]
+
+    return jsonify({
+        "your_discord_id": session['user_id'],
+        "is_bot_owner": session.get('is_bot_owner', False),
+        "owner_ids_in_env": list(OWNER_IDS),
+        "oauth_guilds": oauth_guilds,
+        "bot_guilds": bot_guilds
+    })
+
 # ---------- Routes ----------
 @app.route("/")
 def landing():
@@ -404,6 +432,8 @@ def callback():
     try:
         token_data = exchange_code(code)
         access_token = token_data['access_token']
+        # Store the access token so the debug route can use it
+        session['access_token'] = access_token
 
         # Fetch user info to get Discord ID
         user_info = get_user_info(access_token)
