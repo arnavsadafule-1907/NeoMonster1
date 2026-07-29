@@ -7,6 +7,7 @@ import time
 import json
 import logging
 import os
+from datetime import timedelta          # <-- fixed import
 from db import add_log
 
 logger = logging.getLogger("discord.cogs.antinuke")
@@ -94,7 +95,7 @@ class AntiNuke(commands.Cog):
                     await user.add_roles(quarantine_role, reason=reason)
                 else:
                     try:
-                        await user.timeout(discord.utils.utcnow() + discord.timedelta(hours=1), reason=reason)
+                        await user.timeout(discord.utils.utcnow() + timedelta(hours=1), reason=reason)  # <-- fixed
                     except:
                         pass
                 punishment_taken = "strip"
@@ -122,9 +123,7 @@ class AntiNuke(commands.Cog):
                 except:
                     pass
 
-            # ============================================================
-            # 🚨 RAID ALERT WEBHOOK INTEGRATION
-            # ============================================================
+            # Raid alert webhook integration
             raid_alert_cog = self.bot.get_cog("RaidAlert")
             if raid_alert_cog:
                 alert_embed = discord.Embed(
@@ -137,7 +136,6 @@ class AntiNuke(commands.Cog):
                 alert_embed.add_field(name="Punishment", value=punishment_taken, inline=True)
                 alert_embed.set_footer(text=f"Guild: {guild.name} ({guild.id})")
                 await raid_alert_cog.send_alert(guild.id, alert_embed)
-            # ============================================================
 
         except discord.Forbidden:
             logger.warning(f"Missing permissions to punish {user} in {guild}")
@@ -145,12 +143,11 @@ class AntiNuke(commands.Cog):
             logger.error(f"Punishment failed for {user}: {e}")
 
     async def process_event(self, guild: discord.Guild, user: discord.Member, event_type: str):
-        # 🛡️ ONLY ignore our own bot – all other bots (nuke bots) ARE punished
+        # Only ignore our own bot – all other bots (nuke bots) ARE punished
         if user.id == self.bot.user.id:
             return
 
         settings = await self.get_guild_settings(guild.id)
-        # ** Check if anti-nuke is enabled **
         if not settings.get("antinuke_enabled", 1):
             return
         if await self.is_whitelisted(guild, user):
