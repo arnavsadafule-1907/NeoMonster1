@@ -183,8 +183,8 @@ class HelpView(View):
         # Dropdown options (skip Home)
         self.dropdown_options = []
         for idx, module in enumerate(self.modules[1:]):
-            emoji = module.split()[0]   # e.g. "🛡️"
-            name = " ".join(module.split()[1:])  # "Antinuke Security"
+            emoji = module.split()[0]
+            name = " ".join(module.split()[1:])
             self.dropdown_options.append(
                 discord.SelectOption(
                     label=name,
@@ -202,7 +202,6 @@ class HelpView(View):
         self.select_menu.callback = self.select_callback
         self.add_item(self.select_menu)
 
-        # Navigation buttons – clean icons
         self.add_item(NavButton("◀◀", "first", discord.ButtonStyle.secondary, 1))
         self.add_item(NavButton("◀", "prev", discord.ButtonStyle.secondary, 1))
         self.add_item(NavButton("✕", "close", discord.ButtonStyle.danger, 1))
@@ -240,26 +239,21 @@ class HelpView(View):
                 ),
                 inline=False,
             )
-            # Category list with emojis and NEW badge for Boycott/VcBan
+            # Short category list — names only, no descriptions (fits in 1024 chars)
             cat_lines = []
             for mod in self.modules[1:]:
                 emoji = mod.split()[0]
                 name = " ".join(mod.split()[1:])
-                desc = self.module_data[mod]["description"]
                 if name == "Boycott/VcBan":
-                    cat_lines.append(f"{emoji} **{name}** `NEW` — {desc}")
+                    cat_lines.append(f"{emoji} **{name}** `NEW`")
                 else:
-                    cat_lines.append(f"{emoji} **{name}** — {desc}")
+                    cat_lines.append(f"{emoji} **{name}**")
             embed.add_field(name="Categories", value="\n".join(cat_lines), inline=False)
 
         else:  # Category page
             cmds = data.get("commands", [])
             if cmds:
-                embed.add_field(
-                    name="Commands",
-                    value="\n".join(cmds),
-                    inline=False,
-                )
+                embed.add_field(name="Commands", value="\n".join(cmds), inline=False)
             else:
                 embed.add_field(name="Commands", value="No commands available.", inline=False)
 
