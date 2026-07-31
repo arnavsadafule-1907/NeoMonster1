@@ -12,7 +12,7 @@ class HelpView(View):
         self.current_page = 0
         self.message = None
 
-        # ---------- REPLACE THESE STRINGS WITH YOUR CUSTOM EMOJI CODES ----------
+        # ---------- YOUR CUSTOM EMOJI CODES ----------
         self.emoji_antinuke   = "<:sheild:1532827229149724835>"
         self.emoji_betray     = "<:lock:1532827337832398969>"
         self.emoji_limit      = "<:Limit:1532827385441943552>"
@@ -21,7 +21,7 @@ class HelpView(View):
         self.emoji_moderation = "<:hammer_wrench:1532828069113626755>"
         self.emoji_utility    = "<:wrenchs:1532827639696461935>"
         self.emoji_automod    = "<:admin_modsetup:1532828408692740156>"
-        self.emoji_welcoming  = "<:welcome:1532827778217672785>"   # change to "<:mailbox_blue:ID>" if desired
+        self.emoji_welcoming  = "<:welcome:1532827778217672785>"
         self.emoji_customroles= "<:start2:1532827987802722395>"
         self.emoji_giveaway   = "<:party:1532827934698508519>"
         self.emoji_boycott    = "<:star:1532827870337175746>"
@@ -252,7 +252,7 @@ class HelpView(View):
             cat_lines = []
             for full, name in self.modules[1:]:
                 emoji = full.split()[0]
-                display = f"{emoji} **{name}**"
+                display = f"{emoji} : **{name}**"                # ← colon added
                 if name == "Boycott/VcBan":
                     display += " `NEW`"
                 cat_lines.append(display)
