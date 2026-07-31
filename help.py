@@ -4,7 +4,6 @@ from discord.ext import commands
 from discord.ui import View, Button, Select
 
 BLUE_MAIN = 0x3B82F6
-BLUE_ACCENT = 0x60A5FA
 
 class HelpView(View):
     def __init__(self, bot: commands.Bot):
@@ -13,34 +12,50 @@ class HelpView(View):
         self.current_page = 0
         self.message = None
 
-        # Exact module list with blue‑themed emojis
+        # ---------- REPLACE THESE STRINGS WITH YOUR CUSTOM EMOJI CODES ----------
+        self.emoji_antinuke   = "<:sheild:1532827229149724835>"
+        self.emoji_betray     = "<:lock:1532827337832398969>"
+        self.emoji_limit      = "<:Limit:1532827385441943552>"
+        self.emoji_auto_emerg = "<:sword:1532827462998687815>"
+        self.emoji_emergency  = "<:sword2:1532827540081741964>"
+        self.emoji_moderation = "<:hammer_wrench:1532828069113626755>"
+        self.emoji_utility    = "<:wrenchs:1532827639696461935>"
+        self.emoji_automod    = "<:admin_modsetup:1532828408692740156>"
+        self.emoji_welcoming  = "<:welcome:1532827778217672785>"   # change to "<:mailbox_blue:ID>" if desired
+        self.emoji_customroles= "<:start2:1532827987802722395>"
+        self.emoji_giveaway   = "<:party:1532827934698508519>"
+        self.emoji_boycott    = "<:star:1532827870337175746>"
+        self.emoji_automations= "<:double_check:1532828586317316226>"
+        self.emoji_fun        = "<:fun:1532828529035710674>"
+        self.emoji_voice      = "<:microphone:1532828487579336714>"
+        self.emoji_admin      = "⚙️"
+        self.emoji_ignore     = "⚙️"
+        # ------------------------------------------------------------------------
+
         self.modules = [
-            "🏠 Home",
-            "🛡️ Antinuke Security",
-            "🔒 Anti Betray",
-            "🌐 Limit System",          # Blue Network icon
-            "❌ Auto Emergency",        # Blue Cross icon
-            "❌ Emergency",             # Blue Cross icon
-            "🔧 Moderation",           # Blue Wrench icon
-            "🔧 Utility",              # Blue Wrench icon
-            "🔨 Automod",              # Blue Hammer icon
-            "📬 Welcoming",            # Blue Mailbox icon
-            "🔷 Customroles",          # Blue Diamond (star replacement)
-            "☄️ Giveaway",             # Blue Comet/Blast icon
-            "🔷 Boycott/VcBan",        # Blue Diamond + NEW badge
-            "✅ Automations",          # Blue Check icon
-            "👤 Fun",                  # Blue Profile icon
-            "🎙️ Voice",               # Blue Mic icon
-            "⚙️ Admin / Mod Setup",    # Blue Gear icon
-            "⚙️ Ignore Commands",      # Blue Gear icon
+            ("🏠 Home", None),
+            (f"{self.emoji_antinuke} Antinuke Security", "Antinuke Security"),
+            (f"{self.emoji_betray} Anti Betray", "Anti Betray"),
+            (f"{self.emoji_limit} Limit System", "Limit System"),
+            (f"{self.emoji_auto_emerg} Auto Emergency", "Auto Emergency"),
+            (f"{self.emoji_emergency} Emergency", "Emergency"),
+            (f"{self.emoji_moderation} Moderation", "Moderation"),
+            (f"{self.emoji_utility} Utility", "Utility"),
+            (f"{self.emoji_automod} Automod", "Automod"),
+            (f"{self.emoji_welcoming} Welcoming", "Welcoming"),
+            (f"{self.emoji_customroles} Customroles", "Customroles"),
+            (f"{self.emoji_giveaway} Giveaway", "Giveaway"),
+            (f"{self.emoji_boycott} Boycott/VcBan", "Boycott/VcBan"),
+            (f"{self.emoji_automations} Automations", "Automations"),
+            (f"{self.emoji_fun} Fun", "Fun"),
+            (f"{self.emoji_voice} Voice", "Voice"),
+            (f"{self.emoji_admin} Admin / Mod Setup", "Admin / Mod Setup"),
+            (f"{self.emoji_ignore} Ignore Commands", "Ignore Commands"),
         ]
 
+        # Module data (unchanged – same as your previous working version)
         self.module_data = {
-            "🏠 Home": {
-                "description": "Advanced server security, automated moderation, and seamless community management — all in one powerful bot.",
-                "commands": []
-            },
-            "🛡️ Antinuke Security": {
+            "Antinuke Security": {
                 "description": "Anti‑nuke, anti‑spam, lockdown & raid protection.",
                 "commands": [
                     "`/antinuke settings` — View current security config",
@@ -50,28 +65,28 @@ class HelpView(View):
                     "`/antivanity` — Block custom invite links",
                 ]
             },
-            "🔒 Anti Betray": {
+            "Anti Betray": {
                 "description": "Prevents trusted members from abusing power and betraying the server.",
                 "commands": [
                     "`/antinuke whitelist add` — Add trusted admins",
                     "`/antinuke emergency kick_nuker` — Remove a rogue admin",
                 ]
             },
-            "🌐 Limit System": {
+            "Limit System": {
                 "description": "Rate‑limit destructive actions to prevent mass spam and floods.",
                 "commands": [
                     "`/antinuke threshold` — Set action limits",
                     "`/antinuke timewindow` — Detection time window",
                 ]
             },
-            "❌ Auto Emergency": {
+            "Auto Emergency": {
                 "description": "Automatically locks the server when a nuke is detected.",
                 "commands": [
                     "`/antinuke emergency lock` — Manual lockdown",
                     "`/antinuke emergency unlock` — Remove lockdown",
                 ]
             },
-            "❌ Emergency": {
+            "Emergency": {
                 "description": "Manual emergency controls for admins during an active attack.",
                 "commands": [
                     "`/antinuke emergency lock` — Lock all channels",
@@ -79,7 +94,7 @@ class HelpView(View):
                     "`/antinuke emergency kick_nuker` — Kick a specific nuker",
                 ]
             },
-            "🔧 Moderation": {
+            "Moderation": {
                 "description": "Ban, kick, mute, warn, purge and more.",
                 "commands": [
                     "`/ban` — Ban a member",
@@ -89,7 +104,7 @@ class HelpView(View):
                     "`/purge` — Delete messages",
                 ]
             },
-            "🔧 Utility": {
+            "Utility": {
                 "description": "Useful information commands — avatar, ping, server info.",
                 "commands": [
                     "`/avatar` — Show a user's avatar",
@@ -98,7 +113,7 @@ class HelpView(View):
                     "`/ping` — Bot latency",
                 ]
             },
-            "🔨 Automod": {
+            "Automod": {
                 "description": "Spam detection, invite blocking, bad word filter.",
                 "commands": [
                     "`/automod spam_on` — Enable spam detection",
@@ -106,7 +121,7 @@ class HelpView(View):
                     "`/automod words_add` — Add filtered word",
                 ]
             },
-            "📬 Welcoming": {
+            "Welcoming": {
                 "description": "Custom welcome/farewell messages & auto‑role.",
                 "commands": [
                     "`/welcome channel` — Set welcome channel",
@@ -115,7 +130,7 @@ class HelpView(View):
                     "`/farewell channel` — Set farewell channel",
                 ]
             },
-            "🔷 Customroles": {
+            "Customroles": {
                 "description": "Let members create and manage their own custom roles.",
                 "commands": [
                     "`/customrole create` — Create a personal role",
@@ -123,7 +138,7 @@ class HelpView(View):
                     "`/customrole list` — List your roles",
                 ]
             },
-            "☄️ Giveaway": {
+            "Giveaway": {
                 "description": "Button‑based giveaways with rerolls & role requirements.",
                 "commands": [
                     "`/gstart` — Start a giveaway",
@@ -131,7 +146,7 @@ class HelpView(View):
                     "`/greroll` — Reroll winners",
                 ]
             },
-            "🔷 Boycott/VcBan": {
+            "Boycott/VcBan": {
                 "description": "Voice channel bans and server boycotts.",
                 "commands": [
                     "`/vcban` — Ban user from all voice channels",
@@ -139,14 +154,14 @@ class HelpView(View):
                     "`/boycott` — Ban user from the server permanently",
                 ]
             },
-            "✅ Automations": {
+            "Automations": {
                 "description": "Scheduled messages & auto tasks.",
                 "commands": [
                     "`/auto message_add` — Schedule a recurring message",
                     "`/auto message_remove` — Remove last scheduled message",
                 ]
             },
-            "👤 Fun": {
+            "Fun": {
                 "description": "Memes, 8ball, rock‑paper‑scissors.",
                 "commands": [
                     "`/8ball` — Ask the magic 8ball",
@@ -154,7 +169,7 @@ class HelpView(View):
                     "`/rps` — Rock‑paper‑scissors",
                 ]
             },
-            "🎙️ Voice": {
+            "Voice": {
                 "description": "Voice channel management & stats.",
                 "commands": [
                     "`/voicestats` — Voice activity info",
@@ -162,7 +177,7 @@ class HelpView(View):
                     "`/vc mute` — Mute in voice",
                 ]
             },
-            "⚙️ Admin / Mod Setup": {
+            "Admin / Mod Setup": {
                 "description": "Create staff roles with pre‑configured permissions.",
                 "commands": [
                     "`/setup admin.exe` — Create admin role",
@@ -170,7 +185,7 @@ class HelpView(View):
                     "`/roleassign` — Assign roles to members",
                 ]
             },
-            "⚙️ Ignore Commands": {
+            "Ignore Commands": {
                 "description": "Make the bot ignore specific users or channels.",
                 "commands": [
                     "`/ignore user` — Ignore a user",
@@ -180,17 +195,16 @@ class HelpView(View):
             },
         }
 
-        # Dropdown options (skip Home)
+        # Dropdown options
         self.dropdown_options = []
-        for idx, module in enumerate(self.modules[1:]):
-            emoji = module.split()[0]
-            name = " ".join(module.split()[1:])
+        for idx, (full, name) in enumerate(self.modules[1:]):
+            emoji_str = full.split()[0]
             self.dropdown_options.append(
                 discord.SelectOption(
                     label=name,
-                    description=self.module_data[module]["description"][:50],
+                    description=self.module_data[name]["description"][:50],
                     value=str(idx + 1),
-                    emoji=emoji
+                    emoji=emoji_str
                 )
             )
 
@@ -209,17 +223,13 @@ class HelpView(View):
         self.add_item(NavButton("▶▶", "last", discord.ButtonStyle.secondary, 1))
 
     def build_embed(self):
-        module_name = self.modules[self.current_page]
-        data = self.module_data[module_name]
-
-        embed = discord.Embed(
-            title="NeoMonster",
-            description=data["description"],
-            color=BLUE_MAIN,
-        )
-        embed.set_thumbnail(url=self.bot.user.display_avatar.url)
-
-        if self.current_page == 0:  # Home
+        if self.current_page == 0:
+            embed = discord.Embed(
+                title="NeoMonster",
+                description="Advanced server security, automated moderation, and seamless community management — all in one powerful bot.",
+                color=BLUE_MAIN,
+            )
+            embed.set_thumbnail(url=self.bot.user.display_avatar.url)
             embed.add_field(
                 name="Overview",
                 value=(
@@ -239,27 +249,24 @@ class HelpView(View):
                 ),
                 inline=False,
             )
-            # Short category list — names only, no descriptions (fits in 1024 chars)
             cat_lines = []
-            for mod in self.modules[1:]:
-                emoji = mod.split()[0]
-                name = " ".join(mod.split()[1:])
+            for full, name in self.modules[1:]:
+                emoji = full.split()[0]
+                display = f"{emoji} **{name}**"
                 if name == "Boycott/VcBan":
-                    cat_lines.append(f"{emoji} **{name}** `NEW`")
-                else:
-                    cat_lines.append(f"{emoji} **{name}**")
+                    display += " `NEW`"
+                cat_lines.append(display)
             embed.add_field(name="Categories", value="\n".join(cat_lines), inline=False)
+            embed.set_footer(text=f"Page 1 of {len(self.modules)} • NeoMonster Security")
+            return embed
 
-        else:  # Category page
-            cmds = data.get("commands", [])
-            if cmds:
-                embed.add_field(name="Commands", value="\n".join(cmds), inline=False)
-            else:
-                embed.add_field(name="Commands", value="No commands available.", inline=False)
-
-        embed.set_footer(
-            text=f"Page {self.current_page+1} of {len(self.modules)} • NeoMonster Security"
-        )
+        full, name = self.modules[self.current_page]
+        data = self.module_data[name]
+        embed = discord.Embed(title="NeoMonster", description=data["description"], color=BLUE_MAIN)
+        embed.set_thumbnail(url=self.bot.user.display_avatar.url)
+        cmds = data.get("commands", [])
+        embed.add_field(name="Commands", value="\n".join(cmds) if cmds else "No commands available.", inline=False)
+        embed.set_footer(text=f"Page {self.current_page+1} of {len(self.modules)} • NeoMonster Security")
         return embed
 
     async def select_callback(self, interaction: discord.Interaction):
@@ -290,7 +297,6 @@ class HelpView(View):
                 child.disabled = True
             await self.message.edit(view=self)
 
-
 class NavButton(Button):
     def __init__(self, label, action, style, row):
         super().__init__(label=label, style=style, row=row)
@@ -299,7 +305,6 @@ class NavButton(Button):
     async def callback(self, interaction: discord.Interaction):
         view: HelpView = self.view
         await view.button_callback(interaction, self.action)
-
 
 class HelpCog(commands.Cog):
     def __init__(self, bot):
@@ -311,7 +316,6 @@ class HelpCog(commands.Cog):
         embed = view.build_embed()
         await interaction.response.send_message(embed=embed, view=view)
         view.message = await interaction.original_response()
-
 
 async def setup(bot):
     await bot.add_cog(HelpCog(bot))
