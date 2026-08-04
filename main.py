@@ -46,8 +46,21 @@ class SecurityBot(commands.Bot):
             except Exception as e:
                 logger.error(f"Failed to load {cog}: {e}")
 
+        # Register the global interaction check for blacklisted users
+        self.tree.interaction_check = self.global_blacklist_check
+
         await self.tree.sync()
         logger.info("Command tree synced")
+
+    async def global_blacklist_check(self, interaction: discord.Interaction) -> bool:
+        """Return True if the user is allowed, False if blacklisted."""
+        global_blacklist_cog = self.get_cog("GlobalBlacklist")
+        if global_blacklist_cog and await global_blacklist_cog.is_blacklisted(interaction.user.id):
+            await interaction.response.send_message(
+                "⛔ You are globally blacklisted from using NeoMonster.", ephemeral=True
+            )
+            return False
+        return True
 
     async def on_ready(self):
         logger.info(f"🛡️ Security Bot online as {self.user} (ID: {self.user.id})")
