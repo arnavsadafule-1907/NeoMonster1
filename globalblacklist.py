@@ -3,7 +3,6 @@ from discord import app_commands
 from discord.ext import commands
 import aiosqlite
 import os
-from formatter import BotEmbed
 
 DB_PATH = os.getenv("DATABASE_PATH", "./data/security.db")
 
@@ -22,13 +21,6 @@ class GlobalBlacklist(commands.Cog):
             return await cursor.fetchone() is not None
 
     @commands.Cog.listener()
-    async def on_interaction(self, interaction: discord.Interaction):
-        if await self.is_blacklisted(interaction.user.id):
-            embed = BotEmbed.error("Blacklisted", "You are blacklisted from using NeoMonster.")
-            await interaction.response.send_message(embed=embed, ephemeral=True)
-            raise commands.CommandError("User blacklisted")
-
-    @commands.Cog.listener()
     async def on_guild_join(self, guild):
         if await self.is_guild_blacklisted(guild.id):
             await guild.leave()
@@ -37,44 +29,30 @@ class GlobalBlacklist(commands.Cog):
             except:
                 pass
 
-    @app_commands.command(name="blacklist", description="Blacklist a user globally (owner only)")
+    # Blacklist commands (owner only) remain unchanged
+    @app_commands.command(name="blacklist", description="Globally blacklist a user (owner only)")
     @app_commands.describe(user_id="User ID to blacklist")
     async def blacklist_add(self, interaction: discord.Interaction, user_id: str):
-        if interaction.user.id not in self.bot.owner_ids:
-            embed = BotEmbed.error("Permission Denied", "Only the bot owner can use this command.")
-            return await interaction.response.send_message(embed=embed, ephemeral=True)
-
-        try:
-            uid = int(user_id)
-        except ValueError:
-            embed = BotEmbed.error("Invalid", "Provide a valid user ID.")
-            return await interaction.response.send_message(embed=embed, ephemeral=True)
-
+        if interaction.user.id not in interaction.client.owner_ids:
+            await interaction.response.send_message("Only the bot owner can use this command.", ephemeral=True)
+            return
+        uid = int(user_id)
         async with aiosqlite.connect(DB_PATH) as db:
             await db.execute("INSERT OR IGNORE INTO global_blacklist (user_id) VALUES (?)", (uid,))
             await db.commit()
-        embed = BotEmbed.success("Blacklisted", f"User `{uid}` has been globally blacklisted.")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.response.send_message(f"User `{uid}` blacklisted globally.", ephemeral=True)
 
-    @app_commands.command(name="unblacklist", description="Remove a user from global blacklist")
+    @app_commands.command(name="unblacklist", description="Remove a global blacklist")
     @app_commands.describe(user_id="User ID to unblacklist")
     async def blacklist_remove(self, interaction: discord.Interaction, user_id: str):
-        if interaction.user.id not in self.bot.owner_ids:
-            embed = BotEmbed.error("Permission Denied", "Only the bot owner can use this command.")
-            return await interaction.response.send_message(embed=embed, ephemeral=True)
-
-        try:
-            uid = int(user_id)
-        except ValueError:
-            embed = BotEmbed.error("Invalid", "Provide a valid user ID.")
-            return await interaction.response.send_message(embed=embed, ephemeral=True)
-
+        if interaction.user.id not in interaction.client.owner_ids:
+            await interaction.response.send_message("Only the bot owner can use this command.", ephemeral=True)
+            return
+        uid = int(user_id)
         async with aiosqlite.connect(DB_PATH) as db:
             await db.execute("DELETE FROM global_blacklist WHERE user_id = ?", (uid,))
             await db.commit()
-        embed = BotEmbed.success("Unblacklisted", f"User `{uid}` has been removed from the blacklist.")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
-
+        await interaction.response.send_message(f"User `{uid}` removed from blacklist.", ephemeral=True)
 
 async def setup(bot):
     async with aiosqlite.connect(DB_PATH) as db:
