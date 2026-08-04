@@ -46,21 +46,8 @@ class SecurityBot(commands.Bot):
             except Exception as e:
                 logger.error(f"Failed to load {cog}: {e}")
 
-        # Register the global interaction check for blacklisted users
-        self.tree.interaction_check = self.global_blacklist_check
-
         await self.tree.sync()
         logger.info("Command tree synced")
-
-    async def global_blacklist_check(self, interaction: discord.Interaction) -> bool:
-        """Return True if the user is allowed, False if blacklisted."""
-        global_blacklist_cog = self.get_cog("GlobalBlacklist")
-        if global_blacklist_cog and await global_blacklist_cog.is_blacklisted(interaction.user.id):
-            await interaction.response.send_message(
-                "⛔ You are globally blacklisted from using NeoMonster.", ephemeral=True
-            )
-            return False
-        return True
 
     async def on_ready(self):
         logger.info(f"🛡️ Security Bot online as {self.user} (ID: {self.user.id})")
@@ -72,7 +59,6 @@ class SecurityBot(commands.Bot):
     # FIXED Global error handler – always replies, even after defer
     # ------------------------------------------------------------
     async def on_app_command_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
-        # Build the appropriate error embed
         if isinstance(error, app_commands.MissingRole):
             embed = BotEmbed.error("Insufficient Role", str(error))
         elif isinstance(error, app_commands.MissingPermissions):
@@ -81,7 +67,6 @@ class SecurityBot(commands.Bot):
             logger.error(f"Command error: {error}")
             embed = BotEmbed.error("Unexpected Error", "An unexpected error occurred. Please contact an administrator.")
 
-        # Send the reply safely – use followup if already responded
         try:
             if interaction.response.is_done():
                 await interaction.followup.send(embed=embed, ephemeral=True)
