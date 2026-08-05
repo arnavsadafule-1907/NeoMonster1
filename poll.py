@@ -29,11 +29,11 @@ class PollModal(Modal, title="Create Poll"):
             return
 
         end_time = discord.utils.utcnow() + self.duration
-        embed = self._build_embed(options, end_time, question=self.question)
+        embed = self._build_embed(options, self.question, end_time)
         view = PollView(options, self.question, end_time)
         await interaction.response.send_message(embed=embed, view=view, ephemeral=False)
 
-        # Store message reference for timeout editing
+        # Store message reference so timeout can edit it
         msg = await interaction.original_response()
         view.message = msg
 
@@ -43,12 +43,15 @@ class PollModal(Modal, title="Create Poll"):
             await logger_cog.log_poll_action(interaction.guild, interaction.user, "create", question=self.question, channel=interaction.channel)
 
     @staticmethod
-    def _build_embed(options, end_time, votes=None, question="Poll"):
+    def _build_embed(options, question, end_time, votes=None):
         if votes is None:
             votes = {opt: set() for opt in options}
         total_voters = len(set().union(*votes.values()))
         remaining = end_time - discord.utils.utcnow()
-        remaining_str = f"{remaining.seconds//60}m {remaining.seconds%60}s" if remaining.total_seconds() > 0 else "Closed"
+        if remaining.total_seconds() > 0:
+            remaining_str = f"{remaining.seconds//60}m {remaining.seconds%60}s"
+        else:
+            remaining_str = "Closed"
         description = "\n".join(f"{i+1}. {opt} ({len(votes[opt])} votes)" for i, opt in enumerate(options))
         description += f"\n\n**Total voters:** {total_voters} | **Time left:** {remaining_str}"
         embed = discord.Embed(title=f"📊 {question}", description=description, color=0x3B82F6)
@@ -58,15 +61,16 @@ class PollModal(Modal, title="Create Poll"):
 
 class PollView(View):
     def __init__(self, options, question, end_time):
-        super().__init__(timeout=(end_time - discord.utils.utcnow()).total_seconds())
+        timeout_seconds = max(1, (end_time - discord.utils.utcnow()).total_seconds())
+        super().__init__(timeout=timeout_seconds)
         self.options = options
         self.question = question
         self.end_time = end_time
         self.votes = {opt: set() for opt in options}
         self.voters = set()
-        self.message = None  # Will be set after sending
+        self.message = None  # set after sending
 
-        # Add vote buttons
+        # Vote buttons
         for i, opt in enumerate(options):
             button = Button(
                 label=f"{i+1}. {opt[:30]}",
@@ -76,7 +80,7 @@ class PollView(View):
             button.callback = self.make_vote_callback(i)
             self.add_item(button)
 
-        # Add "Show Results" button
+        # "Show Results" button
         results_button = Button(
             label="📊 Show Results",
             style=discord.ButtonStyle.secondary,
@@ -94,7 +98,7 @@ class PollView(View):
             self.votes[opt].add(interaction.user.id)
             self.voters.add(interaction.user.id)
             # Update embed
-            embed = PollModal._build_embed(self.options, self.end_time, votes=self.votes)
+            embed = PollModal._build_embed(self.options, self.question, self.end_time, votes=self.votes)
             await interaction.message.edit(embed=embed)
             await interaction.response.defer(ephemeral=True)
         return callback
@@ -118,7 +122,7 @@ class PollView(View):
         if self.message:
             for child in self.children:
                 child.disabled = True
-            embed = PollModal._build_embed(self.options, self.end_time, votes=self.votes)
+            embed = PollModal._build_embed(self.options, self.question, self.end_time, votes=self.votes)
             embed.set_footer(text="Poll closed")
             await self.message.edit(embed=embed, view=self)
 
