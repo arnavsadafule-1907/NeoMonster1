@@ -21,11 +21,11 @@ class Automations(commands.Cog):
     async def auto(self, interaction: discord.Interaction, action: str, role: discord.Role = None, channel: discord.TextChannel = None, message: str = None, interval: int = None):
         if action in ["role_add", "role_remove"]:
             embed = BotEmbed.info("Auto Role", "Auto role is managed via /welcome role. Use that command.")
-            return await interaction.response.send_message(embed=embed, ephemeral=True)
+            return await interaction.response.send_message(embed=embed, ephemeral=False)
         elif action == "msg_add":
             if not channel or not message or not interval:
                 embed = BotEmbed.error("Missing Parameters", "Provide channel, message, and interval.")
-                return await interaction.response.send_message(embed=embed, ephemeral=True)
+                return await interaction.response.send_message(embed=embed, ephemeral=False)
             @tasks.loop(minutes=interval)
             async def scheduled_task():
                 await channel.send(message)
@@ -39,7 +39,7 @@ class Automations(commands.Cog):
                 embed = BotEmbed.success("Removed", "Last scheduled message removed.")
             else:
                 embed = BotEmbed.error("None", "No scheduled messages to remove.")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.response.send_message(embed=embed, ephemeral=False)
 
     def cog_unload(self):
         for entry in self.scheduled_messages:

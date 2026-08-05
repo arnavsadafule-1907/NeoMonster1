@@ -70,7 +70,7 @@ class AltDetector(commands.Cog):
         elif action == "min_days":
             if not value or not value.isdigit():
                 embed = BotEmbed.error("Invalid", "Provide a number of days.")
-                return await interaction.response.send_message(embed=embed, ephemeral=True)
+                return await interaction.response.send_message(embed=embed, ephemeral=False)
             async with aiosqlite.connect(DB_PATH) as db:
                 await db.execute("UPDATE altdetector_settings SET min_days = ? WHERE guild_id = ?", (int(value), guild_id))
                 await db.commit()
@@ -80,12 +80,12 @@ class AltDetector(commands.Cog):
                 channel = await commands.TextChannelConverter().convert(interaction, value)
             except:
                 embed = BotEmbed.error("Invalid Channel", "Mention a valid text channel.")
-                return await interaction.response.send_message(embed=embed, ephemeral=True)
+                return await interaction.response.send_message(embed=embed, ephemeral=False)
             async with aiosqlite.connect(DB_PATH) as db:
                 await db.execute("UPDATE altdetector_settings SET log_channel_id = ? WHERE guild_id = ?", (channel.id, guild_id))
                 await db.commit()
             embed = BotEmbed.success("Log Channel Set", f"Alerts will be sent to {channel.mention}.")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.response.send_message(embed=embed, ephemeral=False)
 
 
 async def setup(bot):

@@ -77,7 +77,7 @@ class AddUserModal(discord.ui.Modal, title="Add User to Ticket"):
         try:
             user = await interaction.guild.fetch_member(int(self.user_id.value))
         except:
-            return await interaction.response.send_message("Invalid user ID.", ephemeral=True)
+            return await interaction.response.send_message("Invalid user ID.", ephemeral=False)
         await self.channel.set_permissions(user, read_messages=True, send_messages=True)
         await interaction.response.send_message(f"Added {user.mention} to the ticket.", ephemeral=False)
 
@@ -93,7 +93,7 @@ class RemoveUserModal(discord.ui.Modal, title="Remove User from Ticket"):
         try:
             user = await interaction.guild.fetch_member(int(self.user_id.value))
         except:
-            return await interaction.response.send_message("Invalid user ID.", ephemeral=True)
+            return await interaction.response.send_message("Invalid user ID.", ephemeral=False)
         await self.channel.set_permissions(user, overwrite=None)
         await interaction.response.send_message(f"Removed {user.mention} from the ticket.", ephemeral=False)
 
@@ -165,7 +165,7 @@ class Ticket(commands.Cog):
         types = await self.get_ticket_types(interaction.guild_id)
         if not types:
             embed = BotEmbed.error("No Ticket Types", "Use `/tickettype add` to create at least one ticket type first.")
-            return await interaction.response.send_message(embed=embed, ephemeral=True)
+            return await interaction.response.send_message(embed=embed, ephemeral=False)
 
         options = [discord.SelectOption(label=t["name"], description=f"Open a {t['name'].lower()} ticket", emoji="🎟️") for t in types]
 
@@ -193,12 +193,12 @@ class Ticket(commands.Cog):
         ticket_type = await self.get_ticket_type(interaction.guild_id, ticket_type_name)
         if not ticket_type:
             embed = BotEmbed.error("Invalid Ticket Type", "That ticket type no longer exists.")
-            return await interaction.response.send_message(embed=embed, ephemeral=True)
+            return await interaction.response.send_message(embed=embed, ephemeral=False)
 
         category = interaction.guild.get_channel(ticket_type["category_id"])
         if not category:
             embed = BotEmbed.error("Missing Category", "The category for this ticket type has been deleted.")
-            return await interaction.response.send_message(embed=embed, ephemeral=True)
+            return await interaction.response.send_message(embed=embed, ephemeral=False)
 
         channel_name = f"ticket-{interaction.user.name}-{ticket_type_name.lower().replace(' ', '-')}"
         overwrites = {
@@ -219,7 +219,7 @@ class Ticket(commands.Cog):
             )
         except discord.Forbidden:
             embed = BotEmbed.error("Permission Denied", "I need `Manage Channels` in the ticket category.")
-            return await interaction.response.send_message(embed=embed, ephemeral=True)
+            return await interaction.response.send_message(embed=embed, ephemeral=False)
 
         await self.store_ticket_channel(ticket_channel.id, interaction.guild_id, ticket_type_name)
 
@@ -233,37 +233,37 @@ class Ticket(commands.Cog):
         await ticket_channel.send(embed=welcome_embed, view=TicketView(self, ticket_type_name))
 
         embed = BotEmbed.info("Ticket Created", f"Your ticket channel: {ticket_channel.mention}")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.response.send_message(embed=embed, ephemeral=False)
 
     # ================================================================
     #  TICKET BUTTON HANDLERS (Claim, Close, Add/Remove User, Rename)
     # ================================================================
     async def claim_ticket(self, interaction: discord.Interaction):
         if not interaction.channel.name.startswith("ticket-"):
-            return await interaction.response.send_message(embed=BotEmbed.error("Not a Ticket", ""), ephemeral=True)
+            return await interaction.response.send_message(embed=BotEmbed.error("Not a Ticket", ""), ephemeral=False)
         await interaction.channel.set_permissions(interaction.user, read_messages=True, send_messages=True)
         await interaction.response.send_message(f"✅ Ticket claimed by {interaction.user.mention}", ephemeral=False)
 
     async def close_ticket(self, interaction: discord.Interaction):
         if not interaction.channel.name.startswith("ticket-"):
-            return await interaction.response.send_message(embed=BotEmbed.error("Not a Ticket", ""), ephemeral=True)
+            return await interaction.response.send_message(embed=BotEmbed.error("Not a Ticket", ""), ephemeral=False)
         await interaction.response.send_message("🔒 Closing ticket in 5 seconds...")
         await asyncio.sleep(5)
         await interaction.channel.delete(reason="Ticket closed")
 
     async def add_user_modal(self, interaction: discord.Interaction):
         if not interaction.channel.name.startswith("ticket-"):
-            return await interaction.response.send_message(embed=BotEmbed.error("Not a Ticket", ""), ephemeral=True)
+            return await interaction.response.send_message(embed=BotEmbed.error("Not a Ticket", ""), ephemeral=False)
         await interaction.response.send_modal(AddUserModal(self, interaction.channel))
 
     async def remove_user_modal(self, interaction: discord.Interaction):
         if not interaction.channel.name.startswith("ticket-"):
-            return await interaction.response.send_message(embed=BotEmbed.error("Not a Ticket", ""), ephemeral=True)
+            return await interaction.response.send_message(embed=BotEmbed.error("Not a Ticket", ""), ephemeral=False)
         await interaction.response.send_modal(RemoveUserModal(self, interaction.channel))
 
     async def rename_ticket_modal(self, interaction: discord.Interaction):
         if not interaction.channel.name.startswith("ticket-"):
-            return await interaction.response.send_message(embed=BotEmbed.error("Not a Ticket", ""), ephemeral=True)
+            return await interaction.response.send_message(embed=BotEmbed.error("Not a Ticket", ""), ephemeral=False)
         await interaction.response.send_modal(RenameTicketModal(self, interaction.channel))
 
     # ================================================================
@@ -274,7 +274,7 @@ class Ticket(commands.Cog):
     @ticket_staff_only()
     async def ticket_add(self, interaction: discord.Interaction, user: discord.Member):
         if not interaction.channel.name.startswith("ticket-"):
-            return await interaction.response.send_message(embed=BotEmbed.error("Not a Ticket", ""), ephemeral=True)
+            return await interaction.response.send_message(embed=BotEmbed.error("Not a Ticket", ""), ephemeral=False)
         await interaction.channel.set_permissions(user, read_messages=True, send_messages=True)
         await interaction.response.send_message(embed=BotEmbed.success("User Added", f"{user.mention} can now see this ticket."))
 
@@ -283,7 +283,7 @@ class Ticket(commands.Cog):
     @ticket_staff_only()
     async def ticket_remove(self, interaction: discord.Interaction, user: discord.Member):
         if not interaction.channel.name.startswith("ticket-"):
-            return await interaction.response.send_message(embed=BotEmbed.error("Not a Ticket", ""), ephemeral=True)
+            return await interaction.response.send_message(embed=BotEmbed.error("Not a Ticket", ""), ephemeral=False)
         await interaction.channel.set_permissions(user, overwrite=None)
         await interaction.response.send_message(embed=BotEmbed.success("User Removed", f"{user.mention} has been removed."))
 
@@ -292,7 +292,7 @@ class Ticket(commands.Cog):
     @ticket_staff_only()
     async def ticket_rename(self, interaction: discord.Interaction, name: str):
         if not interaction.channel.name.startswith("ticket-"):
-            return await interaction.response.send_message(embed=BotEmbed.error("Not a Ticket", ""), ephemeral=True)
+            return await interaction.response.send_message(embed=BotEmbed.error("Not a Ticket", ""), ephemeral=False)
         new_name = name.replace(" ", "-").lower()
         await interaction.channel.edit(name=f"ticket-{new_name}")
         await interaction.response.send_message(embed=BotEmbed.success("Renamed", f"Ticket renamed to `{new_name}`."))
@@ -301,7 +301,7 @@ class Ticket(commands.Cog):
     @ticket_staff_only()
     async def ticket_close_slash(self, interaction: discord.Interaction):
         if not interaction.channel.name.startswith("ticket-"):
-            return await interaction.response.send_message(embed=BotEmbed.error("Not a Ticket", ""), ephemeral=True)
+            return await interaction.response.send_message(embed=BotEmbed.error("Not a Ticket", ""), ephemeral=False)
         await interaction.response.send_message("🔒 Closing ticket in 5 seconds...")
         await asyncio.sleep(5)
         await interaction.channel.delete(reason="Ticket closed")
@@ -310,7 +310,7 @@ class Ticket(commands.Cog):
     @ticket_staff_only()
     async def ticket_claim_slash(self, interaction: discord.Interaction):
         if not interaction.channel.name.startswith("ticket-"):
-            return await interaction.response.send_message(embed=BotEmbed.error("Not a Ticket", ""), ephemeral=True)
+            return await interaction.response.send_message(embed=BotEmbed.error("Not a Ticket", ""), ephemeral=False)
         await interaction.channel.set_permissions(interaction.user, read_messages=True, send_messages=True)
         await interaction.response.send_message(embed=BotEmbed.success("Claimed", f"Ticket claimed by {interaction.user.mention}."))
 
@@ -348,15 +348,15 @@ class Ticket(commands.Cog):
                     cat_id = int(self.category_id.value)
                     role_id = int(self.support_role_id.value) if self.support_role_id.value else 0
                 except ValueError:
-                    return await modal_interaction.response.send_message("Invalid category or role ID.", ephemeral=True)
+                    return await modal_interaction.response.send_message("Invalid category or role ID.", ephemeral=False)
 
                 category = interaction.guild.get_channel(cat_id)
                 if not category or not isinstance(category, discord.CategoryChannel):
-                    return await modal_interaction.response.send_message("That category ID does not point to a valid category.", ephemeral=True)
+                    return await modal_interaction.response.send_message("That category ID does not point to a valid category.", ephemeral=False)
 
                 await self.cog.add_ticket_type(interaction.guild_id, self.name.value, cat_id, role_id, self.welcome_message.value or None)
                 embed = BotEmbed.success("Ticket Type Added", f"**{self.name.value}** tickets are now available.")
-                await modal_interaction.response.send_message(embed=embed, ephemeral=True)
+                await modal_interaction.response.send_message(embed=embed, ephemeral=False)
 
         modal = AddTypeModal()
         modal.cog = self
@@ -366,7 +366,7 @@ class Ticket(commands.Cog):
         types = await self.get_ticket_types(interaction.guild_id)
         if not types:
             embed = BotEmbed.error("No Ticket Types", "There are no ticket types to remove.")
-            return await interaction.response.send_message(embed=embed, ephemeral=True)
+            return await interaction.response.send_message(embed=embed, ephemeral=False)
 
         options = [discord.SelectOption(label=t["name"], description=f"Remove {t['name']} tickets", emoji="🗑️") for t in types]
 
@@ -382,13 +382,13 @@ class Ticket(commands.Cog):
             selected = select_menu.values[0]
             await self.remove_ticket_type(interaction.guild_id, selected)
             embed = BotEmbed.success("Ticket Type Removed", f"**{selected}** tickets have been disabled.")
-            await interaction.response.send_message(embed=embed, ephemeral=True)
+            await interaction.response.send_message(embed=embed, ephemeral=False)
             view.stop()
 
         select_menu.callback = select_callback
         view = discord.ui.View(timeout=60)
         view.add_item(select_menu)
-        await interaction.response.send_message("Choose a ticket type to remove:", view=view, ephemeral=True)
+        await interaction.response.send_message("Choose a ticket type to remove:", view=view, ephemeral=False)
 
 
 async def setup(bot):

@@ -42,7 +42,7 @@ class Chatbot(commands.Cog):
     async def add_response(self, interaction: discord.Interaction, trigger: str, response: str):
         self.responses[trigger.lower()] = response
         embed = BotEmbed.success("Response Added", f"When someone mentions me with `{trigger}`, I'll respond.")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.response.send_message(embed=embed, ephemeral=False)
 
     @app_commands.command(name="removeresponse", description="Remove an auto‑response")
     @app_commands.describe(trigger="Trigger phrase to remove")
@@ -53,7 +53,7 @@ class Chatbot(commands.Cog):
             embed = BotEmbed.success("Response Removed", f"Removed response for `{trigger}`.")
         else:
             embed = BotEmbed.error("Cannot Remove", "Default responses cannot be removed, or trigger not found.")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.response.send_message(embed=embed, ephemeral=False)
 
 
 async def setup(bot):

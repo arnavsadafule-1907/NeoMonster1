@@ -26,7 +26,7 @@ class Ignore(commands.Cog):
             embed = BotEmbed.success("Ignored Channel", f"Now ignoring {channel.mention}.")
         else:
             embed = BotEmbed.error("Invalid Target", "Provide a user or channel.")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.response.send_message(embed=embed, ephemeral=False)
 
     @app_commands.command(name="unignore", description="Remove ignore")
     @app_commands.describe(target_type="User or channel", user="User to unignore", channel="Channel to unignore")
@@ -44,16 +44,16 @@ class Ignore(commands.Cog):
             embed = BotEmbed.success("Unignored Channel", f"No longer ignoring {channel.mention}.")
         else:
             embed = BotEmbed.error("Invalid Target", "Provide a user or channel.")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.response.send_message(embed=embed, ephemeral=False)
 
     @commands.Cog.listener()
     async def on_interaction(self, interaction: discord.Interaction):
         if interaction.user.id in self.ignored_users:
             if interaction.type == discord.InteractionType.application_command:
-                await interaction.response.send_message(embed=BotEmbed.warning("Ignored", "You are being ignored by the bot."), ephemeral=True)
+                await interaction.response.send_message(embed=BotEmbed.warning("Ignored", "You are being ignored by the bot."), ephemeral=False)
         if interaction.channel_id in self.ignored_channels:
             if interaction.type == discord.InteractionType.application_command:
-                await interaction.response.send_message(embed=BotEmbed.warning("Ignored", "This channel is being ignored by the bot."), ephemeral=True)
+                await interaction.response.send_message(embed=BotEmbed.warning("Ignored", "This channel is being ignored by the bot."), ephemeral=False)
 
 async def setup(bot):
     await bot.add_cog(Ignore(bot))

@@ -81,13 +81,13 @@ class Automod(commands.Cog):
         elif action == "words_add":
             if not word:
                 embed = BotEmbed.error("Missing Word", "You must provide a word.")
-                return await interaction.response.send_message(embed=embed, ephemeral=True)
+                return await interaction.response.send_message(embed=embed, ephemeral=False)
             self.filtered_words.setdefault(guild_id, []).append(word.lower())
             embed = BotEmbed.success("Word Added", f"`{word}` added to the filter.")
         elif action == "words_remove":
             if not word:
                 embed = BotEmbed.error("Missing Word", "You must provide a word.")
-                return await interaction.response.send_message(embed=embed, ephemeral=True)
+                return await interaction.response.send_message(embed=embed, ephemeral=False)
             lst = self.filtered_words.get(guild_id, [])
             if word.lower() in lst:
                 lst.remove(word.lower())
@@ -98,7 +98,7 @@ class Automod(commands.Cog):
             lst = self.filtered_words.get(guild_id, [])
             text = ", ".join(lst) if lst else "No filtered words."
             embed = BotEmbed.info("Filtered Words", text)
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.response.send_message(embed=embed, ephemeral=False)
 
 async def setup(bot):
     await bot.add_cog(Automod(bot))

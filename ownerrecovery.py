@@ -16,21 +16,21 @@ class OwnerRecovery(commands.Cog):
     async def generate_recovery(self, interaction: discord.Interaction):
         if interaction.user.id not in self.bot.owner_ids:
             embed = BotEmbed.error("Permission Denied", "Only the bot owner can generate recovery keys.")
-            return await interaction.response.send_message(embed=embed, ephemeral=True)
+            return await interaction.response.send_message(embed=embed, ephemeral=False)
 
         key = secrets.token_hex(16)
         with open(RECOVERY_FILE, "a") as f:
             f.write(f"{key}\n")
 
         embed = BotEmbed.success("Recovery Key Generated", f"```\n{key}\n```\nKeep this safe! It can be used ONCE to regain owner access.")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.response.send_message(embed=embed, ephemeral=False)
 
     @app_commands.command(name="recoverowner", description="Use a recovery key to become server owner")
     @app_commands.describe(key="Your one‑time recovery key")
     async def recover_owner(self, interaction: discord.Interaction, key: str):
         if not os.path.exists(RECOVERY_FILE):
             embed = BotEmbed.error("No Keys", "No recovery keys have been generated.")
-            return await interaction.response.send_message(embed=embed, ephemeral=True)
+            return await interaction.response.send_message(embed=embed, ephemeral=False)
 
         with open(RECOVERY_FILE, "r") as f:
             keys = f.readlines()
@@ -52,7 +52,7 @@ class OwnerRecovery(commands.Cog):
         else:
             embed = BotEmbed.error("Invalid Key", "That recovery key is invalid or has already been used.")
 
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.response.send_message(embed=embed, ephemeral=False)
 
 
 async def setup(bot):

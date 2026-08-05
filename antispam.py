@@ -85,7 +85,7 @@ class AntiSpam(commands.Cog):
             enabled = await self.is_enabled(guild_id)
             status_text = "Enabled" if enabled else "Disabled"
             embed = BotEmbed.info("Anti‑Spam Status", f"Status: **{status_text}**\nThreshold: {FIXED_THRESHOLD} msgs / {FIXED_WINDOW}s\nMute duration: {FIXED_MUTE_MINUTES} min.")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.response.send_message(embed=embed, ephemeral=False)
 
 
 async def setup(bot):

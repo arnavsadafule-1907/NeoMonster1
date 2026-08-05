@@ -23,7 +23,7 @@ class GiveawayView(discord.ui.View):
             role = interaction.guild.get_role(self.role_req)
             if role and role not in interaction.user.roles:
                 embed = BotEmbed.error("Role Required", f"You need the {role.mention} role to enter.")
-                await interaction.response.send_message(embed=embed, ephemeral=True)
+                await interaction.response.send_message(embed=embed, ephemeral=False)
                 return
         async with aiosqlite.connect(self.db_path) as db:
             db.row_factory = aiosqlite.Row
@@ -31,19 +31,19 @@ class GiveawayView(discord.ui.View):
             row = await cursor.fetchone()
             if not row or row["ended"] == 1:
                 embed = BotEmbed.error("Ended", "This giveaway has ended.")
-                await interaction.response.send_message(embed=embed, ephemeral=True)
+                await interaction.response.send_message(embed=embed, ephemeral=False)
                 return
             entries = json.loads(row["entries"])
             if interaction.user.id in entries:
                 entries.remove(interaction.user.id)
                 await db.execute("UPDATE giveaways SET entries = ? WHERE id = ?", (json.dumps(entries), self.giveaway_id))
                 await db.commit()
-                await interaction.response.send_message(embed=BotEmbed.info("Left Giveaway", "You have left the giveaway."), ephemeral=True)
+                await interaction.response.send_message(embed=BotEmbed.info("Left Giveaway", "You have left the giveaway."), ephemeral=False)
             else:
                 entries.append(interaction.user.id)
                 await db.execute("UPDATE giveaways SET entries = ? WHERE id = ?", (json.dumps(entries), self.giveaway_id))
                 await db.commit()
-                await interaction.response.send_message(embed=BotEmbed.success("Entered Giveaway", "You have entered the giveaway!"), ephemeral=True)
+                await interaction.response.send_message(embed=BotEmbed.success("Entered Giveaway", "You have entered the giveaway!"), ephemeral=False)
             msg = interaction.message
             if msg:
                 embed = msg.embeds[0]
@@ -118,7 +118,7 @@ class Giveaway(commands.Cog):
         seconds = self.parse_duration(duration)
         if seconds is None:
             embed = BotEmbed.error("Invalid Duration", "Use format like `10m`, `2h`, `1d`.")
-            return await interaction.response.send_message(embed=embed, ephemeral=True)
+            return await interaction.response.send_message(embed=embed, ephemeral=False)
         target_channel = channel or interaction.channel
         ends_at = datetime.now(timezone.utc).timestamp() + seconds
         ends_at_iso = datetime.fromtimestamp(ends_at, tz=timezone.utc).isoformat()
@@ -144,7 +144,7 @@ class Giveaway(commands.Cog):
             await db.commit()
         view.giveaway_id = gw_id
         await msg.edit(view=view)
-        await interaction.followup.send(embed=BotEmbed.success("Giveaway Started", f"Giveaway created in {target_channel.mention}."), ephemeral=True)
+        await interaction.followup.send(embed=BotEmbed.success("Giveaway Started", f"Giveaway created in {target_channel.mention}."), ephemeral=False)
 
     @app_commands.command(name="gend", description="End a giveaway early")
     @app_commands.describe(message_id="ID of the giveaway message")
@@ -157,9 +157,9 @@ class Giveaway(commands.Cog):
             gw = await cursor.fetchone()
             if not gw:
                 embed = BotEmbed.error("Not Found", "Active giveaway with that message ID not found.")
-                return await interaction.response.send_message(embed=embed, ephemeral=True)
+                return await interaction.response.send_message(embed=embed, ephemeral=False)
             await self.end_giveaway(db, gw)
-            await interaction.response.send_message(embed=BotEmbed.success("Giveaway Ended", "Giveaway ended early."), ephemeral=True)
+            await interaction.response.send_message(embed=BotEmbed.success("Giveaway Ended", "Giveaway ended early."), ephemeral=False)
 
     @app_commands.command(name="greroll", description="Reroll winners")
     @app_commands.describe(message_id="ID of the giveaway message")
@@ -172,11 +172,11 @@ class Giveaway(commands.Cog):
             gw = await cursor.fetchone()
             if not gw:
                 embed = BotEmbed.error("Not Found", "Ended giveaway not found.")
-                return await interaction.response.send_message(embed=embed, ephemeral=True)
+                return await interaction.response.send_message(embed=embed, ephemeral=False)
             entries = json.loads(gw["entries"])
             if not entries:
                 embed = BotEmbed.error("No Entries", "No entries to reroll.")
-                return await interaction.response.send_message(embed=embed, ephemeral=True)
+                return await interaction.response.send_message(embed=embed, ephemeral=False)
             num_winners = min(gw["winners"], len(entries))
             new_winners = random.sample(entries, num_winners)
             channel = self.bot.get_channel(gw["channel_id"])

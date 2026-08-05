@@ -44,7 +44,7 @@ class Config(commands.GroupCog, name="antinuke"):
         embed.add_field(name="/antinuke emergency", value="Lockdown / kick nuker", inline=False)
         embed.add_field(name="/antinuke whitelist", value="Manage immune users/roles", inline=False)
         embed.set_footer(text="Use /help for the full bot command list")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.response.send_message(embed=embed, ephemeral=False)
 
     # ---------- Toggle (nuke only) ----------
     @app_commands.command(name="toggle", description="Enable or disable the entire anti‑nuke system")
@@ -58,7 +58,7 @@ class Config(commands.GroupCog, name="antinuke"):
             await db.execute("UPDATE guild_settings SET antinuke_enabled = ? WHERE guild_id = ?", (enabled, interaction.guild_id))
             await db.commit()
         embed = BotEmbed.success("Anti‑Nuke", f"System {'enabled' if enabled else 'disabled'}.")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.response.send_message(embed=embed, ephemeral=False)
 
     # ---------- Emergency (nuke only) ----------
     @app_commands.command(name="emergency", description="Emergency lockdown / unlock / kick nuker")
@@ -98,13 +98,13 @@ class Config(commands.GroupCog, name="antinuke"):
         elif action == "kick_nuker":
             if not user:
                 embed = BotEmbed.error("Missing User", "Specify a user to kick.")
-                return await interaction.followup.send(embed=embed, ephemeral=True)
+                return await interaction.followup.send(embed=embed, ephemeral=False)
             try:
                 await guild.kick(user, reason="Emergency nuker removal")
                 embed = BotEmbed.success("Kicked", f"{user.mention} has been kicked.")
             except Exception as e:
                 embed = BotEmbed.error("Error", str(e))
-        await interaction.followup.send(embed=embed, ephemeral=True)
+        await interaction.followup.send(embed=embed, ephemeral=False)
 
     # ---------- Settings (admin only) ----------
     @app_commands.command(name="settings", description="View current anti‑nuke configuration")
@@ -132,7 +132,7 @@ class Config(commands.GroupCog, name="antinuke"):
         embed.add_field(name="Modules", value=modules_text, inline=False)
         thresh_text = "\n".join([f"{k}: {v} per {time_window}s" for k, v in thresholds.items()])
         embed.add_field(name="Thresholds", value=thresh_text, inline=False)
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.response.send_message(embed=embed, ephemeral=False)
 
     # ---------- Module (admin only) ----------
     @app_commands.command(name="module", description="Enable/disable a detection module")
@@ -152,7 +152,7 @@ class Config(commands.GroupCog, name="antinuke"):
             await db.execute("UPDATE guild_settings SET modules = ? WHERE guild_id = ?", (json.dumps(modules), interaction.guild_id))
             await db.commit()
         embed = BotEmbed.success("Module Updated", f"`{module}` {'enabled' if new_state else 'disabled'}.")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.response.send_message(embed=embed, ephemeral=False)
 
     # ---------- Threshold (admin only) ----------
     @app_commands.command(name="threshold", description="Set action threshold for an event")
@@ -161,7 +161,7 @@ class Config(commands.GroupCog, name="antinuke"):
     @admin_only()
     async def threshold(self, interaction: discord.Interaction, module: str, count: int):
         if count < 1:
-            return await interaction.response.send_message(embed=BotEmbed.error("Invalid", "Count must be at least 1."), ephemeral=True)
+            return await interaction.response.send_message(embed=BotEmbed.error("Invalid", "Count must be at least 1."), ephemeral=False)
         await self.ensure_guild_entry(interaction.guild_id)
         async with aiosqlite.connect(self.db_path) as db:
             db.row_factory = aiosqlite.Row                     # <-- FIX
@@ -172,7 +172,7 @@ class Config(commands.GroupCog, name="antinuke"):
             await db.execute("UPDATE guild_settings SET thresholds = ? WHERE guild_id = ?", (json.dumps(thresholds), interaction.guild_id))
             await db.commit()
         embed = BotEmbed.success("Threshold Updated", f"`{module}` threshold set to **{count}**.")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.response.send_message(embed=embed, ephemeral=False)
 
     # ---------- Time Window (admin only) ----------
     @app_commands.command(name="timewindow", description="Set the detection time window (seconds)")
@@ -180,13 +180,13 @@ class Config(commands.GroupCog, name="antinuke"):
     @admin_only()
     async def timewindow(self, interaction: discord.Interaction, seconds: int):
         if seconds < 5 or seconds > 60:
-            return await interaction.response.send_message(embed=BotEmbed.error("Invalid", "Time window must be between 5 and 60 seconds."), ephemeral=True)
+            return await interaction.response.send_message(embed=BotEmbed.error("Invalid", "Time window must be between 5 and 60 seconds."), ephemeral=False)
         await self.ensure_guild_entry(interaction.guild_id)
         async with aiosqlite.connect(self.db_path) as db:
             await db.execute("UPDATE guild_settings SET time_window = ? WHERE guild_id = ?", (seconds, interaction.guild_id))
             await db.commit()
         embed = BotEmbed.success("Time Window Updated", f"Window set to **{seconds}s**.")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.response.send_message(embed=embed, ephemeral=False)
 
     # ---------- Punishment (admin only) ----------
     @app_commands.command(name="punishment", description="Set punishment mode for offenders")
@@ -199,7 +199,7 @@ class Config(commands.GroupCog, name="antinuke"):
             await db.execute("UPDATE guild_settings SET punishment = ? WHERE guild_id = ?", (mode, interaction.guild_id))
             await db.commit()
         embed = BotEmbed.success("Punishment Updated", f"Mode set to **{mode}**.")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.response.send_message(embed=embed, ephemeral=False)
 
     # ---------- Quarantine Role (admin only) ----------
     @app_commands.command(name="quarantine-role", description="Set the role given to stripped offenders")
@@ -207,13 +207,13 @@ class Config(commands.GroupCog, name="antinuke"):
     @admin_only()
     async def quarantine_role(self, interaction: discord.Interaction, role: discord.Role):
         if role >= interaction.guild.me.top_role:
-            return await interaction.response.send_message(embed=BotEmbed.error("Role Too High", "I cannot assign a role higher than my own."), ephemeral=True)
+            return await interaction.response.send_message(embed=BotEmbed.error("Role Too High", "I cannot assign a role higher than my own."), ephemeral=False)
         await self.ensure_guild_entry(interaction.guild_id)
         async with aiosqlite.connect(self.db_path) as db:
             await db.execute("UPDATE guild_settings SET quarantine_role_id = ? WHERE guild_id = ?", (role.id, interaction.guild_id))
             await db.commit()
         embed = BotEmbed.success("Quarantine Role Set", f"Offenders will get {role.mention}.")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.response.send_message(embed=embed, ephemeral=False)
 
     # ---------- Log Channel (admin only) ----------
     @app_commands.command(name="logchannel", description="Set the anti‑nuke alert channel")
@@ -225,7 +225,7 @@ class Config(commands.GroupCog, name="antinuke"):
             await db.execute("UPDATE guild_settings SET log_channel_id = ? WHERE guild_id = ?", (channel.id, interaction.guild_id))
             await db.commit()
         embed = BotEmbed.success("Log Channel Set", f"Alerts will be sent to {channel.mention}.")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.response.send_message(embed=embed, ephemeral=False)
 
     # ---------- Whitelist group (nuke only) ----------
     whitelist_group = app_commands.Group(name="whitelist", description="Manage anti‑nuke whitelist")
@@ -235,7 +235,7 @@ class Config(commands.GroupCog, name="antinuke"):
     @nuke_only()
     async def whitelist_add(self, interaction: discord.Interaction, user: discord.User = None, role: discord.Role = None):
         if not user and not role:
-            return await interaction.response.send_message(embed=BotEmbed.error("Missing Target", "Provide a user or role."), ephemeral=True)
+            return await interaction.response.send_message(embed=BotEmbed.error("Missing Target", "Provide a user or role."), ephemeral=False)
         async with aiosqlite.connect(self.db_path) as db:
             try:
                 if user:
@@ -244,16 +244,16 @@ class Config(commands.GroupCog, name="antinuke"):
                     await db.execute("INSERT INTO whitelist (guild_id, role_id) VALUES (?, ?)", (interaction.guild_id, role.id))
                 await db.commit()
             except aiosqlite.IntegrityError:
-                return await interaction.response.send_message(embed=BotEmbed.warning("Already Whitelisted", "That user/role is already whitelisted."), ephemeral=True)
+                return await interaction.response.send_message(embed=BotEmbed.warning("Already Whitelisted", "That user/role is already whitelisted."), ephemeral=False)
         embed = BotEmbed.success("Whitelisted", f"Added to the whitelist.")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.response.send_message(embed=embed, ephemeral=False)
 
     @whitelist_group.command(name="remove", description="Remove from whitelist")
     @app_commands.describe(user="User to remove", role="Role to remove")
     @nuke_only()
     async def whitelist_remove(self, interaction: discord.Interaction, user: discord.User = None, role: discord.Role = None):
         if not user and not role:
-            return await interaction.response.send_message(embed=BotEmbed.error("Missing Target", "Provide a user or role."), ephemeral=True)
+            return await interaction.response.send_message(embed=BotEmbed.error("Missing Target", "Provide a user or role."), ephemeral=False)
         async with aiosqlite.connect(self.db_path) as db:
             if user:
                 await db.execute("DELETE FROM whitelist WHERE guild_id = ? AND user_id = ?", (interaction.guild_id, user.id))
@@ -261,7 +261,7 @@ class Config(commands.GroupCog, name="antinuke"):
                 await db.execute("DELETE FROM whitelist WHERE guild_id = ? AND role_id = ?", (interaction.guild_id, role.id))
             await db.commit()
         embed = BotEmbed.success("Removed", "Entry removed from whitelist.")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.response.send_message(embed=embed, ephemeral=False)
 
     @whitelist_group.command(name="list", description="Show current whitelist")
     @nuke_only()
@@ -271,17 +271,17 @@ class Config(commands.GroupCog, name="antinuke"):
             cursor = await db.execute("SELECT user_id, role_id FROM whitelist WHERE guild_id = ?", (interaction.guild_id,))
             rows = await cursor.fetchall()
         if not rows:
-            return await interaction.response.send_message(embed=BotEmbed.info("Whitelist", "The whitelist is empty."), ephemeral=True)
+            return await interaction.response.send_message(embed=BotEmbed.info("Whitelist", "The whitelist is empty."), ephemeral=False)
         users = [f"<@{r['user_id']}>" for r in rows if r["user_id"]]
         roles = [f"<@&{r['role_id']}>" for r in rows if r["role_id"]]
         text = "**Users:** " + (", ".join(users) if users else "None") + "\n**Roles:** " + (", ".join(roles) if roles else "None")
-        await interaction.response.send_message(embed=BotEmbed.info("Whitelist", text), ephemeral=True)
+        await interaction.response.send_message(embed=BotEmbed.info("Whitelist", text), ephemeral=False)
 
     # ---------- Error handling for this cog ----------
     @commands.Cog.listener()
     async def on_app_command_error(self, interaction: discord.Interaction, error):
         if isinstance(error, app_commands.MissingPermissions):
-            await interaction.response.send_message(embed=BotEmbed.error("Missing Permissions", "You need `Manage Guild` permission."), ephemeral=True)
+            await interaction.response.send_message(embed=BotEmbed.error("Missing Permissions", "You need `Manage Guild` permission."), ephemeral=False)
         else:
             logger.error(f"Config command error: {error}")
 

@@ -171,7 +171,7 @@ class ServerLogger(commands.Cog):
                              (interaction.guild_id, event_type, channel.id))
             await db.commit()
         embed = BotEmbed.success("Log Channel Set", f"{event_type.capitalize()} logs will be sent to {channel.mention}")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.response.send_message(embed=embed, ephemeral=False)
 
 
 async def setup(bot):

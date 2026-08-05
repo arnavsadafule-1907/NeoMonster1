@@ -39,7 +39,7 @@ class Announce(commands.Cog):
                 embed_color = discord.Color.from_str(color)
             except:
                 embed = BotEmbed.error("Invalid Color", f"`{color}` is not a valid hex color. Use #3B82F6 format.")
-                return await interaction.followup.send(embed=embed, ephemeral=True)
+                return await interaction.followup.send(embed=embed, ephemeral=False)
 
         embed = discord.Embed(title=title, description=description, color=embed_color)
         if image_url:
@@ -53,10 +53,10 @@ class Announce(commands.Cog):
             await target_channel.send(embed=embed)
         except discord.Forbidden:
             embed_err = BotEmbed.error("Permission Denied", "I can't send messages in that channel.")
-            return await interaction.followup.send(embed=embed_err, ephemeral=True)
+            return await interaction.followup.send(embed=embed_err, ephemeral=False)
         except Exception as e:
             embed_err = BotEmbed.error("Unexpected Error", f"Failed to send: {e}")
-            return await interaction.followup.send(embed=embed_err, ephemeral=True)
+            return await interaction.followup.send(embed=embed_err, ephemeral=False)
 
         await interaction.followup.send(
             embed=BotEmbed.success("Announcement Sent", f"Posted in {target_channel.mention}."),

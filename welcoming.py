@@ -54,26 +54,26 @@ class Welcoming(commands.Cog):
         if action == "channel":
             if not channel:
                 embed = BotEmbed.error("Missing Channel", "Please specify a text channel.")
-                return await interaction.response.send_message(embed=embed, ephemeral=True)
+                return await interaction.response.send_message(embed=embed, ephemeral=False)
             self.welcome_channels[guild_id] = channel.id
             embed = BotEmbed.success("Welcome Channel", f"Set to {channel.mention}.")
         elif action == "message":
             if not message:
                 embed = BotEmbed.error("Missing Message", "Provide a welcome message.")
-                return await interaction.response.send_message(embed=embed, ephemeral=True)
+                return await interaction.response.send_message(embed=embed, ephemeral=False)
             self.welcome_messages[guild_id] = message
             embed = BotEmbed.success("Welcome Message", "Message updated.")
         elif action == "role":
             if not role:
                 embed = BotEmbed.error("Missing Role", "Mention a role to auto-assign.")
-                return await interaction.response.send_message(embed=embed, ephemeral=True)
+                return await interaction.response.send_message(embed=embed, ephemeral=False)
             self.auto_roles[guild_id] = role.id
             embed = BotEmbed.success("Auto Role", f"{role.mention} will be assigned to new members.")
         elif action == "test":
             channel_id = self.welcome_channels.get(guild_id)
             if not channel_id:
                 embed = BotEmbed.error("Not Set", "Welcome channel is not configured.")
-                return await interaction.response.send_message(embed=embed, ephemeral=True)
+                return await interaction.response.send_message(embed=embed, ephemeral=False)
             channel = interaction.guild.get_channel(channel_id)
             if channel:
                 msg = self.welcome_messages.get(guild_id, "Welcome {user}!")
@@ -82,7 +82,7 @@ class Welcoming(commands.Cog):
                 embed = BotEmbed.success("Test Sent", "Welcome message test sent.")
             else:
                 embed = BotEmbed.error("Channel Not Found", "The saved channel no longer exists.")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.response.send_message(embed=embed, ephemeral=False)
 
     @app_commands.command(name="farewell", description="Set farewell channel")
     @app_commands.describe(channel="Channel for leave messages")
@@ -90,7 +90,7 @@ class Welcoming(commands.Cog):
     async def farewell(self, interaction: discord.Interaction, channel: discord.TextChannel):
         self.farewell_channels[interaction.guild_id] = channel.id
         embed = BotEmbed.success("Farewell Channel", f"Set to {channel.mention}.")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.response.send_message(embed=embed, ephemeral=False)
 
 async def setup(bot):
     await bot.add_cog(Welcoming(bot))

@@ -1631,7 +1631,7 @@ During handling of the above exception, another exception occurred:
 
 Traceback (most recent call last):
   File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\botprofile.py", line 41, in _update_bio
-    await interaction.response.send_message(embed=embed, ephemeral=True)
+    await interaction.response.send_message(embed=embed, ephemeral=False)
   File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\interactions.py", line 1085, in send_message
     data = await adapter.create_interaction_response(
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1651,7 +1651,7 @@ Traceback (most recent call last):
   File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\botprofile.py", line 18, in setbotbio
     await self._update_bio(bio_text, interaction)
   File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\botprofile.py", line 45, in _update_bio
-    await interaction.response.send_message(embed=embed, ephemeral=True)
+    await interaction.response.send_message(embed=embed, ephemeral=False)
   File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\interactions.py", line 1085, in send_message
     data = await adapter.create_interaction_response(
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -3700,7 +3700,7 @@ Traceback (most recent call last):
     return await self._callback(self.binding, interaction, **params)  # type: ignore
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\ownerrecovery.py", line 26, in generate_recovery
-    await interaction.response.send_message(embed=embed, ephemeral=True)
+    await interaction.response.send_message(embed=embed, ephemeral=False)
   File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\interactions.py", line 1085, in send_message
     data = await adapter.create_interaction_response(
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -3728,7 +3728,7 @@ Traceback (most recent call last):
     return await self._callback(self.binding, interaction, **params)  # type: ignore
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\ownerrecovery.py", line 55, in recover_owner
-    await interaction.response.send_message(embed=embed, ephemeral=True)
+    await interaction.response.send_message(embed=embed, ephemeral=False)
   File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\interactions.py", line 1085, in send_message
     data = await adapter.create_interaction_response(
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -3756,7 +3756,7 @@ Traceback (most recent call last):
     return await self._callback(self.binding, interaction, **params)  # type: ignore
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\ownerrecovery.py", line 55, in recover_owner
-    await interaction.response.send_message(embed=embed, ephemeral=True)
+    await interaction.response.send_message(embed=embed, ephemeral=False)
   File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\interactions.py", line 1085, in send_message
     data = await adapter.create_interaction_response(
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -3784,7 +3784,7 @@ Traceback (most recent call last):
     return await self._callback(self.binding, interaction, **params)  # type: ignore
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\raidalert.py", line 33, in set_webhook
-    await interaction.response.send_message(embed=embed, ephemeral=True)
+    await interaction.response.send_message(embed=embed, ephemeral=False)
   File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\interactions.py", line 1085, in send_message
     data = await adapter.create_interaction_response(
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -4095,7 +4095,7 @@ Traceback (most recent call last):
     return await self._callback(self.binding, interaction, **params)  # type: ignore
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\roleassign.py", line 49, in roleassign
-    return await interaction.response.send_message(embed=embed, ephemeral=True)
+    return await interaction.response.send_message(embed=embed, ephemeral=False)
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\interactions.py", line 1085, in send_message
     data = await adapter.create_interaction_response(

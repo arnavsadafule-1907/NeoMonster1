@@ -111,7 +111,7 @@ class MassMention(commands.Cog):
         elif action == "threshold":
             if not value or not value.isdigit() or int(value) < 2:
                 embed = BotEmbed.error("Invalid", "Threshold must be at least 2.")
-                return await interaction.response.send_message(embed=embed, ephemeral=True)
+                return await interaction.response.send_message(embed=embed, ephemeral=False)
             async with aiosqlite.connect(DB_PATH) as db:
                 await db.execute("UPDATE massmention_settings SET threshold = ? WHERE guild_id = ?", (int(value), guild_id))
                 await db.commit()
@@ -119,12 +119,12 @@ class MassMention(commands.Cog):
         elif action == "punishment":
             if not punishment:
                 embed = BotEmbed.error("Invalid", "Choose a punishment: mute, kick, or ban.")
-                return await interaction.response.send_message(embed=embed, ephemeral=True)
+                return await interaction.response.send_message(embed=embed, ephemeral=False)
             async with aiosqlite.connect(DB_PATH) as db:
                 await db.execute("UPDATE massmention_settings SET punishment = ? WHERE guild_id = ?", (punishment, guild_id))
                 await db.commit()
             embed = BotEmbed.success("Punishment Updated", f"Offenders will be `{punishment}`ed.")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.response.send_message(embed=embed, ephemeral=False)
 
 
 async def setup(bot):

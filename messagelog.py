@@ -69,7 +69,7 @@ class MessageLog(commands.Cog):
             await db.execute("INSERT OR REPLACE INTO guild_message_log (guild_id, log_channel_id) VALUES (?, ?)", (interaction.guild_id, channel.id))
             await db.commit()
         embed = BotEmbed.success("Message Log Channel Set", f"Message logs will be sent to {channel.mention}.")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.response.send_message(embed=embed, ephemeral=False)
 
 
 async def setup(bot):

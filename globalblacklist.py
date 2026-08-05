@@ -39,35 +39,35 @@ class GlobalBlacklist(commands.Cog):
     @app_commands.describe(user_id="User ID to blacklist")
     async def blacklist_add(self, interaction: discord.Interaction, user_id: str):
         if interaction.user.id not in self.bot.owner_ids:
-            await interaction.response.send_message("Only the bot owner can use this command.", ephemeral=True)
+            await interaction.response.send_message("Only the bot owner can use this command.", ephemeral=False)
             return
         try:
             uid = int(user_id)
         except ValueError:
-            await interaction.response.send_message("Invalid user ID.", ephemeral=True)
+            await interaction.response.send_message("Invalid user ID.", ephemeral=False)
             return
 
         async with aiosqlite.connect(DB_PATH) as db:
             await db.execute("INSERT OR IGNORE INTO global_blacklist (user_id) VALUES (?)", (uid,))
             await db.commit()
-        await interaction.response.send_message(f"User `{uid}` blacklisted globally.", ephemeral=True)
+        await interaction.response.send_message(f"User `{uid}` blacklisted globally.", ephemeral=False)
 
     @app_commands.command(name="unblacklist", description="Remove a global blacklist")
     @app_commands.describe(user_id="User ID to unblacklist")
     async def blacklist_remove(self, interaction: discord.Interaction, user_id: str):
         if interaction.user.id not in self.bot.owner_ids:
-            await interaction.response.send_message("Only the bot owner can use this command.", ephemeral=True)
+            await interaction.response.send_message("Only the bot owner can use this command.", ephemeral=False)
             return
         try:
             uid = int(user_id)
         except ValueError:
-            await interaction.response.send_message("Invalid user ID.", ephemeral=True)
+            await interaction.response.send_message("Invalid user ID.", ephemeral=False)
             return
 
         async with aiosqlite.connect(DB_PATH) as db:
             await db.execute("DELETE FROM global_blacklist WHERE user_id = ?", (uid,))
             await db.commit()
-        await interaction.response.send_message(f"User `{uid}` removed from blacklist.", ephemeral=True)
+        await interaction.response.send_message(f"User `{uid}` removed from blacklist.", ephemeral=False)
 
 async def setup(bot):
     async with aiosqlite.connect(DB_PATH) as db:

@@ -20,7 +20,7 @@ class Moderation(commands.Cog):
     async def ban(self, interaction: discord.Interaction, member: discord.Member, reason: str = "No reason provided"):
         if member.top_role >= interaction.user.top_role and interaction.user != interaction.guild.owner:
             embed = BotEmbed.error("Permission Denied", "You cannot ban this member.")
-            return await interaction.response.send_message(embed=embed, ephemeral=True)
+            return await interaction.response.send_message(embed=embed, ephemeral=False)
         try:
             await member.ban(reason=reason)
             embed = BotEmbed.success("Member Banned", f"{member.mention} has been banned.\n**Reason:** {reason}")
@@ -47,7 +47,7 @@ class Moderation(commands.Cog):
     async def mute(self, interaction: discord.Interaction, member: discord.Member, duration: int, reason: str = "No reason provided"):
         if member.is_timed_out():
             embed = BotEmbed.warning("Already Muted", f"{member.mention} is already muted.")
-            return await interaction.response.send_message(embed=embed, ephemeral=True)
+            return await interaction.response.send_message(embed=embed, ephemeral=False)
         try:
             until = discord.utils.utcnow() + timedelta(minutes=duration)
             await member.timeout(until, reason=reason)
@@ -63,7 +63,7 @@ class Moderation(commands.Cog):
     async def unmute(self, interaction: discord.Interaction, member: discord.Member):
         if not member.is_timed_out():
             embed = BotEmbed.warning("Not Muted", f"{member.mention} is not currently timed out.")
-            return await interaction.response.send_message(embed=embed, ephemeral=True)
+            return await interaction.response.send_message(embed=embed, ephemeral=False)
         try:
             await member.timeout(None, reason="Unmute")
             embed = BotEmbed.success("Member Unmuted", f"{member.mention} has been unmuted.")
@@ -90,14 +90,14 @@ class Moderation(commands.Cog):
     async def purge(self, interaction: discord.Interaction, amount: int):
         if amount < 1 or amount > 100:
             embed = BotEmbed.error("Invalid Amount", "Please enter a number between 1 and 100.")
-            return await interaction.response.send_message(embed=embed, ephemeral=True)
+            return await interaction.response.send_message(embed=embed, ephemeral=False)
         await interaction.response.defer(ephemeral=True)
         try:
             deleted = await interaction.channel.purge(limit=amount)
             embed = BotEmbed.success("Messages Purged", f"Deleted {len(deleted)} messages.")
         except discord.Forbidden:
             embed = BotEmbed.error("Missing Permissions", "I need the **Manage Messages** permission to purge.")
-        await interaction.followup.send(embed=embed, ephemeral=True)
+        await interaction.followup.send(embed=embed, ephemeral=False)
 
 async def setup(bot):
     await bot.add_cog(Moderation(bot))

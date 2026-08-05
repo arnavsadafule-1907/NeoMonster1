@@ -30,7 +30,7 @@ class Fun(commands.Cog):
             await interaction.response.send_message(embed=embed)
         except Exception as e:
             embed = BotEmbed.error("Error", "Could not fetch meme.")
-            await interaction.response.send_message(embed=embed, ephemeral=True)
+            await interaction.response.send_message(embed=embed, ephemeral=False)
 
     @app_commands.command(name="rps", description="Rock-Paper-Scissors")
     @app_commands.describe(choice="Your choice")

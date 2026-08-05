@@ -67,7 +67,7 @@ class Backup(commands.Cog):
             json.dump(backup_data, f, indent=2)
 
         embed = BotEmbed.success("Backup Created", f"Backup saved to persistent storage.")
-        await interaction.followup.send(embed=embed, ephemeral=True)
+        await interaction.followup.send(embed=embed, ephemeral=False)
 
     @app_commands.command(name="restore", description="Restore server from the latest backup (DESTRUCTIVE)")
     @app_commands.describe(confirm="Type 'CONFIRM' to proceed")
@@ -75,7 +75,7 @@ class Backup(commands.Cog):
     async def restore_backup(self, interaction: discord.Interaction, confirm: str):
         if confirm != "CONFIRM":
             embed = BotEmbed.error("Confirmation Required", "Type `CONFIRM` to proceed.")
-            return await interaction.response.send_message(embed=embed, ephemeral=True)
+            return await interaction.response.send_message(embed=embed, ephemeral=False)
 
         await interaction.response.defer(ephemeral=True)
         guild = interaction.guild
@@ -87,7 +87,7 @@ class Backup(commands.Cog):
         )
         if not backups:
             embed = BotEmbed.error("No Backup", "No backup found for this server.")
-            return await interaction.followup.send(embed=embed, ephemeral=True)
+            return await interaction.followup.send(embed=embed, ephemeral=False)
 
         with open(f"{BACKUP_DIR}/{backups[0]}", "r", encoding="utf-8") as f:
             backup_data = json.load(f)
@@ -173,7 +173,7 @@ class Backup(commands.Cog):
             report_text += f"\n...and {len(report)-20} more entries."
 
         embed = BotEmbed.success("Restore Complete", report_text or "No changes reported.")
-        await interaction.followup.send(embed=embed, ephemeral=True)
+        await interaction.followup.send(embed=embed, ephemeral=False)
 
     # ---------- Helpers ----------
     def _serialise_overwrites(self, channel) -> list:

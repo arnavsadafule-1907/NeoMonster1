@@ -57,7 +57,7 @@ class SecurityBot(commands.Bot):
             global_blacklist_cog = self.get_cog("GlobalBlacklist")
             if global_blacklist_cog and await global_blacklist_cog.is_blacklisted(interaction.user.id):
                 await interaction.response.send_message(
-                    "⛔ You are globally blacklisted from using NeoMonster.", ephemeral=True
+                    "⛔ You are globally blacklisted from using NeoMonster.", ephemeral=False
                 )
                 return False
         except Exception:
@@ -82,9 +82,9 @@ class SecurityBot(commands.Bot):
 
         try:
             if interaction.response.is_done():
-                await interaction.followup.send(embed=embed, ephemeral=True)
+                await interaction.followup.send(embed=embed, ephemeral=False)
             else:
-                await interaction.response.send_message(embed=embed, ephemeral=True)
+                await interaction.response.send_message(embed=embed, ephemeral=False)
         except Exception as e:
             logger.error(f"Failed to send error response: {e}")
 

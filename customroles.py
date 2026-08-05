@@ -21,7 +21,7 @@ class CustomRoles(commands.Cog):
         if action == "create":
             if not name:
                 embed = BotEmbed.error("Missing Name", "You must provide a name.")
-                return await interaction.response.send_message(embed=embed, ephemeral=True)
+                return await interaction.response.send_message(embed=embed, ephemeral=False)
             try:
                 col = discord.Color.from_str(color) if color else discord.Color.random()
             except:
@@ -35,7 +35,7 @@ class CustomRoles(commands.Cog):
             role_ids = self.user_roles.get(interaction.user.id, [])
             if not role_ids:
                 embed = BotEmbed.error("No Roles", "You have no custom roles to delete.")
-                return await interaction.response.send_message(embed=embed, ephemeral=True)
+                return await interaction.response.send_message(embed=embed, ephemeral=False)
             role = interaction.guild.get_role(role_ids[0])
             if role:
                 await role.delete(reason="Custom role delete")
@@ -50,7 +50,7 @@ class CustomRoles(commands.Cog):
                 embed = BotEmbed.info("Your Roles", "You have no custom roles.")
             else:
                 embed = BotEmbed.info("Your Roles", "\n".join([r.mention for r in roles]))
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.response.send_message(embed=embed, ephemeral=False)
 
 async def setup(bot):
     await bot.add_cog(CustomRoles(bot))

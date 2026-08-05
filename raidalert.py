@@ -24,13 +24,13 @@ class RaidAlert(commands.Cog):
     async def set_webhook(self, interaction: discord.Interaction, url: str):
         if not url.startswith("https://discord.com/api/webhooks/"):
             embed = BotEmbed.error("Invalid URL", "Must be a Discord webhook URL.")
-            return await interaction.response.send_message(embed=embed, ephemeral=True)
+            return await interaction.response.send_message(embed=embed, ephemeral=False)
         
         async with aiosqlite.connect(DB_PATH) as db:
             await db.execute("INSERT OR REPLACE INTO raid_webhooks (guild_id, webhook_url) VALUES (?, ?)", (interaction.guild_id, url))
             await db.commit()
         embed = BotEmbed.success("Webhook Set", "Raid alerts will be sent to that webhook.")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.response.send_message(embed=embed, ephemeral=False)
 
     async def send_alert(self, guild_id: int, embed: discord.Embed):
         """Called by antinuke.py when a punishment occurs."""

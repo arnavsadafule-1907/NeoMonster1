@@ -31,7 +31,7 @@ class Voice(commands.Cog):
     async def vc(self, interaction: discord.Interaction, action: str, member: discord.Member):
         if not member.voice or not member.voice.channel:
             embed = BotEmbed.error("Not in Voice", f"{member.mention} is not in a voice channel.")
-            return await interaction.response.send_message(embed=embed, ephemeral=True)
+            return await interaction.response.send_message(embed=embed, ephemeral=False)
 
         if action == "kick":
             await member.move_to(None, reason="VC kick")

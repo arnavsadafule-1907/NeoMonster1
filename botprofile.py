@@ -12,7 +12,7 @@ class BotProfile(commands.Cog):
     async def setbotbio(self, interaction: discord.Interaction):
         if interaction.user.id not in self.bot.owner_ids:
             embed = BotEmbed.error("Permission Denied", "Only the bot owner can change my bio.")
-            return await interaction.response.send_message(embed=embed, ephemeral=True)
+            return await interaction.response.send_message(embed=embed, ephemeral=False)
 
         bio_text = await self._build_bio()
         await self._update_bio(bio_text, interaction)
@@ -30,7 +30,7 @@ class BotProfile(commands.Cog):
             await self.bot.user.edit(bio=bio)
             if interaction:
                 embed = BotEmbed.success("Bio Updated", "My About Me now shows only the invite link.")
-                await interaction.response.send_message(embed=embed, ephemeral=True)
+                await interaction.response.send_message(embed=embed, ephemeral=False)
         except TypeError:
             # discord.py version too old – use raw HTTP patch
             try:
@@ -38,15 +38,15 @@ class BotProfile(commands.Cog):
                 await self.bot.http.request(route, json={'bio': bio})
                 if interaction:
                     embed = BotEmbed.success("Bio Updated", "My About Me has been updated (using fallback method).")
-                    await interaction.response.send_message(embed=embed, ephemeral=True)
+                    await interaction.response.send_message(embed=embed, ephemeral=False)
             except Exception as e:
                 if interaction:
                     embed = BotEmbed.error("Failed to Update Bio", str(e))
-                    await interaction.response.send_message(embed=embed, ephemeral=True)
+                    await interaction.response.send_message(embed=embed, ephemeral=False)
         except Exception as e:
             if interaction:
                 embed = BotEmbed.error("Failed to Update Bio", str(e))
-                await interaction.response.send_message(embed=embed, ephemeral=True)
+                await interaction.response.send_message(embed=embed, ephemeral=False)
 
     @commands.Cog.listener()
     async def on_ready(self):

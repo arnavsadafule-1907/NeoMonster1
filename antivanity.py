@@ -62,7 +62,7 @@ class AntiVanity(commands.Cog):
                 await db.execute("UPDATE antivanity_settings SET enabled = 0 WHERE guild_id = ?", (guild_id,))
             await db.commit()
         embed = BotEmbed.success("Anti-Vanity", f"{'Enabled' if action == 'enable' else 'Disabled'}.")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.response.send_message(embed=embed, ephemeral=False)
 
 
 async def setup(bot):

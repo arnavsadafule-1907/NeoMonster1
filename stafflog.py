@@ -52,7 +52,7 @@ class StaffLog(commands.Cog):
 
         if not logs:
             embed = BotEmbed.info("No Logs", f"No activity found for {user.mention}.")
-            return await interaction.response.send_message(embed=embed, ephemeral=True)
+            return await interaction.response.send_message(embed=embed, ephemeral=False)
 
         embed = BotEmbed.info(f"Staff Activity Log – {user.display_name}")
         for log in logs:
@@ -64,7 +64,7 @@ class StaffLog(commands.Cog):
                 value=f"Target: {target_mention}\nReason: {reason_text}",
                 inline=False
             )
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.response.send_message(embed=embed, ephemeral=False)
 
 
 async def setup(bot):
