@@ -28,15 +28,16 @@ class SecurityBot(commands.Bot):
         logger.info("Database ready")
 
         cogs = [
-            "antinuke", "config", "recovery", "help",
-            "moderation", "utility", "automod", "welcoming",
-            "customroles", "giveaway", "boycott", "automations",
-            "fun", "voice", "adminsetup", "ignore", "roleassign",
-            "report", "antispam", "messagelog", "botprofile",
-            "backup", "altdetector", "slowmode", "raidalert", "chatbot",
-            "massmention", "antivanity", "stafflog", "ownerrecovery", "polish",
-            "publicbot", "globalblacklist", "announce"
-        ]
+    "antinuke", "config", "recovery", "help",
+    "moderation", "utility", "automod", "welcoming",
+    "customroles", "giveaway", "boycott", "automations",
+    "fun", "voice", "adminsetup", "ignore", "roleassign",
+    "report", "antispam", "messagelog", "botprofile",
+    "backup", "altdetector", "slowmode", "raidalert", "chatbot",
+    "massmention", "antivanity", "stafflog", "ownerrecovery", "polish",
+    "publicbot", "globalblacklist", "announce",
+    "ticket", "serverlogger", "poll"   # <-- new
+]
         for cog in cogs:
             try:
                 await self.load_extension(cog)
