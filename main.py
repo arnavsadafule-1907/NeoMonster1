@@ -5,9 +5,9 @@ from discord.ext import commands
 from dotenv import load_dotenv
 from logger import setup_logging
 from db import init_db
-from dashboard import app          # Flask app for dashboard
-from threading import Thread       # to run Flask in background
-from formatter import BotEmbed     # professional embed factory
+from dashboard import app
+from threading import Thread
+from formatter import BotEmbed
 
 load_dotenv()
 logger = setup_logging()
@@ -24,11 +24,9 @@ class SecurityBot(commands.Bot):
         self.owner_ids = set(map(int, os.getenv("OWNER_IDS", "").split(",")))
 
     async def setup_hook(self):
-        # 1. Create database directory and tables FIRST
         await init_db()
         logger.info("Database ready")
 
-        # 2. Now load all cogs (they can safely connect to the existing database)
         cogs = [
             "antinuke", "config", "recovery", "help",
             "moderation", "utility", "automod", "welcoming",
@@ -46,8 +44,25 @@ class SecurityBot(commands.Bot):
             except Exception as e:
                 logger.error(f"Failed to load {cog}: {e}")
 
+        # Register the safe blacklist check
+        self.tree.interaction_check = self.global_blacklist_check
+
         await self.tree.sync()
         logger.info("Command tree synced")
+
+    async def global_blacklist_check(self, interaction: discord.Interaction) -> bool:
+        """Return True if the user is allowed, False if blacklisted. Handles all errors silently."""
+        try:
+            global_blacklist_cog = self.get_cog("GlobalBlacklist")
+            if global_blacklist_cog and await global_blacklist_cog.is_blacklisted(interaction.user.id):
+                await interaction.response.send_message(
+                    "⛔ You are globally blacklisted from using NeoMonster.", ephemeral=True
+                )
+                return False
+        except Exception:
+            # If anything goes wrong (e.g. cog not loaded yet), allow the command
+            pass
+        return True
 
     async def on_ready(self):
         logger.info(f"🛡️ Security Bot online as {self.user} (ID: {self.user.id})")
@@ -55,9 +70,6 @@ class SecurityBot(commands.Bot):
             type=discord.ActivityType.watching, name="NeoMonster / 24/7 Protection"
         ))
 
-    # ------------------------------------------------------------
-    # FIXED Global error handler – always replies, even after defer
-    # ------------------------------------------------------------
     async def on_app_command_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
         if isinstance(error, app_commands.MissingRole):
             embed = BotEmbed.error("Insufficient Role", str(error))
@@ -76,14 +88,11 @@ class SecurityBot(commands.Bot):
             logger.error(f"Failed to send error response: {e}")
 
 
-# This block runs only when you start the script directly
 if __name__ == "__main__":
     bot = SecurityBot()
-
-    # Attach the bot to the Flask app so the dashboard can see it
     app.config["bot"] = bot
 
-    port = int(os.environ.get("PORT", 5000))   # Railway gives us a PORT, else 5000 locally
+    port = int(os.environ.get("PORT", 5000))
     flask_thread = Thread(
         target=app.run,
         kwargs={"host": "0.0.0.0", "port": port, "debug": False, "use_reloader": False},
@@ -92,5 +101,4 @@ if __name__ == "__main__":
     flask_thread.start()
     logger.info("Dashboard started on http://0.0.0.0:5000")
 
-    # Now start the bot (this blocks and keeps everything alive)
     bot.run(os.getenv("BOT_TOKEN"))

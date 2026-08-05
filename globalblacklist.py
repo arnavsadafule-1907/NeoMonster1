@@ -11,14 +11,20 @@ class GlobalBlacklist(commands.Cog):
         self.bot = bot
 
     async def is_blacklisted(self, user_id: int) -> bool:
-        async with aiosqlite.connect(DB_PATH) as db:
-            cursor = await db.execute("SELECT 1 FROM global_blacklist WHERE user_id = ?", (user_id,))
-            return await cursor.fetchone() is not None
+        try:
+            async with aiosqlite.connect(DB_PATH) as db:
+                cursor = await db.execute("SELECT 1 FROM global_blacklist WHERE user_id = ?", (user_id,))
+                return await cursor.fetchone() is not None
+        except Exception:
+            return False
 
     async def is_guild_blacklisted(self, guild_id: int) -> bool:
-        async with aiosqlite.connect(DB_PATH) as db:
-            cursor = await db.execute("SELECT 1 FROM guild_blacklist WHERE guild_id = ?", (guild_id,))
-            return await cursor.fetchone() is not None
+        try:
+            async with aiosqlite.connect(DB_PATH) as db:
+                cursor = await db.execute("SELECT 1 FROM guild_blacklist WHERE guild_id = ?", (guild_id,))
+                return await cursor.fetchone() is not None
+        except Exception:
+            return False
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild):
@@ -29,14 +35,18 @@ class GlobalBlacklist(commands.Cog):
             except:
                 pass
 
-    # Blacklist commands (owner only) remain unchanged
     @app_commands.command(name="blacklist", description="Globally blacklist a user (owner only)")
     @app_commands.describe(user_id="User ID to blacklist")
     async def blacklist_add(self, interaction: discord.Interaction, user_id: str):
-        if interaction.user.id not in interaction.client.owner_ids:
+        if interaction.user.id not in self.bot.owner_ids:
             await interaction.response.send_message("Only the bot owner can use this command.", ephemeral=True)
             return
-        uid = int(user_id)
+        try:
+            uid = int(user_id)
+        except ValueError:
+            await interaction.response.send_message("Invalid user ID.", ephemeral=True)
+            return
+
         async with aiosqlite.connect(DB_PATH) as db:
             await db.execute("INSERT OR IGNORE INTO global_blacklist (user_id) VALUES (?)", (uid,))
             await db.commit()
@@ -45,10 +55,15 @@ class GlobalBlacklist(commands.Cog):
     @app_commands.command(name="unblacklist", description="Remove a global blacklist")
     @app_commands.describe(user_id="User ID to unblacklist")
     async def blacklist_remove(self, interaction: discord.Interaction, user_id: str):
-        if interaction.user.id not in interaction.client.owner_ids:
+        if interaction.user.id not in self.bot.owner_ids:
             await interaction.response.send_message("Only the bot owner can use this command.", ephemeral=True)
             return
-        uid = int(user_id)
+        try:
+            uid = int(user_id)
+        except ValueError:
+            await interaction.response.send_message("Invalid user ID.", ephemeral=True)
+            return
+
         async with aiosqlite.connect(DB_PATH) as db:
             await db.execute("DELETE FROM global_blacklist WHERE user_id = ?", (uid,))
             await db.commit()
