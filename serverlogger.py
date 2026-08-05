@@ -75,19 +75,35 @@ class ServerLogger(commands.Cog):
         else: return
         await self.log(member.guild.id, "voice", embed)
 
-    # ---------- Member Events ----------
+    # ---------- Member Events (enhanced) ----------
     @commands.Cog.listener()
     async def on_member_join(self, member):
-        embed = discord.Embed(title="👤 Member Joined", color=discord.Color.green(), timestamp=datetime.utcnow())
-        embed.add_field(name="Member", value=member.mention)
-        embed.add_field(name="Account Created", value=member.created_at.strftime("%Y-%m-%d"))
-        embed.set_footer(text=f"ID: {member.id}")
+        embed = discord.Embed(
+            title="👤 Member Joined",
+            color=discord.Color.green(),
+            timestamp=datetime.utcnow()
+        )
+        embed.set_thumbnail(url=member.display_avatar.url)
+        embed.add_field(name="User", value=f"{member.mention} ({member.name})", inline=True)
+        embed.add_field(name="ID", value=member.id, inline=True)
+        embed.add_field(name="Created", value=f"<t:{int(member.created_at.timestamp())}:R>", inline=True)
+        embed.add_field(name="Members", value=member.guild.member_count, inline=True)
+        embed.set_footer(text=f"Member #{member.guild.member_count}")
         await self.log(member.guild.id, "member", embed)
 
     @commands.Cog.listener()
     async def on_member_remove(self, member):
-        embed = discord.Embed(title="👋 Member Left", color=discord.Color.orange(), timestamp=datetime.utcnow())
-        embed.add_field(name="Member", value=f"{member} ({member.id})")
+        embed = discord.Embed(
+            title="👋 Member Left",
+            color=discord.Color.orange(),
+            timestamp=datetime.utcnow()
+        )
+        embed.set_thumbnail(url=member.display_avatar.url)
+        embed.add_field(name="User", value=f"{member.mention} ({member.name})", inline=True)
+        embed.add_field(name="ID", value=member.id, inline=True)
+        embed.add_field(name="Joined", value=f"<t:{int(member.joined_at.timestamp())}:R>" if member.joined_at else "Unknown", inline=True)
+        embed.add_field(name="Members", value=member.guild.member_count, inline=True)
+        embed.set_footer(text=f"Member #{member.guild.member_count}")
         await self.log(member.guild.id, "member", embed)
 
     @commands.Cog.listener()
@@ -102,7 +118,7 @@ class ServerLogger(commands.Cog):
         embed.add_field(name="User", value=f"{user} ({user.id})")
         await self.log(guild.id, "moderation", embed)
 
-    # ---------- Role Events (creation, deletion, and assignment) ----------
+    # ---------- Role Events (creation, deletion, assignment) ----------
     @commands.Cog.listener()
     async def on_guild_role_create(self, role):
         embed = discord.Embed(title="🎨 Role Created", color=discord.Color.blue(), timestamp=datetime.utcnow())
@@ -152,11 +168,10 @@ class ServerLogger(commands.Cog):
             changes.append(f"**Name:** `{before.name}` → `{after.name}`")
         if before.topic != after.topic:
             changes.append(f"**Topic:** `{before.topic or 'None'}` → `{after.topic or 'None'}`")
-        # permission overwrite changes could be detailed, but we'll just note if changed
         if before.overwrites != after.overwrites:
             changes.append("**Permissions:** updated")
         if not changes:
-            return  # nothing meaningful changed
+            return
         embed.add_field(name="Channel", value=after.mention, inline=False)
         embed.add_field(name="Changes", value="\n".join(changes), inline=False)
         embed.set_footer(text=f"Channel ID: {after.id}")

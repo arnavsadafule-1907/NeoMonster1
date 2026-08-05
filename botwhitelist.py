@@ -18,20 +18,21 @@ class BotWhitelist(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    bot_whitelist_group = app_commands.Group(name="botwhitelist", description="Manage trusted bots (ignored by protection systems)")
+    # Renamed from bot_whitelist_group → whitelist_group
+    whitelist_group = app_commands.Group(name="botwhitelist", description="Manage trusted bots (ignored by protection systems)")
 
-    @bot_whitelist_group.command(name="add", description="Add a trusted bot to the whitelist")
+    @whitelist_group.command(name="add", description="Add a trusted bot to the whitelist")
     @app_commands.describe(bot="Bot to add")
     @admin_only()
     async def bot_whitelist_add(self, interaction: discord.Interaction, bot: discord.User):
         if not bot.bot:
-            return await interaction.response.send_message(embed=BotEmbed.error("Not a Bot", "You can only whitelist bot accounts."), ephemeral=True)
+            return await interaction.response.send_message(embed=BotEmbed.error("Not a Bot", "You can only whitelist bot accounts."), ephemeral=False)
         async with aiosqlite.connect(DB_PATH) as db:
             await db.execute("INSERT OR IGNORE INTO bot_whitelist (guild_id, bot_id) VALUES (?, ?)", (interaction.guild_id, bot.id))
             await db.commit()
         await interaction.response.send_message(embed=BotEmbed.success("Bot Whitelisted", f"{bot.mention} will be ignored by anti‑nuke, spam, and mass mention."), ephemeral=False)
 
-    @bot_whitelist_group.command(name="remove", description="Remove a bot from the whitelist")
+    @whitelist_group.command(name="remove", description="Remove a bot from the whitelist")
     @app_commands.describe(bot="Bot to remove")
     @admin_only()
     async def bot_whitelist_remove(self, interaction: discord.Interaction, bot: discord.User):
@@ -40,7 +41,7 @@ class BotWhitelist(commands.Cog):
             await db.commit()
         await interaction.response.send_message(embed=BotEmbed.success("Bot Removed", f"{bot.mention} is no longer ignored."), ephemeral=False)
 
-    @bot_whitelist_group.command(name="list", description="Show all whitelisted bots")
+    @whitelist_group.command(name="list", description="Show all whitelisted bots")
     @admin_only()
     async def bot_whitelist_list(self, interaction: discord.Interaction):
         async with aiosqlite.connect(DB_PATH) as db:
@@ -48,9 +49,9 @@ class BotWhitelist(commands.Cog):
             cursor = await db.execute("SELECT bot_id FROM bot_whitelist WHERE guild_id = ?", (interaction.guild_id,))
             rows = await cursor.fetchall()
         if not rows:
-            return await interaction.response.send_message(embed=BotEmbed.info("Bot Whitelist", "No bots are currently whitelisted."), ephemeral=True)
+            return await interaction.response.send_message(embed=BotEmbed.info("Bot Whitelist", "No bots are currently whitelisted."), ephemeral=False)
         mentions = [f"<@{r['bot_id']}>" for r in rows]
-        await interaction.response.send_message(embed=BotEmbed.info("Bot Whitelist", "\n".join(mentions)), ephemeral=True)
+        await interaction.response.send_message(embed=BotEmbed.info("Bot Whitelist", "\n".join(mentions)), ephemeral=False)
 
 async def setup(bot):
     async with aiosqlite.connect(DB_PATH) as db:

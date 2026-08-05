@@ -2,8 +2,12 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from discord.ui import Modal, TextInput, View, Button
+import asyncio
 from datetime import datetime, timezone, timedelta
 from checks import staff_only
+
+# Store active polls globally so background tasks can access them
+active_polls = {}
 
 class PollModal(Modal, title="Create Poll"):
     def __init__(self, question: str, duration_minutes: int):
@@ -29,13 +33,21 @@ class PollModal(Modal, title="Create Poll"):
             return
 
         end_time = discord.utils.utcnow() + self.duration
-        embed = self._build_embed(options, self.question, end_time)
+        embed = self._build_embed(options, end_time)
         view = PollView(options, self.question, end_time)
-        await interaction.response.send_message(embed=embed, view=view, ephemeral=False)
-
-        # Store message reference so timeout can edit it
+        await interaction.response.send_message(embed=embed, view=view)
         msg = await interaction.original_response()
-        view.message = msg
+
+        # Save reference for the background task
+        poll_id = msg.id
+        active_polls[poll_id] = {
+            "message": msg,
+            "view": view,
+            "end_time": end_time
+        }
+
+        # Schedule automatic close
+        asyncio.create_task(auto_close_poll(poll_id))
 
         # Log poll creation
         logger_cog = interaction.client.get_cog("ServerLogger")
@@ -43,7 +55,7 @@ class PollModal(Modal, title="Create Poll"):
             await logger_cog.log_poll_action(interaction.guild, interaction.user, "create", question=self.question, channel=interaction.channel)
 
     @staticmethod
-    def _build_embed(options, question, end_time, votes=None):
+    def _build_embed(options, end_time, question, votes=None):
         if votes is None:
             votes = {opt: set() for opt in options}
         total_voters = len(set().union(*votes.values()))
@@ -61,14 +73,12 @@ class PollModal(Modal, title="Create Poll"):
 
 class PollView(View):
     def __init__(self, options, question, end_time):
-        timeout_seconds = max(1, (end_time - discord.utils.utcnow()).total_seconds())
-        super().__init__(timeout=timeout_seconds)
+        super().__init__(timeout=None)  # No automatic timeout; we'll handle closing manually
         self.options = options
         self.question = question
         self.end_time = end_time
         self.votes = {opt: set() for opt in options}
         self.voters = set()
-        self.message = None  # set after sending
 
         # Vote buttons
         for i, opt in enumerate(options):
@@ -98,7 +108,7 @@ class PollView(View):
             self.votes[opt].add(interaction.user.id)
             self.voters.add(interaction.user.id)
             # Update embed
-            embed = PollModal._build_embed(self.options, self.question, self.end_time, votes=self.votes)
+            embed = PollModal._build_embed(self.options, self.end_time, votes=self.votes)
             await interaction.message.edit(embed=embed)
             await interaction.response.defer(ephemeral=True)
         return callback
@@ -118,13 +128,32 @@ class PollView(View):
         embed.set_footer(text=f"Total voters: {total}")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    async def on_timeout(self):
-        if self.message:
-            for child in self.children:
-                child.disabled = True
-            embed = PollModal._build_embed(self.options, self.question, self.end_time, votes=self.votes)
-            embed.set_footer(text="Poll closed")
+    async def close_poll(self):
+        """Called by the background task to finalize the poll."""
+        for child in self.children:
+            child.disabled = True
+        embed = PollModal._build_embed(self.options, self.end_time, votes=self.votes)
+        embed.set_footer(text="Poll closed")
+        if hasattr(self, 'message') and self.message:
             await self.message.edit(embed=embed, view=self)
+
+
+async def auto_close_poll(poll_id):
+    """Background task that waits until the poll's end time, then closes it."""
+    await asyncio.sleep(0.5)  # give a moment for the message to be stored
+    if poll_id not in active_polls:
+        return
+    data = active_polls[poll_id]
+    now = discord.utils.utcnow()
+    wait_seconds = (data["end_time"] - now).total_seconds()
+    if wait_seconds > 0:
+        await asyncio.sleep(wait_seconds)
+    # Time's up – close the poll
+    view = data["view"]
+    view.message = data["message"]
+    await view.close_poll()
+    # Clean up
+    active_polls.pop(poll_id, None)
 
 
 class Poll(commands.Cog):
