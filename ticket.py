@@ -4,6 +4,7 @@ from discord.ext import commands
 import aiosqlite
 import os
 import asyncio
+import io
 from datetime import datetime, timezone
 from formatter import BotEmbed
 from checks import admin_only, ticket_staff_only
