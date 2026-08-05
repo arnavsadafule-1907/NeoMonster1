@@ -51,9 +51,12 @@ class HelpView(View):
             (f"{self.emoji_voice} Voice", "Voice"),
             (f"{self.emoji_admin} Admin / Mod Setup", "Admin / Mod Setup"),
             (f"{self.emoji_ignore} Ignore Commands", "Ignore Commands"),
+            # 🆕 New modules
+            ("🎟️ Tickets", "Tickets"),
+            ("📊 Polls", "Polls"),
+            ("📋 Logging", "Logging"),
         ]
 
-        # Module data (unchanged – same as your previous working version)
         self.module_data = {
             "Antinuke Security": {
                 "description": "Anti‑nuke, anti‑spam, lockdown & raid protection.",
@@ -100,6 +103,7 @@ class HelpView(View):
                     "`/ban` — Ban a member",
                     "`/kick` — Kick a member",
                     "`/mute` — Timeout a member",
+                    "`/unmute` — Remove timeout",
                     "`/warn` — Warn a member",
                     "`/purge` — Delete messages",
                 ]
@@ -193,9 +197,38 @@ class HelpView(View):
                     "`/unignore` — Remove ignore",
                 ]
             },
+            # 🆕 New module data
+            "Tickets": {
+                "description": "Professional ticket system with support, reward, report types.",
+                "commands": [
+                    "`/ticket` — Open a ticket (Support, Reward, Report, Other)",
+                    "`/ticketsetup` — Configure ticket types and support roles",
+                    "`/ticket-add` — Add a user to the ticket",
+                    "`/ticket-remove` — Remove a user from the ticket",
+                    "`/ticket-rename` — Rename the ticket channel",
+                    "`/ticket-close` — Close and delete the ticket",
+                    "`/ticket-claim` — Claim the ticket for yourself",
+                ]
+            },
+            "Polls": {
+                "description": "Create interactive polls with up to 10 options.",
+                "commands": [
+                    "`/poll` — Create a poll (modal for options)",
+                    "Vote by clicking the buttons below the poll!",
+                ]
+            },
+            "Logging": {
+                "description": "Full server logging: messages, voice, members, channels, roles, etc.",
+                "commands": [
+                    "`/logchannel` — Set a log channel for any event type",
+                    "Event types: `message`, `voice`, `member`, `server`, `channel`, `role`, `emoji`, `webhook`, `moderation`",
+                    "`/messagelog` — Quick setup for message edit/delete logs",
+                    "`/stafflog` — View staff activity (moderation actions)",
+                ]
+            },
         }
 
-        # Dropdown options
+        # Dropdown options (skip Home)
         self.dropdown_options = []
         for idx, (full, name) in enumerate(self.modules[1:]):
             emoji_str = full.split()[0]
@@ -252,7 +285,7 @@ class HelpView(View):
             cat_lines = []
             for full, name in self.modules[1:]:
                 emoji = full.split()[0]
-                display = f"{emoji} : **{name}**"                # ← colon added
+                display = f"{emoji} : **{name}**"
                 if name == "Boycott/VcBan":
                     display += " `NEW`"
                 cat_lines.append(display)
