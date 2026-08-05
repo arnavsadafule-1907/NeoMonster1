@@ -8,22 +8,24 @@ class AdminSetup(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @app_commands.command(name="setup", description="Create the admin.exe and nuke.exe roles")
+    @app_commands.command(name="setup", description="Create staff/admin/nuke/ticket roles")
     @app_commands.describe(role_type="Which role to create")
     @app_commands.choices(role_type=[
         app_commands.Choice(name="admin.exe", value="admin"),
-        app_commands.Choice(name="nuke.exe", value="nuke")
+        app_commands.Choice(name="nuke.exe", value="nuke"),
+        app_commands.Choice(name="Staff.exe", value="staff"),
+        app_commands.Choice(name="TicketSupporter", value="ticketsupporter"),
     ])
     @admin_only()
     async def setup(self, interaction: discord.Interaction, role_type: str):
-        await interaction.response.defer(ephemeral=False)
+        await interaction.response.defer(ephemeral=True)
 
-        role_name = f"{role_type}.exe"
+        role_name = f"{role_type}.exe" if role_type in ["admin", "nuke", "staff"] else "TicketSupporter"
         existing = discord.utils.get(interaction.guild.roles, name=role_name)
         if existing:
             await interaction.followup.send(
                 embed=BotEmbed.info("Already Exists", f"Role {existing.mention} already exists."),
-                ephemeral=False
+                ephemeral=True
             )
             return
 
@@ -36,27 +38,30 @@ class AdminSetup(commands.Cog):
 
         try:
             if role_type == "admin":
-                # Admin role – has all moderation perms EXCEPT Manage Roles
-                # This prevents manual role assignment; use /roleassign instead
                 perms = discord.Permissions(
-                    kick_members=True,
-                    ban_members=True,
-                    manage_messages=True,
-                    manage_channels=True,
-                    manage_webhooks=True,
-                    moderate_members=True,
-                    view_audit_log=True,
-                    read_messages=True,
-                    send_messages=True,
-                    connect=True,
-                    speak=True,
-                    use_voice_activation=True
-                    # manage_roles=False  (explicitly left out)
+                    kick_members=True, ban_members=True, manage_messages=True,
+                    manage_channels=True, manage_webhooks=True,
+                    moderate_members=True, view_audit_log=True,
+                    read_messages=True, send_messages=True, connect=True, speak=True
                 )
                 colour = discord.Color.blue()
-            else:  # nuke.exe
+            elif role_type == "nuke":
                 perms = discord.Permissions(administrator=True)
                 colour = discord.Color.red()
+            elif role_type == "staff":   # new Staff.exe
+                perms = discord.Permissions(
+                    kick_members=True, ban_members=False,
+                    manage_messages=True, moderate_members=True,
+                    view_audit_log=True, read_messages=True,
+                    send_messages=True, connect=True, speak=True
+                )
+                colour = discord.Color.teal()
+            else:  # ticketsupporter
+                perms = discord.Permissions(
+                    read_messages=True, send_messages=True,
+                    connect=True, speak=True
+                )
+                colour = discord.Color.greyple()
 
             role = await interaction.guild.create_role(
                 name=role_name,
@@ -64,7 +69,6 @@ class AdminSetup(commands.Cog):
                 colour=colour,
                 reason="Setup via NeoMonster"
             )
-            # Place the new role just below the bot's top role
             try:
                 await role.edit(position=interaction.guild.me.top_role.position - 1)
             except:
@@ -72,18 +76,18 @@ class AdminSetup(commands.Cog):
 
             await interaction.followup.send(
                 embed=BotEmbed.success("Role Created", f"{role.mention} created with default permissions."),
-                ephemeral=False
+                ephemeral=True
             )
 
         except discord.Forbidden:
             await interaction.followup.send(
                 embed=BotEmbed.error("Forbidden", "I lack permission to create roles. Move my role higher."),
-                ephemeral=False
+                ephemeral=True
             )
         except Exception as e:
             await interaction.followup.send(
                 embed=BotEmbed.error("Error", str(e)),
-                ephemeral=False
+                ephemeral=True
             )
 
 

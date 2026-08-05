@@ -5,7 +5,7 @@ import aiosqlite
 import os
 import asyncio
 from formatter import BotEmbed
-from checks import admin_only
+from checks import admin_only, ticket_staff_only
 
 DB_PATH = os.getenv("DATABASE_PATH", "./data/security.db")
 
@@ -13,29 +13,54 @@ DB_PATH = os.getenv("DATABASE_PATH", "./data/security.db")
 # Ticket View (buttons for the ticket channel)
 # -------------------------------------------------------------------
 class TicketView(discord.ui.View):
-    def __init__(self, cog):
+    def __init__(self, cog, ticket_type_name: str):
         super().__init__(timeout=None)
         self.cog = cog
+        self.ticket_type_name = ticket_type_name
+
+    async def _check_staff_permission(self, interaction: discord.Interaction) -> bool:
+        """Use the global ticket_staff_only check."""
+        try:
+            # This will raise MissingRole if not allowed
+            await ticket_staff_only().predicate(interaction)
+            return True
+        except app_commands.MissingRole as e:
+            await interaction.response.send_message(
+                embed=BotEmbed.error("Permission Denied", str(e)),
+                ephemeral=True
+            )
+            return False
 
     @discord.ui.button(label="Claim", style=discord.ButtonStyle.primary, custom_id="ticket_claim")
     async def claim_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not await self._check_staff_permission(interaction):
+            return
         await self.cog.claim_ticket(interaction)
 
     @discord.ui.button(label="Close", style=discord.ButtonStyle.danger, custom_id="ticket_close")
     async def close_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not await self._check_staff_permission(interaction):
+            return
         await self.cog.close_ticket(interaction)
 
     @discord.ui.button(label="Add User", style=discord.ButtonStyle.success, custom_id="ticket_add_user")
     async def add_user_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not await self._check_staff_permission(interaction):
+            return
         await self.cog.add_user_modal(interaction)
 
     @discord.ui.button(label="Remove User", style=discord.ButtonStyle.secondary, custom_id="ticket_remove_user")
     async def remove_user_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not await self._check_staff_permission(interaction):
+            return
         await self.cog.remove_user_modal(interaction)
 
     @discord.ui.button(label="Rename", style=discord.ButtonStyle.secondary, custom_id="ticket_rename")
     async def rename_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not await self._check_staff_permission(interaction):
+            return
         await self.cog.rename_ticket_modal(interaction)
+
 
 # -------------------------------------------------------------------
 # Modals for user input
@@ -85,6 +110,7 @@ class RenameTicketModal(discord.ui.Modal, title="Rename Ticket"):
         await self.channel.edit(name=f"ticket-{new_name}")
         await interaction.response.send_message(f"Ticket renamed to `{new_name}`", ephemeral=False)
 
+
 # -------------------------------------------------------------------
 # Ticket Cog
 # -------------------------------------------------------------------
@@ -92,18 +118,13 @@ class Ticket(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    # ================================================================
-    #  DATABASE HELPERS
-    # ================================================================
     async def get_ticket_types(self, guild_id: int):
-        """Return a list of all configured ticket types for a guild."""
         async with aiosqlite.connect(DB_PATH) as db:
             db.row_factory = aiosqlite.Row
             cursor = await db.execute("SELECT * FROM ticket_types WHERE guild_id = ?", (guild_id,))
             return await cursor.fetchall()
 
     async def add_ticket_type(self, guild_id: int, name: str, category_id: int, support_role_id: int, welcome_message: str):
-        """Add a new ticket type."""
         async with aiosqlite.connect(DB_PATH) as db:
             await db.execute(
                 "INSERT OR REPLACE INTO ticket_types (guild_id, name, category_id, support_role_id, welcome_message) VALUES (?, ?, ?, ?, ?)",
@@ -112,17 +133,28 @@ class Ticket(commands.Cog):
             await db.commit()
 
     async def remove_ticket_type(self, guild_id: int, name: str):
-        """Remove a ticket type."""
         async with aiosqlite.connect(DB_PATH) as db:
             await db.execute("DELETE FROM ticket_types WHERE guild_id = ? AND name = ?", (guild_id, name))
             await db.commit()
 
     async def get_ticket_type(self, guild_id: int, name: str):
-        """Get settings for a specific ticket type."""
         async with aiosqlite.connect(DB_PATH) as db:
             db.row_factory = aiosqlite.Row
             cursor = await db.execute("SELECT * FROM ticket_types WHERE guild_id = ? AND name = ?", (guild_id, name))
             return await cursor.fetchone()
+
+    async def store_ticket_channel(self, channel_id: int, guild_id: int, ticket_type: str):
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute("INSERT OR REPLACE INTO ticket_channels (channel_id, guild_id, ticket_type) VALUES (?, ?, ?)",
+                             (channel_id, guild_id, ticket_type))
+            await db.commit()
+
+    async def get_ticket_info(self, channel_id: int):
+        async with aiosqlite.connect(DB_PATH) as db:
+            db.row_factory = aiosqlite.Row
+            cursor = await db.execute("SELECT * FROM ticket_channels WHERE channel_id = ?", (channel_id,))
+            row = await cursor.fetchone()
+            return (row["guild_id"], row["ticket_type"]) if row else None
 
     # ================================================================
     #  TICKET PANEL (persistent dropdown)
@@ -135,16 +167,7 @@ class Ticket(commands.Cog):
             embed = BotEmbed.error("No Ticket Types", "Use `/tickettype add` to create at least one ticket type first.")
             return await interaction.response.send_message(embed=embed, ephemeral=True)
 
-        # Build a select menu with all ticket types
-        options = []
-        for t in types:
-            options.append(
-                discord.SelectOption(
-                    label=t["name"],
-                    description=f"Open a {t['name'].lower()} ticket",
-                    emoji="🎟️"
-                )
-            )
+        options = [discord.SelectOption(label=t["name"], description=f"Open a {t['name'].lower()} ticket", emoji="🎟️") for t in types]
 
         select_menu = discord.ui.Select(
             placeholder="Select a ticket type...",
@@ -159,21 +182,14 @@ class Ticket(commands.Cog):
             await self.create_ticket(interaction, selected_type)
 
         select_menu.callback = select_callback
-
         view = discord.ui.View(timeout=None)
         view.add_item(select_menu)
 
-        embed = discord.Embed(
-            title="🎫 Support Tickets",
-            description="Select the type of ticket you'd like to open from the dropdown below.",
-            color=0x3B82F6
-        )
+        embed = discord.Embed(title="🎫 Support Tickets", description="Select the type of ticket you'd like to open from the dropdown below.", color=0x3B82F6)
         embed.set_footer(text="NeoMonster • Ticket System")
-
         await interaction.response.send_message(embed=embed, view=view)
 
     async def create_ticket(self, interaction: discord.Interaction, ticket_type_name: str):
-        """Internal method to create a ticket channel when a user selects an option."""
         ticket_type = await self.get_ticket_type(interaction.guild_id, ticket_type_name)
         if not ticket_type:
             embed = BotEmbed.error("Invalid Ticket Type", "That ticket type no longer exists.")
@@ -184,7 +200,6 @@ class Ticket(commands.Cog):
             embed = BotEmbed.error("Missing Category", "The category for this ticket type has been deleted.")
             return await interaction.response.send_message(embed=embed, ephemeral=True)
 
-        # Build channel name
         channel_name = f"ticket-{interaction.user.name}-{ticket_type_name.lower().replace(' ', '-')}"
         overwrites = {
             interaction.guild.default_role: discord.PermissionOverwrite(read_messages=False),
@@ -206,7 +221,8 @@ class Ticket(commands.Cog):
             embed = BotEmbed.error("Permission Denied", "I need `Manage Channels` in the ticket category.")
             return await interaction.response.send_message(embed=embed, ephemeral=True)
 
-        # Send the welcome message configured for this ticket type
+        await self.store_ticket_channel(ticket_channel.id, interaction.guild_id, ticket_type_name)
+
         welcome_text = ticket_type["welcome_message"] or f"Welcome {interaction.user.mention}! Support staff will assist you shortly."
         welcome_text = welcome_text.replace("{user}", interaction.user.mention)
         welcome_embed = discord.Embed(
@@ -214,9 +230,8 @@ class Ticket(commands.Cog):
             description=welcome_text,
             color=0x3B82F6
         )
-        await ticket_channel.send(embed=welcome_embed, view=TicketView(self))
+        await ticket_channel.send(embed=welcome_embed, view=TicketView(self, ticket_type_name))
 
-        # Confirm to the user
         embed = BotEmbed.info("Ticket Created", f"Your ticket channel: {ticket_channel.mention}")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
@@ -252,7 +267,55 @@ class Ticket(commands.Cog):
         await interaction.response.send_modal(RenameTicketModal(self, interaction.channel))
 
     # ================================================================
-    #  TICKET TYPE MANAGEMENT (admin commands)
+    #  STAFF SLASH COMMANDS (use ticket_staff_only)
+    # ================================================================
+    @app_commands.command(name="ticket-add", description="Add a user to the current ticket")
+    @app_commands.describe(user="User to add")
+    @ticket_staff_only()
+    async def ticket_add(self, interaction: discord.Interaction, user: discord.Member):
+        if not interaction.channel.name.startswith("ticket-"):
+            return await interaction.response.send_message(embed=BotEmbed.error("Not a Ticket", ""), ephemeral=True)
+        await interaction.channel.set_permissions(user, read_messages=True, send_messages=True)
+        await interaction.response.send_message(embed=BotEmbed.success("User Added", f"{user.mention} can now see this ticket."))
+
+    @app_commands.command(name="ticket-remove", description="Remove a user from the current ticket")
+    @app_commands.describe(user="User to remove")
+    @ticket_staff_only()
+    async def ticket_remove(self, interaction: discord.Interaction, user: discord.Member):
+        if not interaction.channel.name.startswith("ticket-"):
+            return await interaction.response.send_message(embed=BotEmbed.error("Not a Ticket", ""), ephemeral=True)
+        await interaction.channel.set_permissions(user, overwrite=None)
+        await interaction.response.send_message(embed=BotEmbed.success("User Removed", f"{user.mention} has been removed."))
+
+    @app_commands.command(name="ticket-rename", description="Rename the current ticket")
+    @app_commands.describe(name="New name (e.g., billing-issue)")
+    @ticket_staff_only()
+    async def ticket_rename(self, interaction: discord.Interaction, name: str):
+        if not interaction.channel.name.startswith("ticket-"):
+            return await interaction.response.send_message(embed=BotEmbed.error("Not a Ticket", ""), ephemeral=True)
+        new_name = name.replace(" ", "-").lower()
+        await interaction.channel.edit(name=f"ticket-{new_name}")
+        await interaction.response.send_message(embed=BotEmbed.success("Renamed", f"Ticket renamed to `{new_name}`."))
+
+    @app_commands.command(name="ticket-close", description="Close the current ticket")
+    @ticket_staff_only()
+    async def ticket_close_slash(self, interaction: discord.Interaction):
+        if not interaction.channel.name.startswith("ticket-"):
+            return await interaction.response.send_message(embed=BotEmbed.error("Not a Ticket", ""), ephemeral=True)
+        await interaction.response.send_message("🔒 Closing ticket in 5 seconds...")
+        await asyncio.sleep(5)
+        await interaction.channel.delete(reason="Ticket closed")
+
+    @app_commands.command(name="ticket-claim", description="Claim the current ticket")
+    @ticket_staff_only()
+    async def ticket_claim_slash(self, interaction: discord.Interaction):
+        if not interaction.channel.name.startswith("ticket-"):
+            return await interaction.response.send_message(embed=BotEmbed.error("Not a Ticket", ""), ephemeral=True)
+        await interaction.channel.set_permissions(interaction.user, read_messages=True, send_messages=True)
+        await interaction.response.send_message(embed=BotEmbed.success("Claimed", f"Ticket claimed by {interaction.user.mention}."))
+
+    # ================================================================
+    #  TICKET TYPE MANAGEMENT (admin only)
     # ================================================================
     @app_commands.command(name="tickettype", description="Manage ticket types (add / remove)")
     @app_commands.describe(action="Add or remove a ticket type")
@@ -268,12 +331,17 @@ class Ticket(commands.Cog):
             await self._remove_ticket_type_menu(interaction)
 
     async def _add_ticket_type_modal(self, interaction: discord.Interaction):
-        """Opens a modal to collect details for a new ticket type."""
         class AddTypeModal(discord.ui.Modal, title="Add Ticket Type"):
             name = discord.ui.TextInput(label="Name", placeholder="e.g., Support, Report, Reward Claim", required=True)
             category_id = discord.ui.TextInput(label="Category ID", placeholder="Right-click a category and copy ID", required=True)
-            support_role_id = discord.ui.TextInput(label="Support Role ID", placeholder="Role ID that can manage tickets", required=False, default="0")
-            welcome_message = discord.ui.TextInput(label="Welcome Message", placeholder="{user} will be replaced with the user mention", required=False, style=discord.TextStyle.paragraph, default="Welcome {user}! Staff will assist you shortly.")
+            support_role_id = discord.ui.TextInput(label="Support Role ID", placeholder="Role ID that can manage tickets (optional)", required=False, default="0")
+            welcome_message = discord.ui.TextInput(
+                label="Welcome Message",
+                placeholder="{user} will be replaced with the user mention",
+                required=False,
+                style=discord.TextStyle.paragraph,
+                default="Welcome {user}! Staff will assist you shortly."
+            )
 
             async def on_submit(self, modal_interaction: discord.Interaction):
                 try:
@@ -290,21 +358,17 @@ class Ticket(commands.Cog):
                 embed = BotEmbed.success("Ticket Type Added", f"**{self.name.value}** tickets are now available.")
                 await modal_interaction.response.send_message(embed=embed, ephemeral=True)
 
-        # The modal needs access to the cog, so we attach it
         modal = AddTypeModal()
         modal.cog = self
         await interaction.response.send_modal(modal)
 
     async def _remove_ticket_type_menu(self, interaction: discord.Interaction):
-        """Shows a select menu with existing ticket types to remove."""
         types = await self.get_ticket_types(interaction.guild_id)
         if not types:
             embed = BotEmbed.error("No Ticket Types", "There are no ticket types to remove.")
             return await interaction.response.send_message(embed=embed, ephemeral=True)
 
-        options = []
-        for t in types:
-            options.append(discord.SelectOption(label=t["name"], description=f"Remove {t['name']} tickets", emoji="🗑️"))
+        options = [discord.SelectOption(label=t["name"], description=f"Remove {t['name']} tickets", emoji="🗑️") for t in types]
 
         select_menu = discord.ui.Select(
             placeholder="Select a ticket type to remove...",
@@ -319,7 +383,6 @@ class Ticket(commands.Cog):
             await self.remove_ticket_type(interaction.guild_id, selected)
             embed = BotEmbed.success("Ticket Type Removed", f"**{selected}** tickets have been disabled.")
             await interaction.response.send_message(embed=embed, ephemeral=True)
-            # Stop the view so the select becomes inactive
             view.stop()
 
         select_menu.callback = select_callback
@@ -338,6 +401,13 @@ async def setup(bot):
                 support_role_id INTEGER DEFAULT 0,
                 welcome_message TEXT,
                 PRIMARY KEY (guild_id, name)
+            )
+        """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS ticket_channels (
+                channel_id INTEGER PRIMARY KEY,
+                guild_id INTEGER,
+                ticket_type TEXT
             )
         """)
         await db.commit()
