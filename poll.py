@@ -2,6 +2,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from discord.ui import Modal, TextInput, View, Button
+from checks import staff_only
 
 class PollModal(Modal, title="Create Poll"):
     def __init__(self, question: str):
@@ -68,6 +69,7 @@ class Poll(commands.Cog):
 
     @app_commands.command(name="poll", description="Create a poll with up to 10 options")
     @app_commands.describe(question="The poll question")
+    @staff_only()
     async def poll_create(self, interaction: discord.Interaction, question: str):
         modal = PollModal(question)
         await interaction.response.send_modal(modal)

@@ -2,7 +2,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from formatter import BotEmbed
-from checks import admin_only
+from checks import staff_only
 
 class Slowmode(commands.Cog):
     def __init__(self, bot):
@@ -10,12 +10,12 @@ class Slowmode(commands.Cog):
 
     @app_commands.command(name="slowmode", description="Set slowmode for all text channels")
     @app_commands.describe(seconds="Slowmode duration (0 to disable)", reason="Reason for slowmode")
-    @admin_only()
+    @staff_only()
     async def slowmode_all(self, interaction: discord.Interaction, seconds: int, reason: str = "No reason provided"):
-        if seconds < 0 or seconds > 21600:  # Discord max is 6 hours
+        if seconds < 0 or seconds > 21600:
             embed = BotEmbed.error("Invalid Duration", "Slowmode must be between 0 and 21600 seconds.")
             return await interaction.response.send_message(embed=embed, ephemeral=True)
-        
+
         await interaction.response.defer(ephemeral=True)
         count = 0
         for channel in interaction.guild.text_channels:
@@ -24,7 +24,7 @@ class Slowmode(commands.Cog):
                 count += 1
             except:
                 pass
-        
+
         if seconds == 0:
             embed = BotEmbed.success("Slowmode Disabled", f"Removed slowmode from {count} channels.")
         else:
@@ -32,7 +32,7 @@ class Slowmode(commands.Cog):
         await interaction.followup.send(embed=embed, ephemeral=True)
 
     @app_commands.command(name="raidslowmode", description="Quick raid response: 30s slowmode everywhere")
-    @admin_only()
+    @staff_only()
     async def raid_slowmode(self, interaction: discord.Interaction):
         await self.slowmode_all.callback(self, interaction, seconds=30, reason="Raid response")
 

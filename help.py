@@ -58,7 +58,7 @@ class HelpView(View):
 
         self.module_data = {
             "Antinuke Security": {
-                "description": "Anti‑nuke, anti‑spam, lockdown & raid protection.",
+                "description": "Anti‑nuke, anti‑spam, lockdown & raid protection. (admin.exe / nuke.exe)",
                 "commands": [
                     "`/antinuke settings` — View current security config",
                     "`/antinuke toggle` — Enable/disable anti‑nuke",
@@ -68,28 +68,28 @@ class HelpView(View):
                 ]
             },
             "Anti Betray": {
-                "description": "Prevents trusted members from abusing power and betraying the server.",
+                "description": "Prevents trusted members from abusing power and betraying the server. (admin.exe / nuke.exe)",
                 "commands": [
                     "`/antinuke whitelist add` — Add trusted admins",
                     "`/antinuke emergency kick_nuker` — Remove a rogue admin",
                 ]
             },
             "Limit System": {
-                "description": "Rate‑limit destructive actions to prevent mass spam and floods.",
+                "description": "Rate‑limit destructive actions to prevent mass spam and floods. (admin.exe / nuke.exe)",
                 "commands": [
                     "`/antinuke threshold` — Set action limits",
                     "`/antinuke timewindow` — Detection time window",
                 ]
             },
             "Auto Emergency": {
-                "description": "Automatically locks the server when a nuke is detected.",
+                "description": "Automatically locks the server when a nuke is detected. (admin.exe / nuke.exe)",
                 "commands": [
                     "`/antinuke emergency lock` — Manual lockdown",
                     "`/antinuke emergency unlock` — Remove lockdown",
                 ]
             },
             "Emergency": {
-                "description": "Manual emergency controls for admins during an active attack.",
+                "description": "Manual emergency controls for admins during an active attack. (admin.exe / nuke.exe)",
                 "commands": [
                     "`/antinuke emergency lock` — Lock all channels",
                     "`/antinuke emergency unlock` — Unlock all channels",
@@ -97,7 +97,7 @@ class HelpView(View):
                 ]
             },
             "Moderation": {
-                "description": "Ban, kick, mute, warn, purge and more.",
+                "description": "Ban, kick, mute, warn, purge and more. Requires Staff.exe or higher.",
                 "commands": [
                     "`/ban` — Ban a member",
                     "`/kick` — Kick a member",
@@ -108,7 +108,7 @@ class HelpView(View):
                 ]
             },
             "Utility": {
-                "description": "Useful information commands — avatar, ping, server info.",
+                "description": "Useful information commands — avatar, ping, server info. (Anyone can use)",
                 "commands": [
                     "`/avatar` — Show a user's avatar",
                     "`/userinfo` — View user details",
@@ -117,7 +117,7 @@ class HelpView(View):
                 ]
             },
             "Automod": {
-                "description": "Spam detection, invite blocking, bad word filter.",
+                "description": "Spam detection, invite blocking, bad word filter. (admin.exe / nuke.exe)",
                 "commands": [
                     "`/automod spam_on` — Enable spam detection",
                     "`/automod invites_on` — Block invite links",
@@ -125,7 +125,7 @@ class HelpView(View):
                 ]
             },
             "Welcoming": {
-                "description": "Custom welcome/farewell messages & auto‑role.",
+                "description": "Custom welcome/farewell messages & auto‑role. (admin.exe / nuke.exe)",
                 "commands": [
                     "`/welcome channel` — Set welcome channel",
                     "`/welcome message` — Custom welcome text",
@@ -134,7 +134,7 @@ class HelpView(View):
                 ]
             },
             "Customroles": {
-                "description": "Let members create and manage their own custom roles.",
+                "description": "Let members create and manage their own custom roles. (admin.exe / nuke.exe)",
                 "commands": [
                     "`/customrole create` — Create a personal role",
                     "`/customrole delete` — Delete your role",
@@ -142,7 +142,7 @@ class HelpView(View):
                 ]
             },
             "Giveaway": {
-                "description": "Button‑based giveaways with rerolls & role requirements.",
+                "description": "Button‑based giveaways with rerolls & role requirements. (nuke.exe only)",
                 "commands": [
                     "`/gstart` — Start a giveaway",
                     "`/gend` — End a giveaway early",
@@ -150,7 +150,7 @@ class HelpView(View):
                 ]
             },
             "Boycott/VcBan": {
-                "description": "Voice channel bans and server boycotts.",
+                "description": "Voice channel bans and server boycotts. (admin.exe / nuke.exe)",
                 "commands": [
                     "`/vcban` — Ban user from all voice channels",
                     "`/unvcban` — Remove voice ban",
@@ -158,14 +158,14 @@ class HelpView(View):
                 ]
             },
             "Automations": {
-                "description": "Scheduled messages & auto tasks.",
+                "description": "Scheduled messages & auto tasks. (admin.exe / nuke.exe)",
                 "commands": [
                     "`/auto message_add` — Schedule a recurring message",
                     "`/auto message_remove` — Remove last scheduled message",
                 ]
             },
             "Fun": {
-                "description": "Memes, 8ball, rock‑paper‑scissors.",
+                "description": "Memes, 8ball, rock‑paper‑scissors. (Anyone can use)",
                 "commands": [
                     "`/8ball` — Ask the magic 8ball",
                     "`/meme` — Random meme",
@@ -173,7 +173,7 @@ class HelpView(View):
                 ]
             },
             "Voice": {
-                "description": "Voice channel management & stats.",
+                "description": "Voice channel management & stats. (admin.exe / nuke.exe)",
                 "commands": [
                     "`/voicestats` — Voice activity info",
                     "`/vc kick` — Kick from voice",
@@ -185,11 +185,13 @@ class HelpView(View):
                 "commands": [
                     "`/setup admin.exe` — Create admin role",
                     "`/setup nuke.exe` — Create nuke role",
+                    "`/setup staff.exe` — Create staff role (moderation, polls, announce)",
+                    "`/setup ticketsupporter` — Create ticket helper role",
                     "`/roleassign` — Assign roles to members",
                 ]
             },
             "Ignore Commands": {
-                "description": "Make the bot ignore specific users or channels.",
+                "description": "Make the bot ignore specific users or channels. (admin.exe / nuke.exe)",
                 "commands": [
                     "`/ignore user` — Ignore a user",
                     "`/ignore channel` — Ignore a channel",
@@ -199,15 +201,16 @@ class HelpView(View):
             "Tickets": {
                 "description": "Persistent ticket panel with custom types & welcome messages.",
                 "commands": [
-                    "`/ticketpanel` — Send the ticket panel dropdown in a channel (admin)",
-                    "`/tickettype add` — Add a custom ticket type (modal) (admin)",
-                    "`/tickettype remove` — Remove a ticket type (admin)",
+                    "`/ticketpanel` — Send the ticket panel dropdown (admin only)",
+                    "`/tickettype add` — Add a custom ticket type (admin only)",
+                    "`/tickettype remove` — Remove a ticket type (admin only)",
                     "Use the dropdown on the panel to open a ticket.",
                     "Inside a ticket: Claim, Close, Add User, Remove User, Rename buttons.",
+                    "Staff commands require TicketSupporter, Staff.exe, or higher.",
                 ]
             },
             "Polls": {
-                "description": "Create interactive polls with up to 10 options.",
+                "description": "Create interactive polls with up to 10 options. Requires Staff.exe or higher.",
                 "commands": [
                     "`/poll` — Create a poll (modal for options)",
                     "Vote by clicking the buttons below the poll!",
@@ -216,9 +219,9 @@ class HelpView(View):
             "Logging": {
                 "description": "Full server logging: messages, voice, members, channels, roles, etc.",
                 "commands": [
-                    "`/setlog` — Set a log channel for any event type",
+                    "`/setlog` — Set a log channel for any event type (Staff.exe+)",
                     "Event types: `message`, `voice`, `member`, `server`, `channel`, `role`, `emoji`, `webhook`, `moderation`",
-                    "`/messagelog` — Quick setup for message edit/delete logs",
+                    "`/messagelog` — Quick setup for message edit/delete logs (Staff.exe+)",
                     "`/stafflog` — View staff activity (moderation actions)",
                 ]
             },

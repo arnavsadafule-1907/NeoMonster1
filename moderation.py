@@ -2,14 +2,13 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from datetime import timedelta
-from checks import admin_only
+from checks import staff_only   # changed from admin_only
 from formatter import BotEmbed
 
 class Moderation(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    # Helper to send log to serverlogger
     async def log_action(self, interaction, action, target, reason=""):
         logger_cog = self.bot.get_cog("ServerLogger")
         if logger_cog:
@@ -17,7 +16,7 @@ class Moderation(commands.Cog):
 
     @app_commands.command(name="ban", description="Ban a member")
     @app_commands.describe(member="Member to ban", reason="Reason for ban")
-    @admin_only()
+    @staff_only()
     async def ban(self, interaction: discord.Interaction, member: discord.Member, reason: str = "No reason provided"):
         if member.top_role >= interaction.user.top_role and interaction.user != interaction.guild.owner:
             embed = BotEmbed.error("Permission Denied", "You cannot ban this member.")
@@ -32,7 +31,7 @@ class Moderation(commands.Cog):
 
     @app_commands.command(name="kick", description="Kick a member")
     @app_commands.describe(member="Member to kick", reason="Reason for kick")
-    @admin_only()
+    @staff_only()
     async def kick(self, interaction: discord.Interaction, member: discord.Member, reason: str = "No reason provided"):
         try:
             await member.kick(reason=reason)
@@ -44,7 +43,7 @@ class Moderation(commands.Cog):
 
     @app_commands.command(name="mute", description="Timeout a member")
     @app_commands.describe(member="Member to mute", duration="Duration in minutes", reason="Reason")
-    @admin_only()
+    @staff_only()
     async def mute(self, interaction: discord.Interaction, member: discord.Member, duration: int, reason: str = "No reason provided"):
         if member.is_timed_out():
             embed = BotEmbed.warning("Already Muted", f"{member.mention} is already muted.")
@@ -60,7 +59,7 @@ class Moderation(commands.Cog):
 
     @app_commands.command(name="unmute", description="Remove a timeout from a member")
     @app_commands.describe(member="Member to unmute")
-    @admin_only()
+    @staff_only()
     async def unmute(self, interaction: discord.Interaction, member: discord.Member):
         if not member.is_timed_out():
             embed = BotEmbed.warning("Not Muted", f"{member.mention} is not currently timed out.")
@@ -75,7 +74,7 @@ class Moderation(commands.Cog):
 
     @app_commands.command(name="warn", description="Warn a member (log only)")
     @app_commands.describe(member="Member to warn", reason="Reason for warning")
-    @admin_only()
+    @staff_only()
     async def warn(self, interaction: discord.Interaction, member: discord.Member, reason: str = "No reason provided"):
         try:
             await member.send(embed=BotEmbed.warning("You were warned", f"**Server:** {interaction.guild.name}\n**Reason:** {reason}"))
@@ -87,7 +86,7 @@ class Moderation(commands.Cog):
 
     @app_commands.command(name="purge", description="Delete a number of messages")
     @app_commands.describe(amount="Number of messages to delete (max 100)")
-    @admin_only()
+    @staff_only()
     async def purge(self, interaction: discord.Interaction, amount: int):
         if amount < 1 or amount > 100:
             embed = BotEmbed.error("Invalid Amount", "Please enter a number between 1 and 100.")

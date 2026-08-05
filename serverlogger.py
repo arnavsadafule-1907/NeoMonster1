@@ -5,7 +5,7 @@ import aiosqlite
 import os
 from datetime import datetime
 from formatter import BotEmbed
-from checks import admin_only
+from checks import staff_only      # changed from admin_only
 
 DB_PATH = os.getenv("DATABASE_PATH", "./data/security.db")
 
@@ -160,11 +160,11 @@ class ServerLogger(commands.Cog):
             embed.add_field(name="Reason", value=reason, inline=False)
         await self.log(guild.id, "moderation", embed)
 
-    # ---------- Log channel setup command (renamed to setlog) ----------
+    # ---------- Log channel setup command (now staff_only) ----------
     @app_commands.command(name="setlog", description="Set a log channel for a specific event type")
     @app_commands.describe(event_type="Type of events to log", channel="Channel to send logs to")
     @app_commands.choices(event_type=[app_commands.Choice(name=t, value=t) for t in LOG_TYPES])
-    @admin_only()
+    @staff_only()   # <-- changed from admin_only
     async def set_log_channel(self, interaction: discord.Interaction, event_type: str, channel: discord.TextChannel):
         async with aiosqlite.connect(DB_PATH) as db:
             await db.execute("INSERT OR REPLACE INTO log_channels (guild_id, event_type, channel_id) VALUES (?, ?, ?)",

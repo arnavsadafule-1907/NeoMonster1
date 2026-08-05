@@ -2,7 +2,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from formatter import BotEmbed
-from checks import admin_only  # ensure checks.py is in root
+from checks import staff_only
 
 class Announce(commands.Cog):
     def __init__(self, bot):
@@ -18,7 +18,7 @@ class Announce(commands.Cog):
         thumbnail_url="URL of a small image top‑right (optional)",
         footer="Footer text (optional)"
     )
-    @admin_only()
+    @staff_only()
     async def announce(
         self,
         interaction: discord.Interaction,
@@ -30,13 +30,10 @@ class Announce(commands.Cog):
         thumbnail_url: str = None,
         footer: str = None,
     ):
-        # Always defer to ensure a response can be sent
         await interaction.response.defer(ephemeral=True)
 
         target_channel = channel or interaction.channel
-
-        # Parse colour
-        embed_color = discord.Color.blue()  # default
+        embed_color = discord.Color.blue()
         if color:
             try:
                 embed_color = discord.Color.from_str(color)
@@ -44,11 +41,7 @@ class Announce(commands.Cog):
                 embed = BotEmbed.error("Invalid Color", f"`{color}` is not a valid hex color. Use #3B82F6 format.")
                 return await interaction.followup.send(embed=embed, ephemeral=True)
 
-        embed = discord.Embed(
-            title=title,
-            description=description,
-            color=embed_color
-        )
+        embed = discord.Embed(title=title, description=description, color=embed_color)
         if image_url:
             embed.set_image(url=image_url)
         if thumbnail_url:
