@@ -27,26 +27,27 @@ class MassMention(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message):
-        if message.author.bot or not message.guild:
+        if not message.guild:
             return
+        if message.author.bot:
+            from botwhitelist import is_bot_whitelisted
+            if not await is_bot_whitelisted(message.guild.id, message.author.id):
+                return  # ignore bots that aren't whitelisted
 
         settings = await self.get_settings(message.guild.id)
         if not settings["enabled"]:
             return
 
-        # Count mentions (users + roles + @everyone/@here)
         mention_count = len(message.mentions) + len(message.role_mentions)
         if message.mention_everyone:
             mention_count += 1
 
         if mention_count >= settings["threshold"]:
-            # Delete the message
             try:
                 await message.delete()
             except:
                 pass
 
-            # Punish the user
             try:
                 if settings["punishment"] == "mute":
                     await message.author.timeout(
@@ -111,7 +112,7 @@ class MassMention(commands.Cog):
         elif action == "threshold":
             if not value or not value.isdigit() or int(value) < 2:
                 embed = BotEmbed.error("Invalid", "Threshold must be at least 2.")
-                return await interaction.response.send_message(embed=embed, ephemeral=False)
+                return await interaction.response.send_message(embed=embed, ephemeral=True)
             async with aiosqlite.connect(DB_PATH) as db:
                 await db.execute("UPDATE massmention_settings SET threshold = ? WHERE guild_id = ?", (int(value), guild_id))
                 await db.commit()
@@ -119,7 +120,7 @@ class MassMention(commands.Cog):
         elif action == "punishment":
             if not punishment:
                 embed = BotEmbed.error("Invalid", "Choose a punishment: mute, kick, or ban.")
-                return await interaction.response.send_message(embed=embed, ephemeral=False)
+                return await interaction.response.send_message(embed=embed, ephemeral=True)
             async with aiosqlite.connect(DB_PATH) as db:
                 await db.execute("UPDATE massmention_settings SET punishment = ? WHERE guild_id = ?", (punishment, guild_id))
                 await db.commit()

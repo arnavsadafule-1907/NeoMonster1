@@ -7,7 +7,7 @@ import time
 import json
 import logging
 import os
-from datetime import timedelta          # <-- fixed import
+from datetime import timedelta
 from db import add_log
 
 logger = logging.getLogger("discord.cogs.antinuke")
@@ -95,7 +95,7 @@ class AntiNuke(commands.Cog):
                     await user.add_roles(quarantine_role, reason=reason)
                 else:
                     try:
-                        await user.timeout(discord.utils.utcnow() + timedelta(hours=1), reason=reason)  # <-- fixed
+                        await user.timeout(discord.utils.utcnow() + timedelta(hours=1), reason=reason)
                     except:
                         pass
                 punishment_taken = "strip"
@@ -143,9 +143,15 @@ class AntiNuke(commands.Cog):
             logger.error(f"Punishment failed for {user}: {e}")
 
     async def process_event(self, guild: discord.Guild, user: discord.Member, event_type: str):
-        # Only ignore our own bot – all other bots (nuke bots) ARE punished
+        # Only ignore our own bot
         if user.id == self.bot.user.id:
             return
+
+        # 🛡️ Ignore bots that are on the server's bot whitelist (e.g. other security bots)
+        if user.bot:
+            from botwhitelist import is_bot_whitelisted
+            if await is_bot_whitelisted(guild.id, user.id):
+                return
 
         settings = await self.get_guild_settings(guild.id)
         if not settings.get("antinuke_enabled", 1):
