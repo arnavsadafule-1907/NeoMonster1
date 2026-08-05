@@ -23,7 +23,7 @@ class PollModal(Modal, title="Create Poll"):
     async def on_submit(self, interaction: discord.Interaction):
         options = [ti.value.strip() for ti in self.option_inputs if ti.value and ti.value.strip()]
         if len(options) < 2:
-            await interaction.response.send_message("You must provide at least 2 options.", ephemeral=False)
+            await interaction.response.send_message("You must provide at least 2 options.", ephemeral=True)
             return
 
         embed = discord.Embed(title=f"📊 {self.question}", color=0x3B82F6)
@@ -32,6 +32,11 @@ class PollModal(Modal, title="Create Poll"):
 
         view = PollView(options)
         await interaction.response.send_message(embed=embed, view=view, ephemeral=False)
+
+        # Log poll creation
+        logger_cog = interaction.client.get_cog("ServerLogger")
+        if logger_cog:
+            await logger_cog.log_poll_action(interaction.guild, interaction.user, "create", question=self.question, channel=interaction.channel)
 
 class PollView(View):
     def __init__(self, options):
@@ -52,7 +57,7 @@ class PollView(View):
     def make_callback(self, idx):
         async def callback(interaction: discord.Interaction):
             if interaction.user.id in self.voters:
-                await interaction.response.send_message("You already voted!", ephemeral=False)
+                await interaction.response.send_message("You already voted!", ephemeral=True)
                 return
             opt = self.options[idx]
             self.votes[opt].add(interaction.user.id)

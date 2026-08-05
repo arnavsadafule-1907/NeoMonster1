@@ -54,7 +54,7 @@ class HelpView(View):
             ("🎟️ Tickets", "Tickets"),
             ("📊 Polls", "Polls"),
             ("📋 Logging", "Logging"),
-            ("📖 Setup Guide", "Setup Guide"),  # ← new
+            ("📖 Setup Guide", "Setup Guide"),
         ]
 
         self.module_data = {
@@ -226,7 +226,6 @@ class HelpView(View):
                     "`/stafflog` — View staff activity (moderation actions)",
                 ]
             },
-            # ------ NEW Setup Guide ------
             "Setup Guide": {
                 "description": "Everything you need to know to configure roles and permissions.",
                 "commands": [
@@ -280,6 +279,25 @@ class HelpView(View):
         self.add_item(NavButton("▶", "next", discord.ButtonStyle.secondary, 1))
         self.add_item(NavButton("▶▶", "last", discord.ButtonStyle.secondary, 1))
 
+    # ------------------------------------------------------------
+    #  Helper to split long command lists into multiple fields
+    # ------------------------------------------------------------
+    @staticmethod
+    def _split_commands(cmd_list, max_len=1024):
+        fields = []
+        current = ""
+        for line in cmd_list:
+            if len(current) + len(line) + 1 > max_len:
+                fields.append(current.strip())
+                current = line
+            else:
+                if current:
+                    current += "\n"
+                current += line
+        if current:
+            fields.append(current.strip())
+        return fields
+
     def build_embed(self):
         if self.current_page == 0:
             embed = discord.Embed(
@@ -319,12 +337,20 @@ class HelpView(View):
             embed.set_footer(text=f"Page 1 of {len(self.modules)} • NeoMonster Security")
             return embed
 
+        # Category page
         full, name = self.modules[self.current_page]
         data = self.module_data[name]
         embed = discord.Embed(title="NeoMonster", description=data["description"], color=BLUE_MAIN)
         embed.set_thumbnail(url=self.bot.user.display_avatar.url)
         cmds = data.get("commands", [])
-        embed.add_field(name="Commands", value="\n".join(cmds) if cmds else "No commands available.", inline=False)
+        if cmds:
+            # Split long command lists into multiple fields to stay under 1024 chars
+            chunks = self._split_commands(cmds)
+            for idx, chunk in enumerate(chunks):
+                field_name = "Commands" if idx == 0 else f"Commands (cont. {idx+1})"
+                embed.add_field(name=field_name, value=chunk, inline=False)
+        else:
+            embed.add_field(name="Commands", value="No commands available.", inline=False)
         embed.set_footer(text=f"Page {self.current_page+1} of {len(self.modules)} • NeoMonster Security")
         return embed
 
@@ -356,6 +382,7 @@ class HelpView(View):
                 child.disabled = True
             await self.message.edit(view=self)
 
+
 class NavButton(Button):
     def __init__(self, label, action, style, row):
         super().__init__(label=label, style=style, row=row)
@@ -364,6 +391,7 @@ class NavButton(Button):
     async def callback(self, interaction: discord.Interaction):
         view: HelpView = self.view
         await view.button_callback(interaction, self.action)
+
 
 class HelpCog(commands.Cog):
     def __init__(self, bot):
@@ -375,6 +403,7 @@ class HelpCog(commands.Cog):
         embed = view.build_embed()
         await interaction.response.send_message(embed=embed, view=view)
         view.message = await interaction.original_response()
+
 
 async def setup(bot):
     await bot.add_cog(HelpCog(bot))

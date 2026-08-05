@@ -9,7 +9,7 @@ from checks import staff_only
 
 DB_PATH = os.getenv("DATABASE_PATH", "./data/security.db")
 
-LOG_TYPES = ["message", "voice", "member", "server", "channel", "role", "emoji", "webhook", "moderation", "ticket"]
+LOG_TYPES = ["message", "voice", "member", "server", "channel", "role", "emoji", "webhook", "moderation", "ticket", "poll"]
 
 class ServerLogger(commands.Cog):
     def __init__(self, bot):
@@ -160,9 +160,8 @@ class ServerLogger(commands.Cog):
             embed.add_field(name="Reason", value=reason, inline=False)
         await self.log(guild.id, "moderation", embed)
 
-    # ---------- NEW ticket log hook ----------
+    # ---------- Ticket log hook ----------
     async def log_ticket_action(self, guild, user, action, ticket_channel=None, extra_info="", file=None):
-        """Log a ticket-related action (open, close, claim, etc.)"""
         embed = discord.Embed(title=f"🎫 Ticket {action.capitalize()}", color=0x3B82F6, timestamp=datetime.utcnow())
         embed.add_field(name="User", value=user.mention, inline=True)
         if ticket_channel:
@@ -177,7 +176,18 @@ class ServerLogger(commands.Cog):
                 if channel:
                     await channel.send(file=file)
 
-    # ---------- Log channel setup command (staff only) ----------
+    # ---------- NEW Poll log hook ----------
+    async def log_poll_action(self, guild, user, action, question=None, channel=None):
+        """Log when a poll is created (or other poll actions)."""
+        embed = discord.Embed(title=f"📊 Poll {action.capitalize()}", color=0x3B82F6, timestamp=datetime.utcnow())
+        embed.add_field(name="Created by", value=user.mention, inline=True)
+        if question:
+            embed.add_field(name="Question", value=question[:256], inline=False)
+        if channel:
+            embed.add_field(name="Channel", value=channel.mention, inline=True)
+        await self.log(guild.id, "poll", embed)
+
+    # ---------- Log channel setup command ----------
     @app_commands.command(name="setlog", description="Set a log channel for a specific event type")
     @app_commands.describe(event_type="Type of events to log", channel="Channel to send logs to")
     @app_commands.choices(event_type=[app_commands.Choice(name=t, value=t) for t in LOG_TYPES])
