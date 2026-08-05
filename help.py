@@ -54,6 +54,7 @@ class HelpView(View):
             ("🎟️ Tickets", "Tickets"),
             ("📊 Polls", "Polls"),
             ("📋 Logging", "Logging"),
+            ("📖 Setup Guide", "Setup Guide"),  # ← new
         ]
 
         self.module_data = {
@@ -225,6 +226,31 @@ class HelpView(View):
                     "`/stafflog` — View staff activity (moderation actions)",
                 ]
             },
+            # ------ NEW Setup Guide ------
+            "Setup Guide": {
+                "description": "Everything you need to know to configure roles and permissions.",
+                "commands": [
+                    "**🔰 Role Overview**",
+                    "• `nuke.exe` – Full server owner access. Use `/setup nuke.exe` to create.",
+                    "• `admin.exe` – Can manage anti‑nuke, automod, and server settings. Use `/setup admin.exe`.",
+                    "• `Staff.exe` – Can moderate (ban, kick, mute), create polls, announce, and manage log channels. Use `/setup staff.exe`.",
+                    "• `TicketSupporter` – Can manage tickets (claim, close, add users). Use `/setup ticketsupporter`.",
+                    "",
+                    "**⚡ How to create a role**",
+                    "1. Run `/setup <role>` (e.g., `/setup admin.exe`).",
+                    "2. The bot creates the role with the correct permissions.",
+                    "3. Use `/roleassign` to give the role to a member.",
+                    "",
+                    "**🛡️ Who can use what?**",
+                    "• Anyone: `/ping`, `/help`, fun commands, open tickets, vote in polls.",
+                    "• TicketSupporter: Manage tickets (claim, close, add/remove users).",
+                    "• Staff.exe: All moderation commands, `/announce`, `/poll`, `/setlog`, `/slowmode`, `/messagelog`.",
+                    "• admin.exe: Anti‑nuke config, automod, welcoming, custom roles, voice commands, backup/restore.",
+                    "• nuke.exe: Giveaways, anti‑nuke emergency, whitelist, owner‑level bypass.",
+                    "",
+                    "**🔐 Bot Owner** (the person whose ID is in the `.env` file) can always use any command, even without a role.",
+                ]
+            },
         }
 
         # Dropdown options (skip Home)
@@ -277,7 +303,8 @@ class HelpView(View):
                 value=(
                     "Use `/help <command>` to get details on a specific command.\n"
                     "Example: `/help mute`\n\n"
-                    "Select a category from the dropdown below to browse available commands."
+                    "Select a category from the dropdown below to browse available commands.\n"
+                    "👉 Check the **Setup Guide** for role configuration and permissions."
                 ),
                 inline=False,
             )
