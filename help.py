@@ -51,7 +51,6 @@ class HelpView(View):
             (f"{self.emoji_voice} Voice", "Voice"),
             (f"{self.emoji_admin} Admin / Mod Setup", "Admin / Mod Setup"),
             (f"{self.emoji_ignore} Ignore Commands", "Ignore Commands"),
-            # 🆕 New modules
             ("🎟️ Tickets", "Tickets"),
             ("📊 Polls", "Polls"),
             ("📋 Logging", "Logging"),
@@ -197,17 +196,14 @@ class HelpView(View):
                     "`/unignore` — Remove ignore",
                 ]
             },
-            # 🆕 New module data
             "Tickets": {
-                "description": "Professional ticket system with support, reward, report types.",
+                "description": "Persistent ticket panel with custom types & welcome messages.",
                 "commands": [
-                    "`/ticket` — Open a ticket (Support, Reward, Report, Other)",
-                    "`/ticketsetup` — Configure ticket types and support roles",
-                    "`/ticket-add` — Add a user to the ticket",
-                    "`/ticket-remove` — Remove a user from the ticket",
-                    "`/ticket-rename` — Rename the ticket channel",
-                    "`/ticket-close` — Close and delete the ticket",
-                    "`/ticket-claim` — Claim the ticket for yourself",
+                    "`/ticketpanel` — Send the ticket panel dropdown in a channel (admin)",
+                    "`/tickettype add` — Add a custom ticket type (modal) (admin)",
+                    "`/tickettype remove` — Remove a ticket type (admin)",
+                    "Use the dropdown on the panel to open a ticket.",
+                    "Inside a ticket: Claim, Close, Add User, Remove User, Rename buttons.",
                 ]
             },
             "Polls": {
@@ -220,7 +216,7 @@ class HelpView(View):
             "Logging": {
                 "description": "Full server logging: messages, voice, members, channels, roles, etc.",
                 "commands": [
-                    "`/logchannel` — Set a log channel for any event type",
+                    "`/setlog` — Set a log channel for any event type",
                     "Event types: `message`, `voice`, `member`, `server`, `channel`, `role`, `emoji`, `webhook`, `moderation`",
                     "`/messagelog` — Quick setup for message edit/delete logs",
                     "`/stafflog` — View staff activity (moderation actions)",

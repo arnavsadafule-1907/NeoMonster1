@@ -92,54 +92,107 @@ class Ticket(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    async def get_ticket_settings(self, guild_id: int, ticket_type: str):
+    # ================================================================
+    #  DATABASE HELPERS
+    # ================================================================
+    async def get_ticket_types(self, guild_id: int):
+        """Return a list of all configured ticket types for a guild."""
         async with aiosqlite.connect(DB_PATH) as db:
             db.row_factory = aiosqlite.Row
-            cursor = await db.execute(
-                "SELECT * FROM ticket_settings WHERE guild_id = ? AND ticket_type = ?",
-                (guild_id, ticket_type)
-            )
-            row = await cursor.fetchone()
-            if row:
-                return {"category_id": row["category_id"], "support_role_id": row["support_role_id"]}
-            return None
+            cursor = await db.execute("SELECT * FROM ticket_types WHERE guild_id = ?", (guild_id,))
+            return await cursor.fetchall()
 
-    async def set_ticket_settings(self, guild_id, ticket_type, category_id, support_role_id):
+    async def add_ticket_type(self, guild_id: int, name: str, category_id: int, support_role_id: int, welcome_message: str):
+        """Add a new ticket type."""
         async with aiosqlite.connect(DB_PATH) as db:
             await db.execute(
-                "INSERT OR REPLACE INTO ticket_settings (guild_id, ticket_type, category_id, support_role_id) VALUES (?, ?, ?, ?)",
-                (guild_id, ticket_type, category_id, support_role_id)
+                "INSERT OR REPLACE INTO ticket_types (guild_id, name, category_id, support_role_id, welcome_message) VALUES (?, ?, ?, ?, ?)",
+                (guild_id, name, category_id, support_role_id, welcome_message)
             )
             await db.commit()
 
-    # ---------- Slash: /ticket (open a ticket) ----------
-    @app_commands.command(name="ticket", description="Open a support ticket")
-    @app_commands.describe(ticket_type="Type of ticket")
-    @app_commands.choices(ticket_type=[
-        app_commands.Choice(name="Support", value="support"),
-        app_commands.Choice(name="Reward Claim", value="reward"),
-        app_commands.Choice(name="Report", value="report"),
-        app_commands.Choice(name="Other", value="other"),
-    ])
-    async def ticket_open(self, interaction: discord.Interaction, ticket_type: str):
-        settings = await self.get_ticket_settings(interaction.guild_id, ticket_type)
-        if not settings or not settings["category_id"]:
-            embed = BotEmbed.error("Tickets Disabled", f"No configuration for `{ticket_type}` tickets. Ask an admin to use `/ticketsetup`.")
+    async def remove_ticket_type(self, guild_id: int, name: str):
+        """Remove a ticket type."""
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute("DELETE FROM ticket_types WHERE guild_id = ? AND name = ?", (guild_id, name))
+            await db.commit()
+
+    async def get_ticket_type(self, guild_id: int, name: str):
+        """Get settings for a specific ticket type."""
+        async with aiosqlite.connect(DB_PATH) as db:
+            db.row_factory = aiosqlite.Row
+            cursor = await db.execute("SELECT * FROM ticket_types WHERE guild_id = ? AND name = ?", (guild_id, name))
+            return await cursor.fetchone()
+
+    # ================================================================
+    #  TICKET PANEL (persistent dropdown)
+    # ================================================================
+    @app_commands.command(name="ticketpanel", description="Send the ticket creation panel in the current channel")
+    @admin_only()
+    async def ticket_panel(self, interaction: discord.Interaction):
+        types = await self.get_ticket_types(interaction.guild_id)
+        if not types:
+            embed = BotEmbed.error("No Ticket Types", "Use `/tickettype add` to create at least one ticket type first.")
             return await interaction.response.send_message(embed=embed, ephemeral=True)
 
-        category = interaction.guild.get_channel(settings["category_id"])
+        # Build a select menu with all ticket types
+        options = []
+        for t in types:
+            options.append(
+                discord.SelectOption(
+                    label=t["name"],
+                    description=f"Open a {t['name'].lower()} ticket",
+                    emoji="🎟️"
+                )
+            )
+
+        select_menu = discord.ui.Select(
+            placeholder="Select a ticket type...",
+            options=options,
+            custom_id="ticket_panel_select",
+            min_values=1,
+            max_values=1,
+        )
+
+        async def select_callback(interaction: discord.Interaction):
+            selected_type = select_menu.values[0]
+            await self.create_ticket(interaction, selected_type)
+
+        select_menu.callback = select_callback
+
+        view = discord.ui.View(timeout=None)
+        view.add_item(select_menu)
+
+        embed = discord.Embed(
+            title="🎫 Support Tickets",
+            description="Select the type of ticket you'd like to open from the dropdown below.",
+            color=0x3B82F6
+        )
+        embed.set_footer(text="NeoMonster • Ticket System")
+
+        await interaction.response.send_message(embed=embed, view=view)
+
+    async def create_ticket(self, interaction: discord.Interaction, ticket_type_name: str):
+        """Internal method to create a ticket channel when a user selects an option."""
+        ticket_type = await self.get_ticket_type(interaction.guild_id, ticket_type_name)
+        if not ticket_type:
+            embed = BotEmbed.error("Invalid Ticket Type", "That ticket type no longer exists.")
+            return await interaction.response.send_message(embed=embed, ephemeral=True)
+
+        category = interaction.guild.get_channel(ticket_type["category_id"])
         if not category:
-            embed = BotEmbed.error("Invalid Category", "The ticket category no longer exists.")
+            embed = BotEmbed.error("Missing Category", "The category for this ticket type has been deleted.")
             return await interaction.response.send_message(embed=embed, ephemeral=True)
 
-        channel_name = f"ticket-{interaction.user.name}-{ticket_type}"
+        # Build channel name
+        channel_name = f"ticket-{interaction.user.name}-{ticket_type_name.lower().replace(' ', '-')}"
         overwrites = {
             interaction.guild.default_role: discord.PermissionOverwrite(read_messages=False),
             interaction.user: discord.PermissionOverwrite(read_messages=True, send_messages=True),
             interaction.guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True, manage_channels=True)
         }
-        if settings["support_role_id"]:
-            role = interaction.guild.get_role(settings["support_role_id"])
+        if ticket_type["support_role_id"]:
+            role = interaction.guild.get_role(ticket_type["support_role_id"])
             if role:
                 overwrites[role] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
 
@@ -147,122 +200,144 @@ class Ticket(commands.Cog):
             ticket_channel = await category.create_text_channel(
                 name=channel_name,
                 overwrites=overwrites,
-                reason=f"Ticket created by {interaction.user}"
+                reason=f"Ticket opened by {interaction.user}"
             )
         except discord.Forbidden:
             embed = BotEmbed.error("Permission Denied", "I need `Manage Channels` in the ticket category.")
             return await interaction.response.send_message(embed=embed, ephemeral=True)
 
+        # Send the welcome message configured for this ticket type
+        welcome_text = ticket_type["welcome_message"] or f"Welcome {interaction.user.mention}! Support staff will assist you shortly."
+        welcome_text = welcome_text.replace("{user}", interaction.user.mention)
+        welcome_embed = discord.Embed(
+            title=f"🎫 {ticket_type_name} Ticket",
+            description=welcome_text,
+            color=0x3B82F6
+        )
+        await ticket_channel.send(embed=welcome_embed, view=TicketView(self))
+
+        # Confirm to the user
         embed = BotEmbed.info("Ticket Created", f"Your ticket channel: {ticket_channel.mention}")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-        panel_embed = discord.Embed(
-            title=f"🎫 {ticket_type.capitalize()} Ticket",
-            description=f"Welcome {interaction.user.mention}! Support staff will assist you shortly.",
-            color=0x3B82F6
-        )
-        await ticket_channel.send(embed=panel_embed, view=TicketView(self))
-
-    # ---------- Button handlers ----------
+    # ================================================================
+    #  TICKET BUTTON HANDLERS (Claim, Close, Add/Remove User, Rename)
+    # ================================================================
     async def claim_ticket(self, interaction: discord.Interaction):
+        if not interaction.channel.name.startswith("ticket-"):
+            return await interaction.response.send_message(embed=BotEmbed.error("Not a Ticket", ""), ephemeral=True)
         await interaction.channel.set_permissions(interaction.user, read_messages=True, send_messages=True)
         await interaction.response.send_message(f"✅ Ticket claimed by {interaction.user.mention}", ephemeral=False)
 
     async def close_ticket(self, interaction: discord.Interaction):
+        if not interaction.channel.name.startswith("ticket-"):
+            return await interaction.response.send_message(embed=BotEmbed.error("Not a Ticket", ""), ephemeral=True)
         await interaction.response.send_message("🔒 Closing ticket in 5 seconds...")
         await asyncio.sleep(5)
         await interaction.channel.delete(reason="Ticket closed")
 
     async def add_user_modal(self, interaction: discord.Interaction):
+        if not interaction.channel.name.startswith("ticket-"):
+            return await interaction.response.send_message(embed=BotEmbed.error("Not a Ticket", ""), ephemeral=True)
         await interaction.response.send_modal(AddUserModal(self, interaction.channel))
 
     async def remove_user_modal(self, interaction: discord.Interaction):
+        if not interaction.channel.name.startswith("ticket-"):
+            return await interaction.response.send_message(embed=BotEmbed.error("Not a Ticket", ""), ephemeral=True)
         await interaction.response.send_modal(RemoveUserModal(self, interaction.channel))
 
     async def rename_ticket_modal(self, interaction: discord.Interaction):
+        if not interaction.channel.name.startswith("ticket-"):
+            return await interaction.response.send_message(embed=BotEmbed.error("Not a Ticket", ""), ephemeral=True)
         await interaction.response.send_modal(RenameTicketModal(self, interaction.channel))
 
-    # ---------- Staff slash commands ----------
-    @app_commands.command(name="ticket-add", description="Add a user to the current ticket")
-    @app_commands.describe(user="User to add")
-    @admin_only()
-    async def ticket_add(self, interaction: discord.Interaction, user: discord.Member):
-        if not interaction.channel.name.startswith("ticket-"):
-            embed = BotEmbed.error("Not a Ticket", "This command can only be used in a ticket channel.")
-            return await interaction.response.send_message(embed=embed, ephemeral=True)
-        await interaction.channel.set_permissions(user, read_messages=True, send_messages=True)
-        await interaction.response.send_message(embed=BotEmbed.success("User Added", f"{user.mention} can now see this ticket."))
-
-    @app_commands.command(name="ticket-remove", description="Remove a user from the current ticket")
-    @app_commands.describe(user="User to remove")
-    @admin_only()
-    async def ticket_remove(self, interaction: discord.Interaction, user: discord.Member):
-        if not interaction.channel.name.startswith("ticket-"):
-            embed = BotEmbed.error("Not a Ticket", "This command can only be used in a ticket channel.")
-            return await interaction.response.send_message(embed=embed, ephemeral=True)
-        await interaction.channel.set_permissions(user, overwrite=None)
-        await interaction.response.send_message(embed=BotEmbed.success("User Removed", f"{user.mention} has been removed."))
-
-    @app_commands.command(name="ticket-rename", description="Rename the current ticket")
-    @app_commands.describe(name="New name (e.g., billing-issue)")
-    @admin_only()
-    async def ticket_rename(self, interaction: discord.Interaction, name: str):
-        if not interaction.channel.name.startswith("ticket-"):
-            embed = BotEmbed.error("Not a Ticket", "This command can only be used in a ticket channel.")
-            return await interaction.response.send_message(embed=embed, ephemeral=True)
-        new_name = name.replace(" ", "-").lower()
-        await interaction.channel.edit(name=f"ticket-{new_name}")
-        await interaction.response.send_message(embed=BotEmbed.success("Renamed", f"Ticket renamed to `{new_name}`."))
-
-    @app_commands.command(name="ticket-close", description="Close the current ticket")
-    @admin_only()
-    async def ticket_close_slash(self, interaction: discord.Interaction):
-        if not interaction.channel.name.startswith("ticket-"):
-            embed = BotEmbed.error("Not a Ticket", "This command can only be used in a ticket channel.")
-            return await interaction.response.send_message(embed=embed, ephemeral=True)
-        await interaction.response.send_message("🔒 Closing ticket in 5 seconds...")
-        await asyncio.sleep(5)
-        await interaction.channel.delete(reason="Ticket closed")
-
-    @app_commands.command(name="ticket-claim", description="Claim the current ticket")
-    @admin_only()
-    async def ticket_claim_slash(self, interaction: discord.Interaction):
-        if not interaction.channel.name.startswith("ticket-"):
-            embed = BotEmbed.error("Not a Ticket", "This command can only be used in a ticket channel.")
-            return await interaction.response.send_message(embed=embed, ephemeral=True)
-        await interaction.channel.set_permissions(interaction.user, read_messages=True, send_messages=True)
-        await interaction.response.send_message(embed=BotEmbed.success("Claimed", f"Ticket claimed by {interaction.user.mention}."))
-
-    # ---------- Setup command ----------
-    @app_commands.command(name="ticketsetup", description="Configure a ticket type")
-    @app_commands.describe(
-        ticket_type="Type of ticket to configure",
-        category="Category where ticket channels are created",
-        support_role="Role that can manage tickets"
-    )
-    @app_commands.choices(ticket_type=[
-        app_commands.Choice(name="Support", value="support"),
-        app_commands.Choice(name="Reward Claim", value="reward"),
-        app_commands.Choice(name="Report", value="report"),
-        app_commands.Choice(name="Other", value="other"),
+    # ================================================================
+    #  TICKET TYPE MANAGEMENT (admin commands)
+    # ================================================================
+    @app_commands.command(name="tickettype", description="Manage ticket types (add / remove)")
+    @app_commands.describe(action="Add or remove a ticket type")
+    @app_commands.choices(action=[
+        app_commands.Choice(name="Add", value="add"),
+        app_commands.Choice(name="Remove", value="remove"),
     ])
     @admin_only()
-    async def ticketsetup(self, interaction: discord.Interaction, ticket_type: str, category: discord.CategoryChannel, support_role: discord.Role):
-        await self.set_ticket_settings(interaction.guild_id, ticket_type, category.id, support_role.id)
-        embed = BotEmbed.success("Ticket System Configured",
-                                 f"**Type:** `{ticket_type}`\n**Category:** {category.mention}\n**Support Role:** {support_role.mention}")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+    async def ticket_type_manage(self, interaction: discord.Interaction, action: str):
+        if action == "add":
+            await self._add_ticket_type_modal(interaction)
+        elif action == "remove":
+            await self._remove_ticket_type_menu(interaction)
+
+    async def _add_ticket_type_modal(self, interaction: discord.Interaction):
+        """Opens a modal to collect details for a new ticket type."""
+        class AddTypeModal(discord.ui.Modal, title="Add Ticket Type"):
+            name = discord.ui.TextInput(label="Name", placeholder="e.g., Support, Report, Reward Claim", required=True)
+            category_id = discord.ui.TextInput(label="Category ID", placeholder="Right-click a category and copy ID", required=True)
+            support_role_id = discord.ui.TextInput(label="Support Role ID", placeholder="Role ID that can manage tickets", required=False, default="0")
+            welcome_message = discord.ui.TextInput(label="Welcome Message", placeholder="{user} will be replaced with the user mention", required=False, style=discord.TextStyle.paragraph, default="Welcome {user}! Staff will assist you shortly.")
+
+            async def on_submit(self, modal_interaction: discord.Interaction):
+                try:
+                    cat_id = int(self.category_id.value)
+                    role_id = int(self.support_role_id.value) if self.support_role_id.value else 0
+                except ValueError:
+                    return await modal_interaction.response.send_message("Invalid category or role ID.", ephemeral=True)
+
+                category = interaction.guild.get_channel(cat_id)
+                if not category or not isinstance(category, discord.CategoryChannel):
+                    return await modal_interaction.response.send_message("That category ID does not point to a valid category.", ephemeral=True)
+
+                await self.cog.add_ticket_type(interaction.guild_id, self.name.value, cat_id, role_id, self.welcome_message.value or None)
+                embed = BotEmbed.success("Ticket Type Added", f"**{self.name.value}** tickets are now available.")
+                await modal_interaction.response.send_message(embed=embed, ephemeral=True)
+
+        # The modal needs access to the cog, so we attach it
+        modal = AddTypeModal()
+        modal.cog = self
+        await interaction.response.send_modal(modal)
+
+    async def _remove_ticket_type_menu(self, interaction: discord.Interaction):
+        """Shows a select menu with existing ticket types to remove."""
+        types = await self.get_ticket_types(interaction.guild_id)
+        if not types:
+            embed = BotEmbed.error("No Ticket Types", "There are no ticket types to remove.")
+            return await interaction.response.send_message(embed=embed, ephemeral=True)
+
+        options = []
+        for t in types:
+            options.append(discord.SelectOption(label=t["name"], description=f"Remove {t['name']} tickets", emoji="🗑️"))
+
+        select_menu = discord.ui.Select(
+            placeholder="Select a ticket type to remove...",
+            options=options,
+            custom_id="ticket_remove_select",
+            min_values=1,
+            max_values=1,
+        )
+
+        async def select_callback(interaction: discord.Interaction):
+            selected = select_menu.values[0]
+            await self.remove_ticket_type(interaction.guild_id, selected)
+            embed = BotEmbed.success("Ticket Type Removed", f"**{selected}** tickets have been disabled.")
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            # Stop the view so the select becomes inactive
+            view.stop()
+
+        select_menu.callback = select_callback
+        view = discord.ui.View(timeout=60)
+        view.add_item(select_menu)
+        await interaction.response.send_message("Choose a ticket type to remove:", view=view, ephemeral=True)
 
 
 async def setup(bot):
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("""
-            CREATE TABLE IF NOT EXISTS ticket_settings (
+            CREATE TABLE IF NOT EXISTS ticket_types (
                 guild_id INTEGER,
-                ticket_type TEXT,
+                name TEXT,
                 category_id INTEGER,
-                support_role_id INTEGER,
-                PRIMARY KEY (guild_id, ticket_type)
+                support_role_id INTEGER DEFAULT 0,
+                welcome_message TEXT,
+                PRIMARY KEY (guild_id, name)
             )
         """)
         await db.commit()
