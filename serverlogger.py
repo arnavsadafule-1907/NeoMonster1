@@ -102,7 +102,35 @@ class ServerLogger(commands.Cog):
         embed.add_field(name="User", value=f"{user} ({user.id})")
         await self.log(guild.id, "moderation", embed)
 
-    # ---------- Server/Channel/Role/Emoji/Webhook Events ----------
+    # ---------- Role Events (creation, deletion, and assignment) ----------
+    @commands.Cog.listener()
+    async def on_guild_role_create(self, role):
+        embed = discord.Embed(title="🎨 Role Created", color=discord.Color.blue(), timestamp=datetime.utcnow())
+        embed.add_field(name="Name", value=role.name)
+        embed.add_field(name="Color", value=str(role.color))
+        await self.log(role.guild.id, "role", embed)
+
+    @commands.Cog.listener()
+    async def on_guild_role_delete(self, role):
+        embed = discord.Embed(title="🎨 Role Deleted", color=discord.Color.red(), timestamp=datetime.utcnow())
+        embed.add_field(name="Name", value=role.name)
+        await self.log(role.guild.id, "role", embed)
+
+    @commands.Cog.listener()
+    async def on_member_update(self, before, after):
+        if before.roles != after.roles:
+            added = [r for r in after.roles if r not in before.roles]
+            removed = [r for r in before.roles if r not in after.roles]
+            embed = discord.Embed(title="🔰 Role Update", color=discord.Color.purple(), timestamp=datetime.utcnow())
+            embed.set_author(name=f"{after.display_name}", icon_url=after.display_avatar.url)
+            if added:
+                embed.add_field(name="➕ Added", value=", ".join(r.mention for r in added), inline=False)
+            if removed:
+                embed.add_field(name="➖ Removed", value=", ".join(r.mention for r in removed), inline=False)
+            embed.set_footer(text=f"User ID: {after.id}")
+            await self.log(after.guild.id, "role", embed)
+
+    # ---------- Channel Events (create, delete, update) ----------
     @commands.Cog.listener()
     async def on_guild_channel_create(self, channel):
         embed = discord.Embed(title="📁 Channel Created", color=discord.Color.blue(), timestamp=datetime.utcnow())
@@ -117,18 +145,41 @@ class ServerLogger(commands.Cog):
         await self.log(channel.guild.id, "channel", embed)
 
     @commands.Cog.listener()
-    async def on_guild_role_create(self, role):
-        embed = discord.Embed(title="🎨 Role Created", color=discord.Color.blue(), timestamp=datetime.utcnow())
-        embed.add_field(name="Name", value=role.name)
-        embed.add_field(name="Color", value=str(role.color))
-        await self.log(role.guild.id, "role", embed)
+    async def on_guild_channel_update(self, before, after):
+        embed = discord.Embed(title="🔄 Channel Updated", color=discord.Color.gold(), timestamp=datetime.utcnow())
+        changes = []
+        if before.name != after.name:
+            changes.append(f"**Name:** `{before.name}` → `{after.name}`")
+        if before.topic != after.topic:
+            changes.append(f"**Topic:** `{before.topic or 'None'}` → `{after.topic or 'None'}`")
+        # permission overwrite changes could be detailed, but we'll just note if changed
+        if before.overwrites != after.overwrites:
+            changes.append("**Permissions:** updated")
+        if not changes:
+            return  # nothing meaningful changed
+        embed.add_field(name="Channel", value=after.mention, inline=False)
+        embed.add_field(name="Changes", value="\n".join(changes), inline=False)
+        embed.set_footer(text=f"Channel ID: {after.id}")
+        await self.log(after.guild.id, "channel", embed)
 
+    # ---------- Server Events (name, icon, owner, etc.) ----------
     @commands.Cog.listener()
-    async def on_guild_role_delete(self, role):
-        embed = discord.Embed(title="🎨 Role Deleted", color=discord.Color.red(), timestamp=datetime.utcnow())
-        embed.add_field(name="Name", value=role.name)
-        await self.log(role.guild.id, "role", embed)
+    async def on_guild_update(self, before, after):
+        embed = discord.Embed(title="⚙️ Server Updated", color=discord.Color.gold(), timestamp=datetime.utcnow())
+        changes = []
+        if before.name != after.name:
+            changes.append(f"**Name:** `{before.name}` → `{after.name}`")
+        if before.icon != after.icon:
+            changes.append("**Icon:** updated")
+        if before.owner_id != after.owner_id:
+            changes.append(f"**Owner:** <@{before.owner_id}> → <@{after.owner_id}>")
+        if not changes:
+            return
+        embed.add_field(name="Server", value=after.name, inline=False)
+        embed.add_field(name="Changes", value="\n".join(changes), inline=False)
+        await self.log(after.id, "server", embed)
 
+    # ---------- Emoji Events ----------
     @commands.Cog.listener()
     async def on_guild_emojis_update(self, guild, before, after):
         if len(before) < len(after):
@@ -145,6 +196,7 @@ class ServerLogger(commands.Cog):
                 embed.add_field(name="Name", value=emoji.name)
                 await self.log(guild.id, "emoji", embed)
 
+    # ---------- Webhook Events ----------
     @commands.Cog.listener()
     async def on_webhooks_update(self, channel):
         embed = discord.Embed(title="🪝 Webhooks Updated", color=discord.Color.purple(), timestamp=datetime.utcnow())
@@ -176,9 +228,8 @@ class ServerLogger(commands.Cog):
                 if channel:
                     await channel.send(file=file)
 
-    # ---------- NEW Poll log hook ----------
+    # ---------- Poll log hook ----------
     async def log_poll_action(self, guild, user, action, question=None, channel=None):
-        """Log when a poll is created (or other poll actions)."""
         embed = discord.Embed(title=f"📊 Poll {action.capitalize()}", color=0x3B82F6, timestamp=datetime.utcnow())
         embed.add_field(name="Created by", value=user.mention, inline=True)
         if question:
