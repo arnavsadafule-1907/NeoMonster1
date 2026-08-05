@@ -46,7 +46,6 @@ class TicketView(discord.ui.View):
     async def close_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not await self._check_staff_permission(interaction):
             return
-        # Open close reason modal
         await interaction.response.send_modal(CloseTicketModal(self.cog, interaction.channel))
 
     @discord.ui.button(label="Add User", style=discord.ButtonStyle.success, custom_id="ticket_add_user")
@@ -170,7 +169,6 @@ class Ticket(commands.Cog):
             cursor = await db.execute("SELECT * FROM ticket_types WHERE guild_id = ? AND name = ?", (guild_id, name))
             return await cursor.fetchone()
 
-    # ---------- Ticket Counter for sequential numbering ----------
     async def _next_ticket_number(self, guild_id: int) -> int:
         async with aiosqlite.connect(DB_PATH) as db:
             cursor = await db.execute("SELECT counter FROM ticket_counter WHERE guild_id = ?", (guild_id,))
@@ -184,7 +182,6 @@ class Ticket(commands.Cog):
             await db.commit()
             return num
 
-    # ---------- Metadata helpers ----------
     async def save_ticket_metadata(self, guild_id, ticket_number, channel_id, user_id, ticket_type):
         async with aiosqlite.connect(DB_PATH) as db:
             await db.execute(
@@ -209,14 +206,13 @@ class Ticket(commands.Cog):
             await db.execute("DELETE FROM ticket_metadata WHERE channel_id = ?", (channel_id,))
             await db.commit()
 
-    # ---------- Internal log helper ----------
     async def _log(self, guild, user, action, ticket_channel=None, extra_info="", file=None):
         logger_cog = self.bot.get_cog("ServerLogger")
         if logger_cog:
             await logger_cog.log_ticket_action(guild, user, action, ticket_channel, extra_info, file=file)
 
     # ================================================================
-    #  TICKET PANEL (persistent dropdown)
+    #  TICKET PANEL
     # ================================================================
     @app_commands.command(name="ticketpanel", description="Send the ticket creation panel in the current channel")
     @admin_only()
@@ -227,13 +223,11 @@ class Ticket(commands.Cog):
             return await interaction.response.send_message(embed=embed, ephemeral=True)
 
         options = [discord.SelectOption(label=t["name"], description=f"Open a {t['name'].lower()} ticket", emoji="🎟️") for t in types]
-
         select_menu = discord.ui.Select(
             placeholder="Select a ticket type...",
             options=options,
             custom_id="ticket_panel_select",
-            min_values=1,
-            max_values=1,
+            min_values=1, max_values=1
         )
 
         async def select_callback(interaction: discord.Interaction):
@@ -274,15 +268,12 @@ class Ticket(commands.Cog):
 
         try:
             ticket_channel = await category.create_text_channel(
-                name=channel_name,
-                overwrites=overwrites,
-                reason=f"Ticket opened by {interaction.user}"
+                name=channel_name, overwrites=overwrites, reason=f"Ticket opened by {interaction.user}"
             )
         except discord.Forbidden:
             embed = BotEmbed.error("Permission Denied", "I need `Manage Channels` in the ticket category.")
             return await interaction.response.send_message(embed=embed, ephemeral=True)
 
-        # Save metadata
         await self.save_ticket_metadata(interaction.guild_id, ticket_num, ticket_channel.id, interaction.user.id, ticket_type_name)
 
         welcome_text = ticket_type["welcome_message"] or f"Welcome {interaction.user.mention}! Support staff will assist you shortly."
@@ -293,11 +284,7 @@ class Ticket(commands.Cog):
             send_ping = True
             welcome_text = welcome_text.replace("@here", "").strip()
 
-        welcome_embed = discord.Embed(
-            title=f"🎫 {ticket_type_name} Ticket",
-            description=welcome_text,
-            color=0x3B82F6
-        )
+        welcome_embed = discord.Embed(title=f"🎫 {ticket_type_name} Ticket", description=welcome_text, color=0x3B82F6)
 
         if send_ping:
             await ticket_channel.send(content="@here", allowed_mentions=discord.AllowedMentions(everyone=False, here=True))
@@ -306,12 +293,10 @@ class Ticket(commands.Cog):
 
         embed = BotEmbed.info("Ticket Created", f"Your ticket channel: {ticket_channel.mention}")
         await interaction.response.send_message(embed=embed, ephemeral=True)
-
-        # Log open
         await self._log(interaction.guild, interaction.user, "open", ticket_channel)
 
     # ================================================================
-    #  TICKET BUTTON HANDLERS
+    #  BUTTON HANDLERS
     # ================================================================
     async def claim_ticket(self, interaction: discord.Interaction):
         if not interaction.channel.name.startswith("ticket-"):
@@ -322,7 +307,6 @@ class Ticket(commands.Cog):
         await self._log(interaction.guild, interaction.user, "claim", interaction.channel)
 
     async def close_ticket_with_reason(self, interaction: discord.Interaction, reason: str):
-        """Actually close the ticket with the given reason."""
         if not interaction.channel.name.startswith("ticket-"):
             return await interaction.response.send_message(embed=BotEmbed.error("Not a Ticket", ""), ephemeral=True)
 
@@ -333,35 +317,32 @@ class Ticket(commands.Cog):
             await interaction.followup.send("No metadata found for this ticket.", ephemeral=True)
             return
 
-        # Fetch messages and build transcript
         messages = []
         try:
             async for msg in interaction.channel.history(limit=500, oldest_first=True):
                 timestamp = msg.created_at.strftime("%Y-%m-%d %H:%M:%S")
                 content = msg.content or "(no text)"
                 if msg.attachments:
-                    attachment_urls = ", ".join([a.url for a in msg.attachments])
-                    content += f"\n[Attachments: {attachment_urls}]"
+                    content += "\n[Attachments: " + ", ".join([a.url for a in msg.attachments]) + "]"
                 messages.append(f"[{timestamp}] {msg.author.name}#{msg.author.discriminator}: {content}")
         except discord.Forbidden:
             pass
 
-        transcript_text = f"Transcript for ticket #{metadata['ticket_number']} ({metadata['ticket_type']})\n"
-        transcript_text += f"Opened by: <@{metadata['user_id']}>\n"
-        transcript_text += f"Opened at: {metadata['open_time']}\n"
-        transcript_text += f"Claimed by: <@{metadata['claimed_by']}>" if metadata['claimed_by'] else "Not claimed"
-        transcript_text += f"\nClosed by: {interaction.user.mention}\n"
-        transcript_text += f"Close Reason: {reason}\n"
-        transcript_text += f"Closed at: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')}\n\n"
-        transcript_text += "\n".join(messages)
+        transcript = f"Transcript for ticket #{metadata['ticket_number']} ({metadata['ticket_type']})\n"
+        transcript += f"Opened by: <@{metadata['user_id']}>\n"
+        transcript += f"Opened at: {metadata['open_time']}\n"
+        transcript += f"Claimed by: <@{metadata['claimed_by']}>" if metadata['claimed_by'] else "Not claimed"
+        transcript += f"\nClosed by: {interaction.user.mention}\n"
+        transcript += f"Close Reason: {reason}\n"
+        transcript += f"Closed at: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+        transcript += "\n".join(messages)
 
         file = discord.File(
-            io.BytesIO(transcript_text.encode('utf-8')),
+            io.BytesIO(transcript.encode('utf-8')),
             filename=f"ticket-{metadata['ticket_number']}.txt",
             description="Ticket transcript"
         )
 
-        # Send close log with embed and transcript
         log_embed = discord.Embed(title="🎫 Ticket Closed", color=0x3B82F6, timestamp=datetime.now(timezone.utc))
         log_embed.add_field(name="Ticket ID", value=f"#{metadata['ticket_number']}", inline=True)
         log_embed.add_field(name="Opened By", value=f"<@{metadata['user_id']}>", inline=True)
@@ -371,10 +352,7 @@ class Ticket(commands.Cog):
         log_embed.add_field(name="Reason", value=reason, inline=False)
 
         await self._log(interaction.guild, interaction.user, "close", interaction.channel, extra_info=f"Reason: {reason}", file=file)
-
-        # Cleanup metadata
         await self.delete_ticket_metadata(interaction.channel.id)
-
         await asyncio.sleep(2)
         await interaction.channel.delete(reason="Ticket closed")
 
@@ -394,9 +372,9 @@ class Ticket(commands.Cog):
         await interaction.response.send_modal(RenameTicketModal(self, interaction.channel))
 
     # ================================================================
-    #  STAFF SLASH COMMANDS
+    #  STAFF SLASH COMMANDS (underscore names, hyphen display)
     # ================================================================
-    @app_commands.command(name="ticket-add", description="Add a user to the current ticket")
+    @app_commands.command(name="ticket_add", description="Add a user to the current ticket")
     @app_commands.describe(user="User to add")
     @ticket_staff_only()
     async def ticket_add(self, interaction: discord.Interaction, user: discord.Member):
@@ -405,7 +383,7 @@ class Ticket(commands.Cog):
         await interaction.channel.set_permissions(user, read_messages=True, send_messages=True)
         await interaction.response.send_message(embed=BotEmbed.success("User Added", f"{user.mention} can now see this ticket."))
 
-    @app_commands.command(name="ticket-remove", description="Remove a user from the current ticket")
+    @app_commands.command(name="ticket_remove", description="Remove a user from the current ticket")
     @app_commands.describe(user="User to remove")
     @ticket_staff_only()
     async def ticket_remove(self, interaction: discord.Interaction, user: discord.Member):
@@ -414,7 +392,7 @@ class Ticket(commands.Cog):
         await interaction.channel.set_permissions(user, overwrite=None)
         await interaction.response.send_message(embed=BotEmbed.success("User Removed", f"{user.mention} has been removed."))
 
-    @app_commands.command(name="ticket-rename", description="Rename the current ticket")
+    @app_commands.command(name="ticket_rename", description="Rename the current ticket")
     @app_commands.describe(name="New name (e.g., billing-issue)")
     @ticket_staff_only()
     async def ticket_rename(self, interaction: discord.Interaction, name: str):
@@ -424,14 +402,14 @@ class Ticket(commands.Cog):
         await interaction.channel.edit(name=f"ticket-{new_name}")
         await interaction.response.send_message(embed=BotEmbed.success("Renamed", f"Ticket renamed to `{new_name}`."))
 
-    @app_commands.command(name="ticket-close", description="Close the current ticket (prompts for reason)")
+    @app_commands.command(name="ticket_close", description="Close the current ticket (prompts for reason)")
     @ticket_staff_only()
     async def ticket_close_slash(self, interaction: discord.Interaction):
         if not interaction.channel.name.startswith("ticket-"):
             return await interaction.response.send_message(embed=BotEmbed.error("Not a Ticket", ""), ephemeral=True)
         await interaction.response.send_modal(CloseTicketModal(self, interaction.channel))
 
-    @app_commands.command(name="ticket-claim", description="Claim the current ticket")
+    @app_commands.command(name="ticket_claim", description="Claim the current ticket")
     @ticket_staff_only()
     async def ticket_claim_slash(self, interaction: discord.Interaction):
         if not interaction.channel.name.startswith("ticket-"):
@@ -442,7 +420,7 @@ class Ticket(commands.Cog):
         await self._log(interaction.guild, interaction.user, "claim", interaction.channel)
 
     # ================================================================
-    #  TICKET TYPE MANAGEMENT (admin only)
+    #  TICKET TYPE MANAGEMENT
     # ================================================================
     @app_commands.command(name="tickettype", description="Manage ticket types (add / remove)")
     @app_commands.describe(action="Add or remove a ticket type")
@@ -476,11 +454,9 @@ class Ticket(commands.Cog):
                     role_id = int(self.support_role_id.value) if self.support_role_id.value else 0
                 except ValueError:
                     return await modal_interaction.response.send_message("Invalid category or role ID.", ephemeral=True)
-
                 category = interaction.guild.get_channel(cat_id)
                 if not category or not isinstance(category, discord.CategoryChannel):
                     return await modal_interaction.response.send_message("That category ID does not point to a valid category.", ephemeral=True)
-
                 await self.cog.add_ticket_type(interaction.guild_id, self.name.value, cat_id, role_id, self.welcome_message.value or None)
                 embed = BotEmbed.success("Ticket Type Added", f"**{self.name.value}** tickets are now available.")
                 await modal_interaction.response.send_message(embed=embed, ephemeral=True)
@@ -496,15 +472,12 @@ class Ticket(commands.Cog):
             return await interaction.response.send_message(embed=embed, ephemeral=True)
 
         options = [discord.SelectOption(label=t["name"], description=f"Remove {t['name']} tickets", emoji="🗑️") for t in types]
-
         select_menu = discord.ui.Select(
             placeholder="Select a ticket type to remove...",
             options=options,
             custom_id="ticket_remove_select",
-            min_values=1,
-            max_values=1,
+            min_values=1, max_values=1
         )
-
         async def select_callback(interaction: discord.Interaction):
             selected = select_menu.values[0]
             await self.remove_ticket_type(interaction.guild_id, selected)
@@ -520,40 +493,15 @@ class Ticket(commands.Cog):
 
 async def setup(bot):
     async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute("""
-            CREATE TABLE IF NOT EXISTS ticket_types (
-                guild_id INTEGER,
-                name TEXT,
-                category_id INTEGER,
-                support_role_id INTEGER DEFAULT 0,
-                welcome_message TEXT,
-                PRIMARY KEY (guild_id, name)
-            )
-        """)
-        await db.execute("""
-            CREATE TABLE IF NOT EXISTS ticket_channels (
-                channel_id INTEGER PRIMARY KEY,
-                guild_id INTEGER,
-                ticket_type TEXT
-            )
-        """)
-        await db.execute("""
-            CREATE TABLE IF NOT EXISTS ticket_counter (
-                guild_id INTEGER PRIMARY KEY,
-                counter INTEGER DEFAULT 0
-            )
-        """)
-        await db.execute("""
-            CREATE TABLE IF NOT EXISTS ticket_metadata (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                guild_id INTEGER,
-                ticket_number INTEGER,
-                channel_id INTEGER UNIQUE,
-                user_id INTEGER,
-                open_time TEXT,
-                claimed_by INTEGER,
-                ticket_type TEXT
-            )
-        """)
+        await db.execute("""CREATE TABLE IF NOT EXISTS ticket_types (
+            guild_id INTEGER, name TEXT, category_id INTEGER, support_role_id INTEGER DEFAULT 0, welcome_message TEXT,
+            PRIMARY KEY (guild_id, name))""")
+        await db.execute("""CREATE TABLE IF NOT EXISTS ticket_channels (
+            channel_id INTEGER PRIMARY KEY, guild_id INTEGER, ticket_type TEXT)""")
+        await db.execute("""CREATE TABLE IF NOT EXISTS ticket_counter (
+            guild_id INTEGER PRIMARY KEY, counter INTEGER DEFAULT 0)""")
+        await db.execute("""CREATE TABLE IF NOT EXISTS ticket_metadata (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, guild_id INTEGER, ticket_number INTEGER, channel_id INTEGER UNIQUE,
+            user_id INTEGER, open_time TEXT, claimed_by INTEGER, ticket_type TEXT)""")
         await db.commit()
     await bot.add_cog(Ticket(bot))
