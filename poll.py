@@ -7,31 +7,29 @@ class PollModal(Modal, title="Create Poll"):
     def __init__(self, question: str):
         super().__init__()
         self.question = question
-        self.options = []
+        self.option_inputs = []
         for i in range(1, 11):
-            self.add_item(TextInput(
+            ti = TextInput(
                 label=f"Option {i}",
                 placeholder="Leave empty to skip",
                 required=False,
                 max_length=50,
                 custom_id=f"option_{i}"
-            ))
+            )
+            self.option_inputs.append(ti)
+            self.add_item(ti)
 
     async def on_submit(self, interaction: discord.Interaction):
-        self.options = []
-        for i in range(1, 11):
-            val = interaction.data["components"][i-1]["components"][0]["value"].strip()
-            if val:
-                self.options.append(val)
-        if len(self.options) < 2:
-            await interaction.response.send_message("Provide at least 2 options.", ephemeral=True)
+        options = [ti.value.strip() for ti in self.option_inputs if ti.value and ti.value.strip()]
+        if len(options) < 2:
+            await interaction.response.send_message("You must provide at least 2 options.", ephemeral=True)
             return
 
         embed = discord.Embed(title=f"📊 {self.question}", color=0x3B82F6)
-        embed.description = "\n".join(f"{i+1}. {opt}" for i, opt in enumerate(self.options))
+        embed.description = "\n".join(f"{i+1}. {opt}" for i, opt in enumerate(options))
         embed.set_footer(text="Click a button to vote!")
 
-        view = PollView(self.options)
+        view = PollView(options)
         await interaction.response.send_message(embed=embed, view=view, ephemeral=False)
 
 class PollView(View):

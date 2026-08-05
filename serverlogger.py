@@ -151,7 +151,7 @@ class ServerLogger(commands.Cog):
         embed.add_field(name="Channel", value=channel.mention)
         await self.log(channel.guild.id, "webhook", embed)
 
-    # ---------- Moderation log hook (called from moderation.py) ----------
+    # ---------- Moderation log hook ----------
     async def log_mod_action(self, guild, staff, action, target, reason=""):
         embed = discord.Embed(title=f"🛠️ {action.upper()}", color=discord.Color.orange(), timestamp=datetime.utcnow())
         embed.add_field(name="Staff", value=staff.mention, inline=True)
@@ -160,8 +160,8 @@ class ServerLogger(commands.Cog):
             embed.add_field(name="Reason", value=reason, inline=False)
         await self.log(guild.id, "moderation", embed)
 
-    # ---------- Log channel setup command ----------
-    @app_commands.command(name="logchannel", description="Set a log channel for an event type")
+    # ---------- Log channel setup command (renamed to setlog) ----------
+    @app_commands.command(name="setlog", description="Set a log channel for a specific event type")
     @app_commands.describe(event_type="Type of events to log", channel="Channel to send logs to")
     @app_commands.choices(event_type=[app_commands.Choice(name=t, value=t) for t in LOG_TYPES])
     @admin_only()
