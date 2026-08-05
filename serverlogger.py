@@ -5,11 +5,11 @@ import aiosqlite
 import os
 from datetime import datetime
 from formatter import BotEmbed
-from checks import staff_only      # changed from admin_only
+from checks import staff_only
 
 DB_PATH = os.getenv("DATABASE_PATH", "./data/security.db")
 
-LOG_TYPES = ["message", "voice", "member", "server", "channel", "role", "emoji", "webhook", "moderation"]
+LOG_TYPES = ["message", "voice", "member", "server", "channel", "role", "emoji", "webhook", "moderation", "ticket"]
 
 class ServerLogger(commands.Cog):
     def __init__(self, bot):
@@ -160,11 +160,28 @@ class ServerLogger(commands.Cog):
             embed.add_field(name="Reason", value=reason, inline=False)
         await self.log(guild.id, "moderation", embed)
 
-    # ---------- Log channel setup command (now staff_only) ----------
+    # ---------- NEW ticket log hook ----------
+    async def log_ticket_action(self, guild, user, action, ticket_channel=None, extra_info="", file=None):
+        """Log a ticket-related action (open, close, claim, etc.)"""
+        embed = discord.Embed(title=f"🎫 Ticket {action.capitalize()}", color=0x3B82F6, timestamp=datetime.utcnow())
+        embed.add_field(name="User", value=user.mention, inline=True)
+        if ticket_channel:
+            embed.add_field(name="Channel", value=ticket_channel.mention, inline=True)
+        if extra_info:
+            embed.add_field(name="Details", value=extra_info, inline=False)
+        await self.log(guild.id, "ticket", embed)
+        if file:
+            channel_id = await self.get_log_channel(guild.id, "ticket")
+            if channel_id:
+                channel = self.bot.get_channel(channel_id)
+                if channel:
+                    await channel.send(file=file)
+
+    # ---------- Log channel setup command (staff only) ----------
     @app_commands.command(name="setlog", description="Set a log channel for a specific event type")
     @app_commands.describe(event_type="Type of events to log", channel="Channel to send logs to")
     @app_commands.choices(event_type=[app_commands.Choice(name=t, value=t) for t in LOG_TYPES])
-    @staff_only()   # <-- changed from admin_only
+    @staff_only()
     async def set_log_channel(self, interaction: discord.Interaction, event_type: str, channel: discord.TextChannel):
         async with aiosqlite.connect(DB_PATH) as db:
             await db.execute("INSERT OR REPLACE INTO log_channels (guild_id, event_type, channel_id) VALUES (?, ?, ?)",
