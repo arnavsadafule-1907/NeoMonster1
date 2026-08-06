@@ -133,7 +133,6 @@ class CloseTicketModal(discord.ui.Modal, title="Close Ticket"):
     async def on_submit(self, interaction: discord.Interaction):
         await self.cog.close_ticket_with_reason(interaction, self.reason.value.strip() or "No reason specified")
 
-# --- NEW MODAL FOR OPENING A TICKET ---
 class TicketOpenModal(discord.ui.Modal, title="Open Ticket"):
     def __init__(self, cog, ticket_type_name: str):
         super().__init__()
@@ -242,15 +241,40 @@ class Ticket(commands.Cog):
             await logger_cog.log_ticket_action(guild, user, action, ticket_channel, extra_info, file=file)
 
     # ================================================================
-    #  TICKET PANEL
+    #  PANEL CUSTOMISATION
     # ================================================================
-    @app_commands.command(name="ticketpanel", description="Send the ticket creation panel in the current channel")
+    async def get_panel_config(self, guild_id: int):
+        async with aiosqlite.connect(DB_PATH) as db:
+            db.row_factory = aiosqlite.Row
+            cursor = await db.execute("SELECT * FROM ticket_panel_config WHERE guild_id = ?", (guild_id,))
+            return await cursor.fetchone()
+
+    async def set_panel_config(self, guild_id: int, title: str = None, description: str = None, image_url: str = None):
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute(
+                "INSERT OR REPLACE INTO ticket_panel_config (guild_id, title, description, image_url) VALUES (?, ?, ?, ?)",
+                (guild_id, title, description, image_url)
+            )
+            await db.commit()
+
+    # ================================================================
+    #  TICKET PANEL (with customisation)
+    # ================================================================
+    panel_group = app_commands.Group(name="ticketpanel", description="Manage the ticket panel")
+
+    @panel_group.command(name="send", description="Send the ticket creation panel in the current channel")
     @admin_only()
-    async def ticket_panel(self, interaction: discord.Interaction):
+    async def panel_send(self, interaction: discord.Interaction):
         types = await self.get_ticket_types(interaction.guild_id)
         if not types:
             embed = BotEmbed.error("No Ticket Types", "Use `/tickettype add` to create at least one ticket type first.")
             return await interaction.response.send_message(embed=embed, ephemeral=True)
+
+        # Load custom config (if any)
+        config = await self.get_panel_config(interaction.guild_id)
+        title = config["title"] if config and config["title"] else "Support Tickets"
+        description = config["description"] if config and config["description"] else "Select the type of ticket you'd like to open from the dropdown below."
+        image_url = config["image_url"] if config and config["image_url"] else None
 
         options = [discord.SelectOption(label=t["name"], description=f"Open a {t['name'].lower()} ticket", emoji="🎟️") for t in types]
         select_menu = discord.ui.Select(
@@ -268,11 +292,32 @@ class Ticket(commands.Cog):
         view = discord.ui.View(timeout=None)
         view.add_item(select_menu)
 
-        embed = discord.Embed(title="🎫 Support Tickets", description="Select the type of ticket you'd like to open from the dropdown below.", color=0x3B82F6)
+        embed = discord.Embed(title=f"🎫 {title}", description=description, color=0x3B82F6)
+        if image_url:
+            embed.set_image(url=image_url)
         embed.set_footer(text="NeoMonster • Ticket System")
         await interaction.response.send_message(embed=embed, view=view)
 
-    # --- MODIFIED create_ticket: always pings TicketSupporter role ---
+    @panel_group.command(name="edit", description="Customise the ticket panel embed")
+    @admin_only()
+    @app_commands.describe(title="Panel title (default: Support Tickets)", description="Panel description", image_url="Image URL (optional)")
+    async def panel_edit(self, interaction: discord.Interaction, title: str = None, description: str = None, image_url: str = None):
+        await self.set_panel_config(interaction.guild_id, title, description, image_url)
+        embed = BotEmbed.success("Panel Updated", "The ticket panel appearance has been updated.")
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    @panel_group.command(name="reset", description="Reset the ticket panel to default appearance")
+    @admin_only()
+    async def panel_reset(self, interaction: discord.Interaction):
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute("DELETE FROM ticket_panel_config WHERE guild_id = ?", (interaction.guild_id,))
+            await db.commit()
+        embed = BotEmbed.success("Panel Reset", "The panel has been restored to default.")
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    # ================================================================
+    #  CREATE TICKET (ping support role from ticket type)
+    # ================================================================
     async def create_ticket(self, interaction: discord.Interaction, ticket_type_name: str, ign: str = None, reason: str = None):
         ticket_type = await self.get_ticket_type(interaction.guild_id, ticket_type_name)
         if not ticket_type:
@@ -307,13 +352,21 @@ class Ticket(commands.Cog):
 
         await self.save_ticket_metadata(interaction.guild_id, ticket_num, ticket_channel.id, interaction.user.id, ticket_type_name)
 
-        # --- STAFF PING: always try to ping the TicketSupporter role ---
-        ticket_supporter = discord.utils.get(interaction.guild.roles, name="TicketSupporter")
-        if ticket_supporter:
-            await ticket_channel.send(
-                f"{ticket_supporter.mention} A new ticket has been opened!",
-                allowed_mentions=discord.AllowedMentions(roles=True)
-            )
+        # --- PING THE SUPPORT ROLE (from ticket type, default to TicketSupporter) ---
+        support_role_id = ticket_type["support_role_id"]
+        if not support_role_id:
+            # Fallback to the TicketSupporter role if not set
+            fallback_role = discord.utils.get(interaction.guild.roles, name="TicketSupporter")
+            if fallback_role:
+                support_role_id = fallback_role.id
+
+        if support_role_id:
+            role = interaction.guild.get_role(support_role_id)
+            if role:
+                await ticket_channel.send(
+                    f"{role.mention} A new ticket has been opened!",
+                    allowed_mentions=discord.AllowedMentions(roles=True)
+                )
 
         # --- Welcome message (with @here or custom text) ---
         welcome_text = ticket_type["welcome_message"] or f"Welcome {interaction.user.mention}! Support staff will assist you shortly."
@@ -408,6 +461,9 @@ class Ticket(commands.Cog):
         await asyncio.sleep(2)
         await interaction.channel.delete(reason="Ticket closed")
 
+    # ================================================================
+    #  REMAINING BUTTON HANDLERS (unchanged)
+    # ================================================================
     async def add_user_modal(self, interaction: discord.Interaction):
         if not interaction.channel.name.startswith("ticket-"):
             return await interaction.response.send_message(embed=BotEmbed.error("Not a Ticket", ""), ephemeral=True)
@@ -555,5 +611,7 @@ async def setup(bot):
         await db.execute("""CREATE TABLE IF NOT EXISTS ticket_metadata (
             id INTEGER PRIMARY KEY AUTOINCREMENT, guild_id INTEGER, ticket_number INTEGER, channel_id INTEGER UNIQUE,
             user_id INTEGER, open_time TEXT, claimed_by INTEGER, ticket_type TEXT)""")
+        await db.execute("""CREATE TABLE IF NOT EXISTS ticket_panel_config (
+            guild_id INTEGER PRIMARY KEY, title TEXT, description TEXT, image_url TEXT)""")
         await db.commit()
     await bot.add_cog(Ticket(bot))
