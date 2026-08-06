@@ -5,6 +5,7 @@ import aiosqlite
 import os
 import asyncio
 import io
+import json
 from datetime import datetime, timezone
 from formatter import BotEmbed
 from checks import admin_only, ticket_staff_only
@@ -12,7 +13,7 @@ from checks import admin_only, ticket_staff_only
 DB_PATH = os.getenv("DATABASE_PATH", "./data/security.db")
 
 # -------------------------------------------------------------------
-# Ticket View (buttons for the ticket channel)
+# Ticket View (buttons for the ticket channel) – unchanged
 # -------------------------------------------------------------------
 class TicketView(discord.ui.View):
     def __init__(self, cog, ticket_type_name: str):
@@ -68,7 +69,7 @@ class TicketView(discord.ui.View):
 
 
 # -------------------------------------------------------------------
-# Modals
+# Modals – unchanged
 # -------------------------------------------------------------------
 class AddUserModal(discord.ui.Modal, title="Add User to Ticket"):
     def __init__(self, cog, channel):
@@ -171,7 +172,7 @@ class Ticket(commands.Cog):
         self.bot = bot
 
     # ================================================================
-    #  DATABASE HELPERS
+    #  DATABASE HELPERS (unchanged)
     # ================================================================
     async def get_ticket_types(self, guild_id: int):
         async with aiosqlite.connect(DB_PATH) as db:
@@ -241,7 +242,7 @@ class Ticket(commands.Cog):
             await logger_cog.log_ticket_action(guild, user, action, ticket_channel, extra_info, file=file)
 
     # ================================================================
-    #  PANEL CUSTOMISATION
+    #  PANEL CUSTOMISATION (UPDATED – now supports fields)
     # ================================================================
     async def get_panel_config(self, guild_id: int):
         async with aiosqlite.connect(DB_PATH) as db:
@@ -249,11 +250,14 @@ class Ticket(commands.Cog):
             cursor = await db.execute("SELECT * FROM ticket_panel_config WHERE guild_id = ?", (guild_id,))
             return await cursor.fetchone()
 
-    async def set_panel_config(self, guild_id: int, title: str = None, description: str = None, image_url: str = None):
+    async def set_panel_config(self, guild_id: int, title: str = None, description: str = None,
+                               image_url: str = None, fields: list = None):
+        """Store panel configuration, including optional embed fields (list of dicts)."""
+        fields_json = json.dumps(fields) if fields else None
         async with aiosqlite.connect(DB_PATH) as db:
             await db.execute(
-                "INSERT OR REPLACE INTO ticket_panel_config (guild_id, title, description, image_url) VALUES (?, ?, ?, ?)",
-                (guild_id, title, description, image_url)
+                "INSERT OR REPLACE INTO ticket_panel_config (guild_id, title, description, image_url, fields) VALUES (?, ?, ?, ?, ?)",
+                (guild_id, title, description, image_url, fields_json)
             )
             await db.commit()
 
@@ -270,11 +274,26 @@ class Ticket(commands.Cog):
             embed = BotEmbed.error("No Ticket Types", "Use `/tickettype add` to create at least one ticket type first.")
             return await interaction.response.send_message(embed=embed, ephemeral=True)
 
-        # Load custom config (if any)
         config = await self.get_panel_config(interaction.guild_id)
         title = config["title"] if config and config["title"] else "Support Tickets"
         description = config["description"] if config and config["description"] else "Select the type of ticket you'd like to open from the dropdown below."
         image_url = config["image_url"] if config and config["image_url"] else None
+        fields_json = config["fields"] if config and config["fields"] else None
+
+        embed = discord.Embed(title=f"🎫 {title}", description=description, color=0x3B82F6)
+
+        # Add structured fields if configured
+        if fields_json:
+            try:
+                fields = json.loads(fields_json)  # list of {name, value}
+                for field in fields:
+                    embed.add_field(name=field.get("name", ""), value=field.get("value", ""), inline=field.get("inline", False))
+            except Exception:
+                pass  # ignore corrupted data
+
+        if image_url:
+            embed.set_image(url=image_url)
+        embed.set_footer(text="NeoMonster • Ticket System")
 
         options = [discord.SelectOption(label=t["name"], description=f"Open a {t['name'].lower()} ticket", emoji="🎟️") for t in types]
         select_menu = discord.ui.Select(
@@ -292,17 +311,37 @@ class Ticket(commands.Cog):
         view = discord.ui.View(timeout=None)
         view.add_item(select_menu)
 
-        embed = discord.Embed(title=f"🎫 {title}", description=description, color=0x3B82F6)
-        if image_url:
-            embed.set_image(url=image_url)
-        embed.set_footer(text="NeoMonster • Ticket System")
         await interaction.response.send_message(embed=embed, view=view)
 
     @panel_group.command(name="edit", description="Customise the ticket panel embed")
+    @app_commands.describe(
+        title="Panel title (default: Support Tickets)",
+        description="Intro text shown above the dropdown",
+        image_url="Large image URL (optional)",
+        fields="Structured data: one line per field, format: Name | Value (use a new line for each field)"
+    )
     @admin_only()
-    @app_commands.describe(title="Panel title (default: Support Tickets)", description="Panel description", image_url="Image URL (optional)")
-    async def panel_edit(self, interaction: discord.Interaction, title: str = None, description: str = None, image_url: str = None):
-        await self.set_panel_config(interaction.guild_id, title, description, image_url)
+    async def panel_edit(self, interaction: discord.Interaction, title: str = None, description: str = None,
+                         image_url: str = None, fields: str = None):
+        field_list = []
+        if fields:
+            # Parse user input: each line should be "Name | Value"
+            for line in fields.split("\n"):
+                line = line.strip()
+                if not line:
+                    continue
+                if "|" in line:
+                    parts = line.split("|", 1)
+                    name = parts[0].strip()
+                    value = parts[1].strip()
+                    if name and value:
+                        field_list.append({"name": name, "value": value, "inline": False})
+                else:
+                    # treat the whole line as a single field with no name? We'll just use "Info" as name
+                    if line:
+                        field_list.append({"name": "Info", "value": line, "inline": False})
+
+        await self.set_panel_config(interaction.guild_id, title, description, image_url, field_list if field_list else None)
         embed = BotEmbed.success("Panel Updated", "The ticket panel appearance has been updated.")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
@@ -352,10 +391,9 @@ class Ticket(commands.Cog):
 
         await self.save_ticket_metadata(interaction.guild_id, ticket_num, ticket_channel.id, interaction.user.id, ticket_type_name)
 
-        # --- PING THE SUPPORT ROLE (from ticket type, default to TicketSupporter) ---
+        # Ping support role
         support_role_id = ticket_type["support_role_id"]
         if not support_role_id:
-            # Fallback to the TicketSupporter role if not set
             fallback_role = discord.utils.get(interaction.guild.roles, name="TicketSupporter")
             if fallback_role:
                 support_role_id = fallback_role.id
@@ -368,7 +406,7 @@ class Ticket(commands.Cog):
                     allowed_mentions=discord.AllowedMentions(roles=True)
                 )
 
-        # --- Welcome message (with @here or custom text) ---
+        # Welcome message
         welcome_text = ticket_type["welcome_message"] or f"Welcome {interaction.user.mention}! Support staff will assist you shortly."
         welcome_text = welcome_text.replace("{user}", interaction.user.mention)
 
@@ -461,9 +499,6 @@ class Ticket(commands.Cog):
         await asyncio.sleep(2)
         await interaction.channel.delete(reason="Ticket closed")
 
-    # ================================================================
-    #  REMAINING BUTTON HANDLERS (unchanged)
-    # ================================================================
     async def add_user_modal(self, interaction: discord.Interaction):
         if not interaction.channel.name.startswith("ticket-"):
             return await interaction.response.send_message(embed=BotEmbed.error("Not a Ticket", ""), ephemeral=True)
@@ -612,6 +647,6 @@ async def setup(bot):
             id INTEGER PRIMARY KEY AUTOINCREMENT, guild_id INTEGER, ticket_number INTEGER, channel_id INTEGER UNIQUE,
             user_id INTEGER, open_time TEXT, claimed_by INTEGER, ticket_type TEXT)""")
         await db.execute("""CREATE TABLE IF NOT EXISTS ticket_panel_config (
-            guild_id INTEGER PRIMARY KEY, title TEXT, description TEXT, image_url TEXT)""")
+            guild_id INTEGER PRIMARY KEY, title TEXT, description TEXT, image_url TEXT, fields TEXT)""")
         await db.commit()
     await bot.add_cog(Ticket(bot))
