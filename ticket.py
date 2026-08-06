@@ -13,7 +13,7 @@ from checks import admin_only, ticket_staff_only
 DB_PATH = os.getenv("DATABASE_PATH", "./data/security.db")
 
 # -------------------------------------------------------------------
-# Ticket View (buttons for the ticket channel) – unchanged
+# Ticket View (unchanged)
 # -------------------------------------------------------------------
 class TicketView(discord.ui.View):
     def __init__(self, cog, ticket_type_name: str):
@@ -69,7 +69,7 @@ class TicketView(discord.ui.View):
 
 
 # -------------------------------------------------------------------
-# Modals – unchanged
+# Modals (unchanged)
 # -------------------------------------------------------------------
 class AddUserModal(discord.ui.Modal, title="Add User to Ticket"):
     def __init__(self, cog, channel):
@@ -242,7 +242,7 @@ class Ticket(commands.Cog):
             await logger_cog.log_ticket_action(guild, user, action, ticket_channel, extra_info, file=file)
 
     # ================================================================
-    #  PANEL CUSTOMISATION (UPDATED – now supports fields)
+    #  PANEL CUSTOMISATION (now handles fields)
     # ================================================================
     async def get_panel_config(self, guild_id: int):
         async with aiosqlite.connect(DB_PATH) as db:
@@ -255,6 +255,11 @@ class Ticket(commands.Cog):
         """Store panel configuration, including optional embed fields (list of dicts)."""
         fields_json = json.dumps(fields) if fields else None
         async with aiosqlite.connect(DB_PATH) as db:
+            # Ensure the fields column exists (added after table creation)
+            try:
+                await db.execute("ALTER TABLE ticket_panel_config ADD COLUMN fields TEXT")
+            except:
+                pass  # column already exists
             await db.execute(
                 "INSERT OR REPLACE INTO ticket_panel_config (guild_id, title, description, image_url, fields) VALUES (?, ?, ?, ?, ?)",
                 (guild_id, title, description, image_url, fields_json)
@@ -285,11 +290,11 @@ class Ticket(commands.Cog):
         # Add structured fields if configured
         if fields_json:
             try:
-                fields = json.loads(fields_json)  # list of {name, value}
+                fields = json.loads(fields_json)
                 for field in fields:
                     embed.add_field(name=field.get("name", ""), value=field.get("value", ""), inline=field.get("inline", False))
             except Exception:
-                pass  # ignore corrupted data
+                pass
 
         if image_url:
             embed.set_image(url=image_url)
@@ -325,7 +330,6 @@ class Ticket(commands.Cog):
                          image_url: str = None, fields: str = None):
         field_list = []
         if fields:
-            # Parse user input: each line should be "Name | Value"
             for line in fields.split("\n"):
                 line = line.strip()
                 if not line:
@@ -337,7 +341,6 @@ class Ticket(commands.Cog):
                     if name and value:
                         field_list.append({"name": name, "value": value, "inline": False})
                 else:
-                    # treat the whole line as a single field with no name? We'll just use "Info" as name
                     if line:
                         field_list.append({"name": "Info", "value": line, "inline": False})
 
@@ -355,7 +358,7 @@ class Ticket(commands.Cog):
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     # ================================================================
-    #  CREATE TICKET (ping support role from ticket type)
+    #  CREATE TICKET (unchanged)
     # ================================================================
     async def create_ticket(self, interaction: discord.Interaction, ticket_type_name: str, ign: str = None, reason: str = None):
         ticket_type = await self.get_ticket_type(interaction.guild_id, ticket_type_name)
@@ -499,6 +502,9 @@ class Ticket(commands.Cog):
         await asyncio.sleep(2)
         await interaction.channel.delete(reason="Ticket closed")
 
+    # ================================================================
+    #  REMAINING HANDLERS (unchanged)
+    # ================================================================
     async def add_user_modal(self, interaction: discord.Interaction):
         if not interaction.channel.name.startswith("ticket-"):
             return await interaction.response.send_message(embed=BotEmbed.error("Not a Ticket", ""), ephemeral=True)
@@ -646,7 +652,13 @@ async def setup(bot):
         await db.execute("""CREATE TABLE IF NOT EXISTS ticket_metadata (
             id INTEGER PRIMARY KEY AUTOINCREMENT, guild_id INTEGER, ticket_number INTEGER, channel_id INTEGER UNIQUE,
             user_id INTEGER, open_time TEXT, claimed_by INTEGER, ticket_type TEXT)""")
+        # Create panel config table (original columns)
         await db.execute("""CREATE TABLE IF NOT EXISTS ticket_panel_config (
-            guild_id INTEGER PRIMARY KEY, title TEXT, description TEXT, image_url TEXT, fields TEXT)""")
+            guild_id INTEGER PRIMARY KEY, title TEXT, description TEXT, image_url TEXT)""")
+        # Add the fields column if it doesn't exist (safe migration)
+        try:
+            await db.execute("ALTER TABLE ticket_panel_config ADD COLUMN fields TEXT")
+        except:
+            pass  # column already exists, ignore
         await db.commit()
     await bot.add_cog(Ticket(bot))
