@@ -276,6 +276,17 @@ class Ticket(commands.Cog):
 
         await self.save_ticket_metadata(interaction.guild_id, ticket_num, ticket_channel.id, interaction.user.id, ticket_type_name)
 
+        # --- 🆕 STAFF PING ---
+        support_role_id = ticket_type["support_role_id"]
+        if support_role_id:
+            support_role = interaction.guild.get_role(support_role_id)
+            if support_role:
+                await ticket_channel.send(
+                    f"{support_role.mention} A new ticket has been opened!",
+                    allowed_mentions=discord.AllowedMentions(roles=True)
+                )
+
+        # --- Welcome message (with @here or custom text) ---
         welcome_text = ticket_type["welcome_message"] or f"Welcome {interaction.user.mention}! Support staff will assist you shortly."
         welcome_text = welcome_text.replace("{user}", interaction.user.mention)
 
@@ -372,7 +383,7 @@ class Ticket(commands.Cog):
         await interaction.response.send_modal(RenameTicketModal(self, interaction.channel))
 
     # ================================================================
-    #  STAFF SLASH COMMANDS (underscore names, hyphen display)
+    #  STAFF SLASH COMMANDS (underscore names, visible to everyone)
     # ================================================================
     @app_commands.command(name="ticket_add", description="Add a user to the current ticket")
     @app_commands.describe(user="User to add")
