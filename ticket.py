@@ -323,13 +323,15 @@ class Ticket(commands.Cog):
         title="Panel title (default: Support Tickets)",
         description="Intro text shown above the dropdown",
         image_url="Large image URL (optional)",
-        fields="Structured data: one line per field, format: Name | Value (use a new line for each field)"
+        fields="Structured data: one line per field, format: Name | Value (use \\n inside value for line breaks)"
     )
     @admin_only()
     async def panel_edit(self, interaction: discord.Interaction, title: str = None, description: str = None,
                          image_url: str = None, fields: str = None):
         field_list = []
         if fields:
+            # Replace literal \n (typed by user) with actual newline characters
+            fields = fields.replace("\\n", "\n")
             for line in fields.split("\n"):
                 line = line.strip()
                 if not line:
