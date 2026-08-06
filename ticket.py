@@ -13,7 +13,7 @@ from checks import admin_only, ticket_staff_only
 DB_PATH = os.getenv("DATABASE_PATH", "./data/security.db")
 
 # -------------------------------------------------------------------
-# Ticket View (buttons for the ticket channel)
+# Ticket View (unchanged)
 # -------------------------------------------------------------------
 class TicketView(discord.ui.View):
     def __init__(self, cog, ticket_type_name: str):
@@ -69,7 +69,7 @@ class TicketView(discord.ui.View):
 
 
 # -------------------------------------------------------------------
-# Modals
+# Modals (unchanged)
 # -------------------------------------------------------------------
 class AddUserModal(discord.ui.Modal, title="Add User to Ticket"):
     def __init__(self, cog, channel):
@@ -172,7 +172,7 @@ class Ticket(commands.Cog):
         self.bot = bot
 
     # ================================================================
-    #  DATABASE HELPERS
+    #  DATABASE HELPERS (unchanged)
     # ================================================================
     async def get_ticket_types(self, guild_id: int):
         async with aiosqlite.connect(DB_PATH) as db:
@@ -255,7 +255,6 @@ class Ticket(commands.Cog):
         """Store panel configuration, including optional embed fields (list of dicts)."""
         fields_json = json.dumps(fields) if fields else None
         async with aiosqlite.connect(DB_PATH) as db:
-            # Ensure the fields column exists (added after table creation)
             try:
                 await db.execute("ALTER TABLE ticket_panel_config ADD COLUMN fields TEXT")
             except:
@@ -287,7 +286,6 @@ class Ticket(commands.Cog):
 
         embed = discord.Embed(title=f"🎫 {title}", description=description, color=0x3B82F6)
 
-        # Add structured fields if configured
         if fields_json:
             try:
                 fields = json.loads(fields_json)
@@ -330,7 +328,6 @@ class Ticket(commands.Cog):
                          image_url: str = None, fields: str = None):
         field_list = []
         if fields:
-            # Replace literal \n (typed by user) with actual newline characters
             fields = fields.replace("\\n", "\n")
             for line in fields.split("\n"):
                 line = line.strip()
@@ -360,7 +357,7 @@ class Ticket(commands.Cog):
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     # ================================================================
-    #  CREATE TICKET (pings TicketSupporter / support role)
+    #  CREATE TICKET (always pings TicketSupporter if available)
     # ================================================================
     async def create_ticket(self, interaction: discord.Interaction, ticket_type_name: str, ign: str = None, reason: str = None):
         ticket_type = await self.get_ticket_type(interaction.guild_id, ticket_type_name)
@@ -396,23 +393,21 @@ class Ticket(commands.Cog):
 
         await self.save_ticket_metadata(interaction.guild_id, ticket_num, ticket_channel.id, interaction.user.id, ticket_type_name)
 
-        # --- PING THE SUPPORT ROLE (TicketSupporter or configured role) ---
-        support_role_id = ticket_type["support_role_id"]
-        if not support_role_id:
-            # Fallback to the TicketSupporter role if not set
-            fallback_role = discord.utils.get(interaction.guild.roles, name="TicketSupporter")
-            if fallback_role:
-                support_role_id = fallback_role.id
+        # --- PING THE SUPPORT ROLE (guaranteed to try TicketSupporter) ---
+        # First, try the configured support role for this ticket type
+        support_role = None
+        if ticket_type["support_role_id"]:
+            support_role = interaction.guild.get_role(ticket_type["support_role_id"])
+        if not support_role:
+            # Fallback to the global TicketSupporter role
+            support_role = discord.utils.get(interaction.guild.roles, name="TicketSupporter")
+        if support_role:
+            await ticket_channel.send(
+                f"{support_role.mention} A new ticket has been opened!",
+                allowed_mentions=discord.AllowedMentions(roles=True)
+            )
 
-        if support_role_id:
-            role = interaction.guild.get_role(support_role_id)
-            if role:
-                await ticket_channel.send(
-                    f"{role.mention} A new ticket has been opened!",
-                    allowed_mentions=discord.AllowedMentions(roles=True)
-                )
-
-        # --- Welcome message (with @here or custom text) ---
+        # --- Welcome message ---
         welcome_text = ticket_type["welcome_message"] or f"Welcome {interaction.user.mention}! Support staff will assist you shortly."
         welcome_text = welcome_text.replace("{user}", interaction.user.mention)
 
@@ -445,7 +440,7 @@ class Ticket(commands.Cog):
         await self._log(interaction.guild, interaction.user, "open", ticket_channel)
 
     # ================================================================
-    #  BUTTON HANDLERS
+    #  BUTTON HANDLERS (unchanged)
     # ================================================================
     async def claim_ticket(self, interaction: discord.Interaction):
         if not interaction.channel.name.startswith("ticket-"):
@@ -524,7 +519,7 @@ class Ticket(commands.Cog):
         await interaction.response.send_modal(RenameTicketModal(self, interaction.channel))
 
     # ================================================================
-    #  STAFF SLASH COMMANDS (all present and functional)
+    #  STAFF SLASH COMMANDS (all functional)
     # ================================================================
     @app_commands.command(name="ticket_add", description="Add a user to the current ticket")
     @app_commands.describe(user="User to add")
