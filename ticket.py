@@ -133,6 +133,37 @@ class CloseTicketModal(discord.ui.Modal, title="Close Ticket"):
     async def on_submit(self, interaction: discord.Interaction):
         await self.cog.close_ticket_with_reason(interaction, self.reason.value.strip() or "No reason specified")
 
+# --- NEW MODAL FOR OPENING A TICKET ---
+class TicketOpenModal(discord.ui.Modal, title="Open Ticket"):
+    def __init__(self, cog, ticket_type_name: str):
+        super().__init__()
+        self.cog = cog
+        self.ticket_type_name = ticket_type_name
+        self.ign = discord.ui.TextInput(
+            label="What's your IGN? (In‑Game Name)",
+            placeholder="e.g., NotPriyanshuFr",
+            required=True,
+            max_length=100
+        )
+        self.add_item(self.ign)
+        self.reason = discord.ui.TextInput(
+            label="Why are you opening the ticket?",
+            placeholder="Explain your issue or request...",
+            required=True,
+            style=discord.TextStyle.paragraph,
+            max_length=1000
+        )
+        self.add_item(self.reason)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        # Pass the collected details to the ticket creation method
+        await self.cog.create_ticket(
+            interaction,
+            self.ticket_type_name,
+            ign=self.ign.value.strip(),
+            reason=self.reason.value.strip()
+        )
+
 
 # -------------------------------------------------------------------
 # Ticket Cog
@@ -232,7 +263,8 @@ class Ticket(commands.Cog):
 
         async def select_callback(interaction: discord.Interaction):
             selected_type = select_menu.values[0]
-            await self.create_ticket(interaction, selected_type)
+            # Open the modal instead of creating the ticket immediately
+            await interaction.response.send_modal(TicketOpenModal(self, selected_type))
 
         select_menu.callback = select_callback
         view = discord.ui.View(timeout=None)
@@ -242,7 +274,8 @@ class Ticket(commands.Cog):
         embed.set_footer(text="NeoMonster • Ticket System")
         await interaction.response.send_message(embed=embed, view=view)
 
-    async def create_ticket(self, interaction: discord.Interaction, ticket_type_name: str):
+    # --- MODIFIED create_ticket: accepts optional ign and reason ---
+    async def create_ticket(self, interaction: discord.Interaction, ticket_type_name: str, ign: str = None, reason: str = None):
         ticket_type = await self.get_ticket_type(interaction.guild_id, ticket_type_name)
         if not ticket_type:
             embed = BotEmbed.error("Invalid Ticket Type", "That ticket type no longer exists.")
@@ -276,7 +309,7 @@ class Ticket(commands.Cog):
 
         await self.save_ticket_metadata(interaction.guild_id, ticket_num, ticket_channel.id, interaction.user.id, ticket_type_name)
 
-        # --- 🆕 STAFF PING ---
+        # --- STAFF PING ---
         support_role_id = ticket_type["support_role_id"]
         if support_role_id:
             support_role = interaction.guild.get_role(support_role_id)
@@ -286,16 +319,29 @@ class Ticket(commands.Cog):
                     allowed_mentions=discord.AllowedMentions(roles=True)
                 )
 
-        # --- Welcome message (with @here or custom text) ---
+        # --- Build welcome embed, including IGN and reason if provided ---
         welcome_text = ticket_type["welcome_message"] or f"Welcome {interaction.user.mention}! Support staff will assist you shortly."
         welcome_text = welcome_text.replace("{user}", interaction.user.mention)
+
+        # Append the IGN and reason to the description
+        extra_info = ""
+        if ign:
+            extra_info += f"\n**IGN:** {ign}"
+        if reason:
+            extra_info += f"\n**Reason:** {reason}"
 
         send_ping = False
         if "@here" in welcome_text:
             send_ping = True
             welcome_text = welcome_text.replace("@here", "").strip()
 
-        welcome_embed = discord.Embed(title=f"🎫 {ticket_type_name} Ticket", description=welcome_text, color=0x3B82F6)
+        full_description = welcome_text + extra_info
+
+        welcome_embed = discord.Embed(
+            title=f"🎫 {ticket_type_name} Ticket",
+            description=full_description,
+            color=0x3B82F6
+        )
 
         if send_ping:
             await ticket_channel.send(content="@here", allowed_mentions=discord.AllowedMentions(everyone=False, here=True))
@@ -307,7 +353,7 @@ class Ticket(commands.Cog):
         await self._log(interaction.guild, interaction.user, "open", ticket_channel)
 
     # ================================================================
-    #  BUTTON HANDLERS
+    #  BUTTON HANDLERS (unchanged)
     # ================================================================
     async def claim_ticket(self, interaction: discord.Interaction):
         if not interaction.channel.name.startswith("ticket-"):
@@ -383,7 +429,7 @@ class Ticket(commands.Cog):
         await interaction.response.send_modal(RenameTicketModal(self, interaction.channel))
 
     # ================================================================
-    #  STAFF SLASH COMMANDS (underscore names, visible to everyone)
+    #  STAFF SLASH COMMANDS (unchanged)
     # ================================================================
     @app_commands.command(name="ticket_add", description="Add a user to the current ticket")
     @app_commands.describe(user="User to add")
@@ -431,7 +477,7 @@ class Ticket(commands.Cog):
         await self._log(interaction.guild, interaction.user, "claim", interaction.channel)
 
     # ================================================================
-    #  TICKET TYPE MANAGEMENT
+    #  TICKET TYPE MANAGEMENT (unchanged)
     # ================================================================
     @app_commands.command(name="tickettype", description="Manage ticket types (add / remove)")
     @app_commands.describe(action="Add or remove a ticket type")
