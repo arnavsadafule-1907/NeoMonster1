@@ -13,7 +13,7 @@ from checks import admin_only, ticket_staff_only
 DB_PATH = os.getenv("DATABASE_PATH", "./data/security.db")
 
 # -------------------------------------------------------------------
-# Ticket View (unchanged)
+# Ticket View (buttons for the ticket channel)
 # -------------------------------------------------------------------
 class TicketView(discord.ui.View):
     def __init__(self, cog, ticket_type_name: str):
@@ -69,7 +69,7 @@ class TicketView(discord.ui.View):
 
 
 # -------------------------------------------------------------------
-# Modals (unchanged)
+# Modals
 # -------------------------------------------------------------------
 class AddUserModal(discord.ui.Modal, title="Add User to Ticket"):
     def __init__(self, cog, channel):
@@ -172,7 +172,7 @@ class Ticket(commands.Cog):
         self.bot = bot
 
     # ================================================================
-    #  DATABASE HELPERS (unchanged)
+    #  DATABASE HELPERS
     # ================================================================
     async def get_ticket_types(self, guild_id: int):
         async with aiosqlite.connect(DB_PATH) as db:
@@ -360,7 +360,7 @@ class Ticket(commands.Cog):
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     # ================================================================
-    #  CREATE TICKET (unchanged)
+    #  CREATE TICKET (pings TicketSupporter / support role)
     # ================================================================
     async def create_ticket(self, interaction: discord.Interaction, ticket_type_name: str, ign: str = None, reason: str = None):
         ticket_type = await self.get_ticket_type(interaction.guild_id, ticket_type_name)
@@ -396,9 +396,10 @@ class Ticket(commands.Cog):
 
         await self.save_ticket_metadata(interaction.guild_id, ticket_num, ticket_channel.id, interaction.user.id, ticket_type_name)
 
-        # Ping support role
+        # --- PING THE SUPPORT ROLE (TicketSupporter or configured role) ---
         support_role_id = ticket_type["support_role_id"]
         if not support_role_id:
+            # Fallback to the TicketSupporter role if not set
             fallback_role = discord.utils.get(interaction.guild.roles, name="TicketSupporter")
             if fallback_role:
                 support_role_id = fallback_role.id
@@ -411,7 +412,7 @@ class Ticket(commands.Cog):
                     allowed_mentions=discord.AllowedMentions(roles=True)
                 )
 
-        # Welcome message
+        # --- Welcome message (with @here or custom text) ---
         welcome_text = ticket_type["welcome_message"] or f"Welcome {interaction.user.mention}! Support staff will assist you shortly."
         welcome_text = welcome_text.replace("{user}", interaction.user.mention)
 
@@ -444,7 +445,7 @@ class Ticket(commands.Cog):
         await self._log(interaction.guild, interaction.user, "open", ticket_channel)
 
     # ================================================================
-    #  BUTTON HANDLERS (unchanged)
+    #  BUTTON HANDLERS
     # ================================================================
     async def claim_ticket(self, interaction: discord.Interaction):
         if not interaction.channel.name.startswith("ticket-"):
@@ -505,7 +506,7 @@ class Ticket(commands.Cog):
         await interaction.channel.delete(reason="Ticket closed")
 
     # ================================================================
-    #  REMAINING HANDLERS (unchanged)
+    #  REMAINING BUTTON HANDLERS
     # ================================================================
     async def add_user_modal(self, interaction: discord.Interaction):
         if not interaction.channel.name.startswith("ticket-"):
@@ -523,7 +524,7 @@ class Ticket(commands.Cog):
         await interaction.response.send_modal(RenameTicketModal(self, interaction.channel))
 
     # ================================================================
-    #  STAFF SLASH COMMANDS (unchanged)
+    #  STAFF SLASH COMMANDS (all present and functional)
     # ================================================================
     @app_commands.command(name="ticket_add", description="Add a user to the current ticket")
     @app_commands.describe(user="User to add")
@@ -571,7 +572,7 @@ class Ticket(commands.Cog):
         await self._log(interaction.guild, interaction.user, "claim", interaction.channel)
 
     # ================================================================
-    #  TICKET TYPE MANAGEMENT (unchanged)
+    #  TICKET TYPE MANAGEMENT
     # ================================================================
     @app_commands.command(name="tickettype", description="Manage ticket types (add / remove)")
     @app_commands.describe(action="Add or remove a ticket type")

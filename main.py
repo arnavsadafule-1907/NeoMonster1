@@ -36,7 +36,7 @@ class SecurityBot(commands.Bot):
     "backup", "altdetector", "slowmode", "raidalert", "chatbot",
     "massmention", "antivanity", "stafflog", "ownerrecovery", "polish",
     "publicbot", "globalblacklist", "announce",
-    "ticket", "serverlogger", "poll", "botwhitelist"  # <-- new
+    "ticket", "serverlogger", "poll", "botwhitelist", "sync"  # <-- new
 ]
         for cog in cogs:
             try:
