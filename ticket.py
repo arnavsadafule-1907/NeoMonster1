@@ -156,7 +156,6 @@ class TicketOpenModal(discord.ui.Modal, title="Open Ticket"):
         self.add_item(self.reason)
 
     async def on_submit(self, interaction: discord.Interaction):
-        # Pass the collected details to the ticket creation method
         await self.cog.create_ticket(
             interaction,
             self.ticket_type_name,
@@ -263,7 +262,6 @@ class Ticket(commands.Cog):
 
         async def select_callback(interaction: discord.Interaction):
             selected_type = select_menu.values[0]
-            # Open the modal instead of creating the ticket immediately
             await interaction.response.send_modal(TicketOpenModal(self, selected_type))
 
         select_menu.callback = select_callback
@@ -274,7 +272,7 @@ class Ticket(commands.Cog):
         embed.set_footer(text="NeoMonster • Ticket System")
         await interaction.response.send_message(embed=embed, view=view)
 
-    # --- MODIFIED create_ticket: accepts optional ign and reason ---
+    # --- MODIFIED create_ticket: always pings TicketSupporter role ---
     async def create_ticket(self, interaction: discord.Interaction, ticket_type_name: str, ign: str = None, reason: str = None):
         ticket_type = await self.get_ticket_type(interaction.guild_id, ticket_type_name)
         if not ticket_type:
@@ -309,21 +307,18 @@ class Ticket(commands.Cog):
 
         await self.save_ticket_metadata(interaction.guild_id, ticket_num, ticket_channel.id, interaction.user.id, ticket_type_name)
 
-        # --- STAFF PING ---
-        support_role_id = ticket_type["support_role_id"]
-        if support_role_id:
-            support_role = interaction.guild.get_role(support_role_id)
-            if support_role:
-                await ticket_channel.send(
-                    f"{support_role.mention} A new ticket has been opened!",
-                    allowed_mentions=discord.AllowedMentions(roles=True)
-                )
+        # --- STAFF PING: always try to ping the TicketSupporter role ---
+        ticket_supporter = discord.utils.get(interaction.guild.roles, name="TicketSupporter")
+        if ticket_supporter:
+            await ticket_channel.send(
+                f"{ticket_supporter.mention} A new ticket has been opened!",
+                allowed_mentions=discord.AllowedMentions(roles=True)
+            )
 
-        # --- Build welcome embed, including IGN and reason if provided ---
+        # --- Welcome message (with @here or custom text) ---
         welcome_text = ticket_type["welcome_message"] or f"Welcome {interaction.user.mention}! Support staff will assist you shortly."
         welcome_text = welcome_text.replace("{user}", interaction.user.mention)
 
-        # Append the IGN and reason to the description
         extra_info = ""
         if ign:
             extra_info += f"\n**IGN:** {ign}"
