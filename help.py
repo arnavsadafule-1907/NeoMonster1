@@ -199,17 +199,24 @@ class HelpView(View):
                     "`/unignore` — Remove ignore",
                 ]
             },
+            # --- UPDATED TICKETS SECTION (only change) ---
             "Tickets": {
                 "description": "Persistent ticket panel with custom types & welcome messages.",
                 "commands": [
                     "`/ticketpanel` — Send the ticket panel dropdown (admin only)",
                     "`/tickettype add` — Add a custom ticket type (admin only)",
                     "`/tickettype remove` — Remove a ticket type (admin only)",
+                    "`/ticket_add` — Add a user to the current ticket",
+                    "`/ticket_remove` — Remove a user from the current ticket",
+                    "`/ticket_rename` — Rename the current ticket",
+                    "`/ticket_close` — Close the current ticket (prompts for reason)",
+                    "`/ticket_claim` — Claim the current ticket",
                     "Use the dropdown on the panel to open a ticket.",
                     "Inside a ticket: Claim, Close, Add User, Remove User, Rename buttons.",
                     "Staff commands require TicketSupporter, Staff.exe, or higher.",
                 ]
             },
+            # ---------------------------------------------------------
             "Polls": {
                 "description": "Create interactive polls with up to 10 options. Requires Staff.exe or higher.",
                 "commands": [
