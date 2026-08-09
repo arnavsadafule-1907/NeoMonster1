@@ -182,15 +182,15 @@ class HelpView(View):
                 ]
             },
             "Admin / Mod Setup": {
-                "description": "Create staff roles with pre‑configured permissions.",
-                "commands": [
-                    "`/setup admin.exe` — Create admin role",
-                    "`/setup nuke.exe` — Create nuke role",
-                    "`/setup staff.exe` — Create staff role (moderation, polls, announce)",
-                    "`/setup ticketsupporter` — Create ticket helper role",
-                    "`/roleassign` — Assign roles to members",
-                ]
-            },
+    "description": "Create staff roles with pre‑configured permissions.",
+    "commands": [
+        "`/setup admin.exe` — Create admin role",
+        "`/setup nuke.exe` — Create nuke role",
+        "`/setup staff.exe` — Create staff role (moderation, polls, announce)",
+        "`/setup ticketsupporter` — Create ticket helper role",
+        "`/assign` — Assign any of the four roles to a member (server owner / extra owners only)",
+    ]
+},
             "Ignore Commands": {
                 "description": "Make the bot ignore specific users or channels. (admin.exe / nuke.exe)",
                 "commands": [
