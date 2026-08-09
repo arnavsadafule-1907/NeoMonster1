@@ -20,13 +20,22 @@ class ExtraOwner(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    def _is_authorized(self, interaction: discord.Interaction) -> bool:
+        """Only the global bot owner or the server owner can manage extra owners."""
+        # Global bot owner (IDs from .env)
+        if interaction.user.id in interaction.client.owner_ids:
+            return True
+        # Server owner
+        if interaction.user.id == interaction.guild.owner_id:
+            return True
+        return False
+
     # ---------- /addowner ----------
     @app_commands.command(name="addowner", description="Add an extra owner (can bypass all role checks)")
     @app_commands.describe(user="User to promote")
     async def add_owner(self, interaction: discord.Interaction, user: discord.User):
-        # Only the real server owner can use this
-        if interaction.user.id != interaction.guild.owner_id:
-            embed = BotEmbed.error("Permission Denied", "Only the server owner can add extra owners.")
+        if not self._is_authorized(interaction):
+            embed = BotEmbed.error("Permission Denied", "Only the global bot owner or the server owner can add extra owners.")
             return await interaction.response.send_message(embed=embed, ephemeral=True)
 
         # Don't add the actual owner (they already have full power)
@@ -53,8 +62,8 @@ class ExtraOwner(commands.Cog):
     @app_commands.command(name="removeowner", description="Remove an extra owner")
     @app_commands.describe(user="User to demote")
     async def remove_owner(self, interaction: discord.Interaction, user: discord.User):
-        if interaction.user.id != interaction.guild.owner_id:
-            embed = BotEmbed.error("Permission Denied", "Only the server owner can remove extra owners.")
+        if not self._is_authorized(interaction):
+            embed = BotEmbed.error("Permission Denied", "Only the global bot owner or the server owner can remove extra owners.")
             return await interaction.response.send_message(embed=embed, ephemeral=True)
 
         if not await is_extra_owner(interaction.guild_id, user.id):
