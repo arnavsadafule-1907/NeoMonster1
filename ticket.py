@@ -237,9 +237,9 @@ class Ticket(commands.Cog):
             await db.commit()
 
     # ---------------------------------------------------------------
-    #  _log helper – now accepts ticket_name
+    #  _log helper – now accepts channel_name
     # ---------------------------------------------------------------
-    async def _log(self, guild, user, action, ticket_channel=None, extra_info="", file=None, ticket_name=None):
+    async def _log(self, guild, user, action, ticket_channel=None, extra_info="", file=None, ticket_name=None, channel_name=None):
         logger_cog = self.bot.get_cog("ServerLogger")
         if logger_cog:
             await logger_cog.log_ticket_action(
@@ -247,7 +247,8 @@ class Ticket(commands.Cog):
                 ticket_channel=ticket_channel,
                 extra_info=extra_info,
                 file=file,
-                ticket_name=ticket_name
+                ticket_name=ticket_name,
+                channel_name=channel_name
             )
 
     # ================================================================
@@ -439,7 +440,7 @@ class Ticket(commands.Cog):
 
         embed = BotEmbed.info("Ticket Created", f"Your ticket channel: {ticket_channel.mention}")
         await interaction.response.send_message(embed=embed, ephemeral=True)
-        await self._log(interaction.guild, interaction.user, "open", ticket_channel)
+        await self._log(interaction.guild, interaction.user, "open", ticket_channel, channel_name=channel_name)
 
     # ================================================================
     #  BUTTON HANDLERS (unchanged except close_ticket_with_reason)
@@ -450,11 +451,12 @@ class Ticket(commands.Cog):
         await interaction.channel.set_permissions(interaction.user, read_messages=True, send_messages=True)
         await self.update_ticket_claim(interaction.channel.id, interaction.user.id)
         await interaction.response.send_message(f"✅ Ticket claimed by {interaction.user.mention}", ephemeral=False)
-        await self._log(interaction.guild, interaction.user, "claim", interaction.channel)
+        await self._log(interaction.guild, interaction.user, "claim", interaction.channel, channel_name=interaction.channel.name)
 
     async def close_ticket_with_reason(self, interaction: discord.Interaction, reason: str):
         if not interaction.channel.name.startswith("ticket-"):
             return await interaction.response.send_message(embed=BotEmbed.error("Not a Ticket", ""), ephemeral=True)
+        channel_name = interaction.channel.name  # capture before deletion
         await interaction.response.send_message("🔒 Closing ticket and generating transcript...", ephemeral=True)
         metadata = await self.get_ticket_metadata(interaction.channel.id)
         if not metadata:
@@ -487,15 +489,16 @@ class Ticket(commands.Cog):
         log_embed.add_field(name="Claimed By", value=f"<@{metadata['claimed_by']}>" if metadata['claimed_by'] else "Not claimed", inline=True)
         log_embed.add_field(name="Reason", value=reason, inline=False)
 
-        # ✅ pass ticket name to the log
+        # pass the captured channel name for the log
         await self._log(
             interaction.guild,
             interaction.user,
             "close",
-            interaction.channel,
+            None,   # ticket_channel is about to be deleted, so pass None
             extra_info=f"Reason: {reason}",
             file=file,
-            ticket_name=metadata["ticket_type"]
+            ticket_name=metadata["ticket_type"],
+            channel_name=channel_name
         )
 
         await self.delete_ticket_metadata(interaction.channel.id)
@@ -566,7 +569,7 @@ class Ticket(commands.Cog):
         await interaction.channel.set_permissions(interaction.user, read_messages=True, send_messages=True)
         await self.update_ticket_claim(interaction.channel.id, interaction.user.id)
         await interaction.response.send_message(embed=BotEmbed.success("Claimed", f"Ticket claimed by {interaction.user.mention}."))
-        await self._log(interaction.guild, interaction.user, "claim", interaction.channel)
+        await self._log(interaction.guild, interaction.user, "claim", interaction.channel, channel_name=interaction.channel.name)
 
     # ================================================================
     #  TICKET TYPE MANAGEMENT (unchanged)

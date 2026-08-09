@@ -227,13 +227,16 @@ class ServerLogger(commands.Cog):
             embed.add_field(name="Reason", value=reason, inline=False)
         await self.log(guild.id, "moderation", embed)
 
-    # ---------- Ticket log hook (now includes ticket name) ----------
-    async def log_ticket_action(self, guild, user, action, ticket_channel=None, extra_info="", file=None, ticket_name=None):
+    # ---------- Ticket log hook (now accepts channel_name) ----------
+    async def log_ticket_action(self, guild, user, action, ticket_channel=None, extra_info="", file=None, ticket_name=None, channel_name=None):
         embed = discord.Embed(title=f"🎫 Ticket {action.capitalize()}", color=0x3B82F6, timestamp=datetime.utcnow())
         embed.add_field(name="User", value=user.mention, inline=True)
         if ticket_name:
             embed.add_field(name="Ticket Name", value=ticket_name, inline=True)
-        if ticket_channel:
+        # Show channel as plain text (e.g., #ticket-0001) if name is provided; otherwise mention if available
+        if channel_name:
+            embed.add_field(name="Channel", value=f"#{channel_name}", inline=True)
+        elif ticket_channel:
             embed.add_field(name="Channel", value=ticket_channel.mention, inline=True)
         if extra_info:
             embed.add_field(name="Details", value=extra_info, inline=False)
