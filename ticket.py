@@ -236,10 +236,19 @@ class Ticket(commands.Cog):
             await db.execute("DELETE FROM ticket_metadata WHERE channel_id = ?", (channel_id,))
             await db.commit()
 
-    async def _log(self, guild, user, action, ticket_channel=None, extra_info="", file=None):
+    # ---------------------------------------------------------------
+    #  _log helper – now accepts ticket_name
+    # ---------------------------------------------------------------
+    async def _log(self, guild, user, action, ticket_channel=None, extra_info="", file=None, ticket_name=None):
         logger_cog = self.bot.get_cog("ServerLogger")
         if logger_cog:
-            await logger_cog.log_ticket_action(guild, user, action, ticket_channel, extra_info, file=file)
+            await logger_cog.log_ticket_action(
+                guild, user, action,
+                ticket_channel=ticket_channel,
+                extra_info=extra_info,
+                file=file,
+                ticket_name=ticket_name
+            )
 
     # ================================================================
     #  PANEL CUSTOMISATION (unchanged)
@@ -366,20 +375,16 @@ class Ticket(commands.Cog):
         ticket_num = await self._next_ticket_number(interaction.guild_id)
         channel_name = f"ticket-{ticket_num:04d}"
 
-        # Base overwrites
         overwrites = {
             interaction.guild.default_role: discord.PermissionOverwrite(read_messages=False),
             interaction.user: discord.PermissionOverwrite(read_messages=True, send_messages=True),
             interaction.guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True, manage_channels=True)
         }
-
-        # Add configured support role for this ticket type
         if ticket_type["support_role_id"]:
             role = interaction.guild.get_role(ticket_type["support_role_id"])
             if role:
                 overwrites[role] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
 
-        # ⭐ ALWAYS give access to the global TicketSupporter role (if it exists)
         ticket_supporter_role = discord.utils.get(interaction.guild.roles, name="TicketSupporter")
         if ticket_supporter_role and ticket_supporter_role not in overwrites:
             overwrites[ticket_supporter_role] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
@@ -394,19 +399,17 @@ class Ticket(commands.Cog):
 
         await self.save_ticket_metadata(interaction.guild_id, ticket_num, ticket_channel.id, interaction.user.id, ticket_type_name)
 
-        # --- PING THE SUPPORT ROLE (guaranteed to try TicketSupporter) ---
         support_role = None
         if ticket_type["support_role_id"]:
             support_role = interaction.guild.get_role(ticket_type["support_role_id"])
         if not support_role:
-            support_role = ticket_supporter_role   # fallback to global TicketSupporter
+            support_role = ticket_supporter_role
         if support_role:
             await ticket_channel.send(
                 f"{support_role.mention} A new ticket has been opened!",
                 allowed_mentions=discord.AllowedMentions(roles=True)
             )
 
-        # --- Welcome message ---
         welcome_text = ticket_type["welcome_message"] or f"Welcome {interaction.user.mention}! Support staff will assist you shortly."
         welcome_text = welcome_text.replace("{user}", interaction.user.mention)
 
@@ -439,7 +442,7 @@ class Ticket(commands.Cog):
         await self._log(interaction.guild, interaction.user, "open", ticket_channel)
 
     # ================================================================
-    #  BUTTON HANDLERS (unchanged)
+    #  BUTTON HANDLERS (unchanged except close_ticket_with_reason)
     # ================================================================
     async def claim_ticket(self, interaction: discord.Interaction):
         if not interaction.channel.name.startswith("ticket-"):
@@ -483,7 +486,18 @@ class Ticket(commands.Cog):
         log_embed.add_field(name="Open Time", value=metadata['open_time'][:19].replace('T', ' '), inline=True)
         log_embed.add_field(name="Claimed By", value=f"<@{metadata['claimed_by']}>" if metadata['claimed_by'] else "Not claimed", inline=True)
         log_embed.add_field(name="Reason", value=reason, inline=False)
-        await self._log(interaction.guild, interaction.user, "close", interaction.channel, extra_info=f"Reason: {reason}", file=file)
+
+        # ✅ pass ticket name to the log
+        await self._log(
+            interaction.guild,
+            interaction.user,
+            "close",
+            interaction.channel,
+            extra_info=f"Reason: {reason}",
+            file=file,
+            ticket_name=metadata["ticket_type"]
+        )
+
         await self.delete_ticket_metadata(interaction.channel.id)
         await asyncio.sleep(2)
         await interaction.channel.delete(reason="Ticket closed")
