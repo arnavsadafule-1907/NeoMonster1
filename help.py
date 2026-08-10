@@ -55,6 +55,9 @@ class HelpView(View):
             ("📊 Polls", "Polls"),
             ("📋 Logging", "Logging"),
             ("📖 Setup Guide", "Setup Guide"),
+            ("📈 Staff Stats", "Staff Stats"),
+            ("🏖️ Leave System", "Leave System"),
+            ("👑 Owner Tools", "Owner Tools"),
         ]
 
         self.module_data = {
@@ -182,15 +185,15 @@ class HelpView(View):
                 ]
             },
             "Admin / Mod Setup": {
-    "description": "Create staff roles with pre‑configured permissions.",
-    "commands": [
-        "`/setup admin.exe` — Create admin role",
-        "`/setup nuke.exe` — Create nuke role",
-        "`/setup staff.exe` — Create staff role (moderation, polls, announce)",
-        "`/setup ticketsupporter` — Create ticket helper role",
-        "`/assign` — Assign any of the four roles to a member (server owner / extra owners only)",
-    ]
-},
+                "description": "Create staff roles with pre‑configured permissions.",
+                "commands": [
+                    "`/setup admin.exe` — Create admin role",
+                    "`/setup nuke.exe` — Create nuke role",
+                    "`/setup staff.exe` — Create staff role (moderation, polls, announce)",
+                    "`/setup ticketsupporter` — Create ticket helper role",
+                    "`/assign` — Assign any of the four roles to a member (server owner / extra owners only)",
+                ]
+            },
             "Ignore Commands": {
                 "description": "Make the bot ignore specific users or channels. (admin.exe / nuke.exe)",
                 "commands": [
@@ -199,7 +202,6 @@ class HelpView(View):
                     "`/unignore` — Remove ignore",
                 ]
             },
-            # --- UPDATED TICKETS SECTION (only change) ---
             "Tickets": {
                 "description": "Persistent ticket panel with custom types & welcome messages.",
                 "commands": [
@@ -216,7 +218,6 @@ class HelpView(View):
                     "Staff commands require TicketSupporter, Staff.exe, or higher.",
                 ]
             },
-            # ---------------------------------------------------------
             "Polls": {
                 "description": "Create interactive polls with up to 10 options. Requires Staff.exe or higher.",
                 "commands": [
@@ -245,16 +246,48 @@ class HelpView(View):
                     "**⚡ How to create a role**",
                     "1. Run `/setup <role>` (e.g., `/setup admin.exe`).",
                     "2. The bot creates the role with the correct permissions.",
-                    "3. Use `/roleassign` to give the role to a member.",
+                    "3. Use `/assign` to give the role to a member.",
                     "",
                     "**🛡️ Who can use what?**",
                     "• Anyone: `/ping`, `/help`, fun commands, open tickets, vote in polls.",
-                    "• TicketSupporter: Manage tickets (claim, close, add/remove users).",
-                    "• Staff.exe: All moderation commands, `/announce`, `/poll`, `/setlog`, `/slowmode`, `/messagelog`.",
+                    "• TicketSupporter: Manage tickets (claim, close, add/remove users), use leave system.",
+                    "• Staff.exe: All moderation commands, `/announce`, `/poll`, `/setlog`, `/slowmode`, `/messagelog`, `/staffstats`, `/leave`.",
                     "• admin.exe: Anti‑nuke config, automod, welcoming, custom roles, voice commands, backup/restore.",
                     "• nuke.exe: Giveaways, anti‑nuke emergency, whitelist, owner‑level bypass.",
+                    "• Extra Owners: Have full owner‑level access (bypass all role checks).",
+                    "",
+                    "**👑 Owner Tools**",
+                    "• `/addowner @user` — Promote a member to extra owner (server owner / bot owner only).",
+                    "• `/removeowner @user` — Demote an extra owner.",
+                    "• `/listowners` — List all extra owners.",
+                    "• `/dmall` — Send an embed to every member via DM.",
                     "",
                     "**🔐 Bot Owner** (the person whose ID is in the `.env` file) can always use any command, even without a role.",
+                ]
+            },
+            # ---------- NEW MODULES ----------
+            "Staff Stats": {
+                "description": "View ticket statistics and leave days for any staff member.",
+                "commands": [
+                    "`/staffstats @user` — Show tickets claimed, closed, total handled, leave days, and current leave status.",
+                ]
+            },
+            "Leave System": {
+                "description": "Request and manage staff leave directly through the bot.",
+                "commands": [
+                    "`/leavepanel` — Send the persistent leave panel (admin only).",
+                    "`/leavesetup @role` — Set the 'On Leave' role (admin only).",
+                    "`/leave` — Request leave or end leave early (TicketSupporter+).",
+                    "Use the buttons on the leave panel for quick actions.",
+                ]
+            },
+            "Owner Tools": {
+                "description": "Commands for the server owner and extra owners.",
+                "commands": [
+                    "`/addowner @user` — Promote a user to extra owner.",
+                    "`/removeowner @user` — Demote an extra owner.",
+                    "`/listowners` — Show all extra owners.",
+                    "`/dmall` — Send an embed to every server member.",
                 ]
             },
         }
@@ -286,9 +319,6 @@ class HelpView(View):
         self.add_item(NavButton("▶", "next", discord.ButtonStyle.secondary, 1))
         self.add_item(NavButton("▶▶", "last", discord.ButtonStyle.secondary, 1))
 
-    # ------------------------------------------------------------
-    #  Helper to split long command lists into multiple fields
-    # ------------------------------------------------------------
     @staticmethod
     def _split_commands(cmd_list, max_len=1024):
         fields = []
@@ -344,14 +374,12 @@ class HelpView(View):
             embed.set_footer(text=f"Page 1 of {len(self.modules)} • NeoMonster Security")
             return embed
 
-        # Category page
         full, name = self.modules[self.current_page]
         data = self.module_data[name]
         embed = discord.Embed(title="NeoMonster", description=data["description"], color=BLUE_MAIN)
         embed.set_thumbnail(url=self.bot.user.display_avatar.url)
         cmds = data.get("commands", [])
         if cmds:
-            # Split long command lists into multiple fields to stay under 1024 chars
             chunks = self._split_commands(cmds)
             for idx, chunk in enumerate(chunks):
                 field_name = "Commands" if idx == 0 else f"Commands (cont. {idx+1})"
