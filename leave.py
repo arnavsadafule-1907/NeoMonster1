@@ -207,20 +207,38 @@ class Leave(commands.Cog):
 
     async def process_leave_end(self, guild: discord.Guild, member: discord.Member, leave_row, early: bool = False):
         start = date.fromisoformat(leave_row["start_date"])
-        end = date.fromisoformat(leave_row["end_date"])
-        actual_end = date.today() if early else max(end, date.today())
-        days = (actual_end - start).days + 1
+        end   = date.fromisoformat(leave_row["end_date"])
 
+        if early:
+            today = date.today()
+            if today < start:
+                # Leave hasn't started yet – no days counted
+                days = 0
+            else:
+                # Count up to today (inclusive)
+                days = (today - start).days + 1
+        else:
+            # Automatic expiry – the planned end date has passed
+            # Count from start to the planned end, inclusive
+            days = (end - start).days + 1
+
+        # Only add positive days to stats
+        if days > 0:
+            async with aiosqlite.connect(DB_PATH) as db:
+                await db.execute("UPDATE leaves SET active=0 WHERE id=?", (leave_row["id"],))
+                await db.commit()
+
+            async with aiosqlite.connect(DB_PATH) as db:
+                await db.execute(
+                    "INSERT INTO staff_stats (guild_id, user_id, tickets_claimed, tickets_closed, leave_days) VALUES (?,?,0,0,?) "
+                    "ON CONFLICT(guild_id, user_id) DO UPDATE SET leave_days = leave_days + ?",
+                    (guild.id, member.id, days, days)
+                )
+                await db.commit()
+
+        # Always mark inactive and remove role, even if 0 days
         async with aiosqlite.connect(DB_PATH) as db:
             await db.execute("UPDATE leaves SET active=0 WHERE id=?", (leave_row["id"],))
-            await db.commit()
-
-        async with aiosqlite.connect(DB_PATH) as db:
-            await db.execute(
-                "INSERT INTO staff_stats (guild_id, user_id, tickets_claimed, tickets_closed, leave_days) VALUES (?,?,0,0,?) "
-                "ON CONFLICT(guild_id, user_id) DO UPDATE SET leave_days = leave_days + ?",
-                (guild.id, member.id, days, days)
-            )
             await db.commit()
 
         role_id = await self.get_leave_role(guild.id)
@@ -232,13 +250,14 @@ class Leave(commands.Cog):
                 except discord.Forbidden:
                     pass
 
+        # DM the user with correct days
         try:
             embed = discord.Embed(
                 title="Leave Concluded",
                 description=f"Your leave period ({start} to {end}) has ended. Welcome back!",
                 color=0x3B82F6
             )
-            embed.add_field(name="Days Counted", value=str(days))
+            embed.add_field(name="Days Counted", value=str(days) if days > 0 else "0 (leave was cancelled before start)")
             embed.set_footer(text=f"Server: {guild.name}")
             await member.send(embed=embed)
         except discord.Forbidden:
