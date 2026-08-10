@@ -212,17 +212,12 @@ class Leave(commands.Cog):
         if early:
             today = date.today()
             if today < start:
-                # Leave hasn't started yet – no days counted
                 days = 0
             else:
-                # Count up to today (inclusive)
                 days = (today - start).days + 1
         else:
-            # Automatic expiry – the planned end date has passed
-            # Count from start to the planned end, inclusive
             days = (end - start).days + 1
 
-        # Only add positive days to stats
         if days > 0:
             async with aiosqlite.connect(DB_PATH) as db:
                 await db.execute("UPDATE leaves SET active=0 WHERE id=?", (leave_row["id"],))
@@ -236,7 +231,6 @@ class Leave(commands.Cog):
                 )
                 await db.commit()
 
-        # Always mark inactive and remove role, even if 0 days
         async with aiosqlite.connect(DB_PATH) as db:
             await db.execute("UPDATE leaves SET active=0 WHERE id=?", (leave_row["id"],))
             await db.commit()
@@ -250,7 +244,6 @@ class Leave(commands.Cog):
                 except discord.Forbidden:
                     pass
 
-        # DM the user with correct days
         try:
             embed = discord.Embed(
                 title="Leave Concluded",
@@ -262,6 +255,20 @@ class Leave(commands.Cog):
             await member.send(embed=embed)
         except discord.Forbidden:
             pass
+
+    # ---------- NEW: Reset leave stats for a staff member ----------
+    @app_commands.command(name="resetleavestats", description="Reset the leave days of a staff member (admin only)")
+    @app_commands.describe(member="The staff member whose leave days should be reset")
+    @admin_only()
+    async def reset_leave_stats(self, interaction: discord.Interaction, member: discord.Member):
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute(
+                "UPDATE staff_stats SET leave_days = 0 WHERE guild_id = ? AND user_id = ?",
+                (interaction.guild_id, member.id)
+            )
+            await db.commit()
+        embed = BotEmbed.success("Stats Reset", f"Leave days for {member.mention} have been reset to 0.")
+        await interaction.response.send_message(embed=embed, ephemeral=False)
 
     @tasks.loop(hours=6)
     async def check_leaves(self):
