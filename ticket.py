@@ -251,6 +251,18 @@ class Ticket(commands.Cog):
                 channel_name=channel_name
             )
 
+    # ---------- NEW: Staff stat increment helper ----------
+    @staticmethod
+    async def increment_staff_stat(guild_id: int, user_id: int, column: str):
+        """column must be 'tickets_claimed' or 'tickets_closed'."""
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute(
+                f"INSERT INTO staff_stats (guild_id, user_id, {column}) VALUES (?, ?, 1) "
+                f"ON CONFLICT(guild_id, user_id) DO UPDATE SET {column} = {column} + 1",
+                (guild_id, user_id)
+            )
+            await db.commit()
+
     # ================================================================
     #  PANEL CUSTOMISATION (unchanged)
     # ================================================================
@@ -443,7 +455,7 @@ class Ticket(commands.Cog):
         await self._log(interaction.guild, interaction.user, "open", ticket_channel, channel_name=channel_name)
 
     # ================================================================
-    #  BUTTON HANDLERS (unchanged except close_ticket_with_reason)
+    #  BUTTON HANDLERS (with stat tracking)
     # ================================================================
     async def claim_ticket(self, interaction: discord.Interaction):
         if not interaction.channel.name.startswith("ticket-"):
@@ -452,6 +464,8 @@ class Ticket(commands.Cog):
         await self.update_ticket_claim(interaction.channel.id, interaction.user.id)
         await interaction.response.send_message(f"✅ Ticket claimed by {interaction.user.mention}", ephemeral=False)
         await self._log(interaction.guild, interaction.user, "claim", interaction.channel, channel_name=interaction.channel.name)
+        # Increment claimed stat
+        await self.increment_staff_stat(interaction.guild.id, interaction.user.id, "tickets_claimed")
 
     async def close_ticket_with_reason(self, interaction: discord.Interaction, reason: str):
         if not interaction.channel.name.startswith("ticket-"):
@@ -500,6 +514,9 @@ class Ticket(commands.Cog):
             ticket_name=metadata["ticket_type"],
             channel_name=channel_name
         )
+
+        # Increment closed stat
+        await self.increment_staff_stat(interaction.guild.id, interaction.user.id, "tickets_closed")
 
         await self.delete_ticket_metadata(interaction.channel.id)
         await asyncio.sleep(2)
@@ -570,6 +587,8 @@ class Ticket(commands.Cog):
         await self.update_ticket_claim(interaction.channel.id, interaction.user.id)
         await interaction.response.send_message(embed=BotEmbed.success("Claimed", f"Ticket claimed by {interaction.user.mention}."))
         await self._log(interaction.guild, interaction.user, "claim", interaction.channel, channel_name=interaction.channel.name)
+        # Increment claimed stat for slash command too
+        await self.increment_staff_stat(interaction.guild.id, interaction.user.id, "tickets_claimed")
 
     # ================================================================
     #  TICKET TYPE MANAGEMENT (unchanged)
