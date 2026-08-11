@@ -26,7 +26,6 @@ class ReportModal(discord.ui.Modal, title="Report Message"):
 
     async def on_submit(self, interaction: discord.Interaction):
         try:
-            # 1. Get the report channel for this guild
             channel_id = await self.get_report_channel(interaction.guild_id)
             if channel_id is None:
                 await interaction.response.send_message(
@@ -43,7 +42,6 @@ class ReportModal(discord.ui.Modal, title="Report Message"):
                 )
                 return
 
-            # 2. Build the report embed
             embed = discord.Embed(
                 title="🚩 New Message Report",
                 color=discord.Color.orange(),
@@ -54,27 +52,22 @@ class ReportModal(discord.ui.Modal, title="Report Message"):
             embed.add_field(name="Channel", value=self.message.channel.mention, inline=True)
             embed.add_field(name="Reason", value=self.reason.value, inline=False)
 
-            # Include message content (truncate if needed)
             content = self.message.content or "*No text content*"
             if len(content) > 1024:
                 content = content[:1020] + "..."
             embed.add_field(name="Message Content", value=content, inline=False)
 
-            # Add attachment URLs if any
             if self.message.attachments:
                 urls = "\n".join([a.url for a in self.message.attachments])
                 if len(urls) > 1024:
                     urls = urls[:1020] + "..."
                 embed.add_field(name="Attachments", value=urls, inline=False)
 
-            embed.set_footer(text=f"Message ID: {self.message.id} • Click to jump")
             jump_link = f"https://discord.com/channels/{interaction.guild_id}/{self.message.channel.id}/{self.message.id}"
             embed.description = f"[Jump to message]({jump_link})"
+            embed.set_footer(text=f"Message ID: {self.message.id} • Click to jump")
 
-            # 3. Send to staff channel
             await channel.send(embed=embed)
-
-            # 4. Confirm to the reporter
             await interaction.response.send_message(
                 embed=BotEmbed.success("Reported", "Your report has been submitted to the staff team."),
                 ephemeral=False
@@ -93,7 +86,6 @@ class ReportModal(discord.ui.Modal, title="Report Message"):
 
     @staticmethod
     async def get_report_channel(guild_id: int) -> int | None:
-        """Return the report channel ID for a guild, or None."""
         async with aiosqlite.connect(DB_PATH) as db:
             db.row_factory = aiosqlite.Row
             cursor = await db.execute(
@@ -111,7 +103,6 @@ class ReportModal(discord.ui.Modal, title="Report Message"):
 # -------------------------------------------------------------------
 @app_commands.context_menu(name="Report Message")
 async def report_message_context(interaction: discord.Interaction, message: discord.Message):
-    # Prevent reporting your own messages
     if message.author == interaction.user:
         await interaction.response.send_message(
             embed=BotEmbed.error("Cannot Report", "You cannot report your own message."),
@@ -120,7 +111,7 @@ async def report_message_context(interaction: discord.Interaction, message: disc
         return
 
     modal = ReportModal(message)
-    await interaction.response.prompt_modal(modal)
+    await interaction.response.send_modal(modal)          # ✅ fixed
 
 
 # -------------------------------------------------------------------
@@ -138,7 +129,6 @@ async def report_slash(interaction: discord.Interaction, message_id: str, reason
         )
         return
 
-    # Try to fetch the message (must be in the same guild)
     try:
         message = await interaction.channel.fetch_message(msg_id)
     except discord.NotFound:
@@ -154,7 +144,6 @@ async def report_slash(interaction: discord.Interaction, message_id: str, reason
         )
         return
 
-    # Prevent reporting own messages
     if message.author == interaction.user:
         await interaction.response.send_message(
             embed=BotEmbed.error("Cannot Report", "You cannot report your own message."),
@@ -162,7 +151,6 @@ async def report_slash(interaction: discord.Interaction, message_id: str, reason
         )
         return
 
-    # If a reason was provided, we can directly send the report without modal
     if reason:
         channel_id = await ReportModal.get_report_channel(interaction.guild_id)
         if channel_id is None:
@@ -180,11 +168,7 @@ async def report_slash(interaction: discord.Interaction, message_id: str, reason
             )
             return
 
-        embed = discord.Embed(
-            title="🚩 New Message Report",
-            color=discord.Color.orange(),
-            timestamp=interaction.created_at
-        )
+        embed = discord.Embed(title="🚩 New Message Report", color=discord.Color.orange(), timestamp=interaction.created_at)
         embed.add_field(name="Reported by", value=interaction.user.mention, inline=True)
         embed.add_field(name="Reported user", value=message.author.mention, inline=True)
         embed.add_field(name="Channel", value=message.channel.mention, inline=True)
@@ -209,7 +193,7 @@ async def report_slash(interaction: discord.Interaction, message_id: str, reason
         )
     else:
         modal = ReportModal(message)
-        await interaction.response.prompt_modal(modal)
+        await interaction.response.send_modal(modal)      # ✅ fixed
 
 
 # -------------------------------------------------------------------
@@ -241,11 +225,7 @@ class Report(commands.Cog):
         )
 
 
-# -------------------------------------------------------------------
-#  Setup: create tables, add Cog, register context menu & slash command
-# -------------------------------------------------------------------
 async def setup(bot):
-    # Ensure the report_settings table exists
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("""
             CREATE TABLE IF NOT EXISTS report_settings (
@@ -255,9 +235,6 @@ async def setup(bot):
         """)
         await db.commit()
 
-    # Add the Cog (this registers the /reportchannel command)
     await bot.add_cog(Report(bot))
-
-    # Manually add the context menu and the /report command to the tree
     bot.tree.add_command(report_message_context)
     bot.tree.add_command(report_slash)
