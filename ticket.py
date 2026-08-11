@@ -13,13 +13,20 @@ from checks import admin_only, ticket_staff_only
 DB_PATH = os.getenv("DATABASE_PATH", "./data/security.db")
 
 # -------------------------------------------------------------------
-# Ticket View (unchanged)
+# Ticket View (buttons for the ticket channel)
 # -------------------------------------------------------------------
 class TicketView(discord.ui.View):
-    def __init__(self, cog, ticket_type_name: str):
+    def __init__(self, cog, ticket_type_name: str, claimed_by: int = None):
         super().__init__(timeout=None)
         self.cog = cog
         self.ticket_type_name = ticket_type_name
+        self.claimed_by = claimed_by
+
+        # If already claimed, disable the Claim button
+        if claimed_by:
+            self.claim_button.disabled = True
+            self.claim_button.label = "Claimed"
+            self.claim_button.style = discord.ButtonStyle.success
 
     async def _check_staff_permission(self, interaction: discord.Interaction) -> bool:
         if interaction.user.id in interaction.client.owner_ids:
@@ -41,7 +48,14 @@ class TicketView(discord.ui.View):
     async def claim_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not await self._check_staff_permission(interaction):
             return
-        await self.cog.claim_ticket(interaction)
+        # Prevent double‑claiming
+        if self.claimed_by is not None:
+            await interaction.response.send_message(
+                embed=BotEmbed.error("Already Claimed", f"This ticket is already claimed by <@{self.claimed_by}>."),
+                ephemeral=True
+            )
+            return
+        await self.cog.claim_ticket(interaction, self)
 
     @discord.ui.button(label="Close", style=discord.ButtonStyle.danger, custom_id="ticket_close")
     async def close_button(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -112,6 +126,7 @@ class RenameTicketModal(discord.ui.Modal, title="Rename Ticket"):
         self.add_item(self.new_name)
 
     async def on_submit(self, interaction: discord.Interaction):
+        # Keep the "ticket-" prefix
         new_name = self.new_name.value.replace(" ", "-").lower()
         await self.channel.edit(name=f"ticket-{new_name}")
         await interaction.response.send_message(f"Ticket renamed to `{new_name}`", ephemeral=False)
@@ -251,10 +266,9 @@ class Ticket(commands.Cog):
                 channel_name=channel_name
             )
 
-    # ---------- NEW: Staff stat increment helper ----------
+    # ---------- Staff stat increment helper ----------
     @staticmethod
     async def increment_staff_stat(guild_id: int, user_id: int, column: str):
-        """column must be 'tickets_claimed' or 'tickets_closed'."""
         async with aiosqlite.connect(DB_PATH) as db:
             await db.execute(
                 f"INSERT INTO staff_stats (guild_id, user_id, {column}) VALUES (?, ?, 1) "
@@ -372,7 +386,7 @@ class Ticket(commands.Cog):
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     # ================================================================
-    #  CREATE TICKET – now always gives TicketSupporter access
+    #  CREATE TICKET
     # ================================================================
     async def create_ticket(self, interaction: discord.Interaction, ticket_type_name: str, ign: str = None, reason: str = None):
         ticket_type = await self.get_ticket_type(interaction.guild_id, ticket_type_name)
@@ -444,33 +458,57 @@ class Ticket(commands.Cog):
             description=full_description,
             color=0x3B82F6
         )
+        # Show the original ticket number in the embed
+        welcome_embed.set_footer(text=f"Ticket #{ticket_num:04d}")
 
         if send_ping:
             await ticket_channel.send(content="@here", allowed_mentions=discord.AllowedMentions(everyone=False, here=True))
 
-        await ticket_channel.send(embed=welcome_embed, view=TicketView(self, ticket_type_name))
+        # No claim yet → View with claimed_by=None
+        view = TicketView(self, ticket_type_name, claimed_by=None)
+        await ticket_channel.send(embed=welcome_embed, view=view)
 
         embed = BotEmbed.info("Ticket Created", f"Your ticket channel: {ticket_channel.mention}")
         await interaction.response.send_message(embed=embed, ephemeral=True)
         await self._log(interaction.guild, interaction.user, "open", ticket_channel, channel_name=channel_name)
 
     # ================================================================
-    #  BUTTON HANDLERS (with stat tracking)
+    #  CLAIM TICKET – now prevents double‑claim and renames channel
     # ================================================================
-    async def claim_ticket(self, interaction: discord.Interaction):
+    async def claim_ticket(self, interaction: discord.Interaction, view: TicketView = None):
         if not interaction.channel.name.startswith("ticket-"):
             return await interaction.response.send_message(embed=BotEmbed.error("Not a Ticket", ""), ephemeral=True)
+
+        metadata = await self.get_ticket_metadata(interaction.channel.id)
+        if metadata and metadata["claimed_by"]:
+            embed = BotEmbed.error("Already Claimed", f"This ticket is already claimed by <@{metadata['claimed_by']}>.")
+            return await interaction.response.send_message(embed=embed, ephemeral=True)
+
+        # Rename channel to show it's claimed
+        new_name = f"claimed-{interaction.user.name}"
+        try:
+            await interaction.channel.edit(name=new_name)
+        except discord.Forbidden:
+            pass
+
         await interaction.channel.set_permissions(interaction.user, read_messages=True, send_messages=True)
         await self.update_ticket_claim(interaction.channel.id, interaction.user.id)
+
+        # Update the view to disable the Claim button
+        claimed_view = TicketView(self, metadata["ticket_type"], claimed_by=interaction.user.id)
+        await interaction.message.edit(view=claimed_view)
+
         await interaction.response.send_message(f"✅ Ticket claimed by {interaction.user.mention}", ephemeral=False)
         await self._log(interaction.guild, interaction.user, "claim", interaction.channel, channel_name=interaction.channel.name)
-        # Increment claimed stat
         await self.increment_staff_stat(interaction.guild.id, interaction.user.id, "tickets_claimed")
 
+    # ================================================================
+    #  BUTTON HANDLERS (unchanged except close_ticket_with_reason)
+    # ================================================================
     async def close_ticket_with_reason(self, interaction: discord.Interaction, reason: str):
-        if not interaction.channel.name.startswith("ticket-"):
+        if not interaction.channel.name.startswith("ticket-") and not interaction.channel.name.startswith("claimed-"):
             return await interaction.response.send_message(embed=BotEmbed.error("Not a Ticket", ""), ephemeral=True)
-        channel_name = interaction.channel.name  # capture before deletion
+        channel_name = interaction.channel.name
         await interaction.response.send_message("🔒 Closing ticket and generating transcript...", ephemeral=True)
         metadata = await self.get_ticket_metadata(interaction.channel.id)
         if not metadata:
@@ -503,19 +541,17 @@ class Ticket(commands.Cog):
         log_embed.add_field(name="Claimed By", value=f"<@{metadata['claimed_by']}>" if metadata['claimed_by'] else "Not claimed", inline=True)
         log_embed.add_field(name="Reason", value=reason, inline=False)
 
-        # pass the captured channel name for the log
         await self._log(
             interaction.guild,
             interaction.user,
             "close",
-            None,   # ticket_channel is about to be deleted, so pass None
+            None,
             extra_info=f"Reason: {reason}",
             file=file,
             ticket_name=metadata["ticket_type"],
             channel_name=channel_name
         )
 
-        # Increment closed stat
         await self.increment_staff_stat(interaction.guild.id, interaction.user.id, "tickets_closed")
 
         await self.delete_ticket_metadata(interaction.channel.id)
@@ -526,17 +562,17 @@ class Ticket(commands.Cog):
     #  REMAINING BUTTON HANDLERS (unchanged)
     # ================================================================
     async def add_user_modal(self, interaction: discord.Interaction):
-        if not interaction.channel.name.startswith("ticket-"):
+        if not interaction.channel.name.startswith("ticket-") and not interaction.channel.name.startswith("claimed-"):
             return await interaction.response.send_message(embed=BotEmbed.error("Not a Ticket", ""), ephemeral=True)
         await interaction.response.send_modal(AddUserModal(self, interaction.channel))
 
     async def remove_user_modal(self, interaction: discord.Interaction):
-        if not interaction.channel.name.startswith("ticket-"):
+        if not interaction.channel.name.startswith("ticket-") and not interaction.channel.name.startswith("claimed-"):
             return await interaction.response.send_message(embed=BotEmbed.error("Not a Ticket", ""), ephemeral=True)
         await interaction.response.send_modal(RemoveUserModal(self, interaction.channel))
 
     async def rename_ticket_modal(self, interaction: discord.Interaction):
-        if not interaction.channel.name.startswith("ticket-"):
+        if not interaction.channel.name.startswith("ticket-") and not interaction.channel.name.startswith("claimed-"):
             return await interaction.response.send_message(embed=BotEmbed.error("Not a Ticket", ""), ephemeral=True)
         await interaction.response.send_modal(RenameTicketModal(self, interaction.channel))
 
@@ -547,7 +583,7 @@ class Ticket(commands.Cog):
     @app_commands.describe(user="User to add")
     @ticket_staff_only()
     async def ticket_add(self, interaction: discord.Interaction, user: discord.Member):
-        if not interaction.channel.name.startswith("ticket-"):
+        if not interaction.channel.name.startswith("ticket-") and not interaction.channel.name.startswith("claimed-"):
             return await interaction.response.send_message(embed=BotEmbed.error("Not a Ticket", ""), ephemeral=True)
         await interaction.channel.set_permissions(user, read_messages=True, send_messages=True)
         await interaction.response.send_message(embed=BotEmbed.success("User Added", f"{user.mention} can now see this ticket."))
@@ -556,7 +592,7 @@ class Ticket(commands.Cog):
     @app_commands.describe(user="User to remove")
     @ticket_staff_only()
     async def ticket_remove(self, interaction: discord.Interaction, user: discord.Member):
-        if not interaction.channel.name.startswith("ticket-"):
+        if not interaction.channel.name.startswith("ticket-") and not interaction.channel.name.startswith("claimed-"):
             return await interaction.response.send_message(embed=BotEmbed.error("Not a Ticket", ""), ephemeral=True)
         await interaction.channel.set_permissions(user, overwrite=None)
         await interaction.response.send_message(embed=BotEmbed.success("User Removed", f"{user.mention} has been removed."))
@@ -565,7 +601,7 @@ class Ticket(commands.Cog):
     @app_commands.describe(name="New name (e.g., billing-issue)")
     @ticket_staff_only()
     async def ticket_rename(self, interaction: discord.Interaction, name: str):
-        if not interaction.channel.name.startswith("ticket-"):
+        if not interaction.channel.name.startswith("ticket-") and not interaction.channel.name.startswith("claimed-"):
             return await interaction.response.send_message(embed=BotEmbed.error("Not a Ticket", ""), ephemeral=True)
         new_name = name.replace(" ", "-").lower()
         await interaction.channel.edit(name=f"ticket-{new_name}")
@@ -574,20 +610,44 @@ class Ticket(commands.Cog):
     @app_commands.command(name="ticket_close", description="Close the current ticket (prompts for reason)")
     @ticket_staff_only()
     async def ticket_close_slash(self, interaction: discord.Interaction):
-        if not interaction.channel.name.startswith("ticket-"):
+        if not interaction.channel.name.startswith("ticket-") and not interaction.channel.name.startswith("claimed-"):
             return await interaction.response.send_message(embed=BotEmbed.error("Not a Ticket", ""), ephemeral=True)
         await interaction.response.send_modal(CloseTicketModal(self, interaction.channel))
 
     @app_commands.command(name="ticket_claim", description="Claim the current ticket")
     @ticket_staff_only()
     async def ticket_claim_slash(self, interaction: discord.Interaction):
-        if not interaction.channel.name.startswith("ticket-"):
+        if not interaction.channel.name.startswith("ticket-") and not interaction.channel.name.startswith("claimed-"):
             return await interaction.response.send_message(embed=BotEmbed.error("Not a Ticket", ""), ephemeral=True)
+
+        # Check if already claimed
+        metadata = await self.get_ticket_metadata(interaction.channel.id)
+        if metadata and metadata["claimed_by"]:
+            embed = BotEmbed.error("Already Claimed", f"This ticket is already claimed by <@{metadata['claimed_by']}>.")
+            return await interaction.response.send_message(embed=embed, ephemeral=True)
+
+        # Rename channel
+        new_name = f"claimed-{interaction.user.name}"
+        try:
+            await interaction.channel.edit(name=new_name)
+        except discord.Forbidden:
+            pass
+
         await interaction.channel.set_permissions(interaction.user, read_messages=True, send_messages=True)
         await self.update_ticket_claim(interaction.channel.id, interaction.user.id)
+
+        # Update the view
+        claimed_view = TicketView(self, metadata["ticket_type"], claimed_by=interaction.user.id)
+        try:
+            async for msg in interaction.channel.history(limit=10):
+                if msg.author == self.bot.user and msg.components:
+                    await msg.edit(view=claimed_view)
+                    break
+        except:
+            pass
+
         await interaction.response.send_message(embed=BotEmbed.success("Claimed", f"Ticket claimed by {interaction.user.mention}."))
         await self._log(interaction.guild, interaction.user, "claim", interaction.channel, channel_name=interaction.channel.name)
-        # Increment claimed stat for slash command too
         await self.increment_staff_stat(interaction.guild.id, interaction.user.id, "tickets_claimed")
 
     # ================================================================
