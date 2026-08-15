@@ -69,6 +69,9 @@ class Leave(commands.Cog):
     def cog_unload(self):
         self.check_leaves.cancel()
 
+    # ================================================================
+    #  Helpers
+    # ================================================================
     async def _check_staff(self, interaction: discord.Interaction) -> bool:
         allowed_roles = ["TicketSupporter", "Staff.exe", "admin.exe", "nuke.exe"]
         for role_name in allowed_roles:
@@ -94,23 +97,90 @@ class Leave(commands.Cog):
             await db.execute("INSERT OR REPLACE INTO leave_settings (guild_id, role_id) VALUES (?, ?)", (guild_id, role_id))
             await db.commit()
 
-    # ---------- /leavepanel (admin only) ----------
-    @app_commands.command(name="leavepanel", description="Display the staff leave management panel")
+    async def get_leave_panel_config(self, guild_id: int):
+        async with aiosqlite.connect(DB_PATH) as db:
+            db.row_factory = aiosqlite.Row
+            cursor = await db.execute("SELECT * FROM leave_panel_config WHERE guild_id = ?", (guild_id,))
+            return await cursor.fetchone()
+
+    async def set_leave_panel_config(self, guild_id: int, title: str = None, description: str = None, image_url: str = None):
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute("""
+                CREATE TABLE IF NOT EXISTS leave_panel_config (
+                    guild_id INTEGER PRIMARY KEY,
+                    title TEXT,
+                    description TEXT,
+                    image_url TEXT
+                )
+            """)
+            # Upsert
+            await db.execute(
+                "INSERT INTO leave_panel_config (guild_id, title, description, image_url) VALUES (?, ?, ?, ?) "
+                "ON CONFLICT(guild_id) DO UPDATE SET title = ?, description = ?, image_url = ?",
+                (guild_id, title, description, image_url, title, description, image_url)
+            )
+            await db.commit()
+
+    # ================================================================
+    #  LEAVE PANEL GROUP (send / edit / reset)
+    # ================================================================
+    leavepanel_group = app_commands.Group(name="leavepanel", description="Manage the staff leave panel")
+
+    @leavepanel_group.command(name="send", description="Display the staff leave management panel")
     @admin_only()
-    async def leave_panel(self, interaction: discord.Interaction):
+    async def leave_panel_send(self, interaction: discord.Interaction):
+        config = await self.get_leave_panel_config(interaction.guild_id)
+
+        title = config["title"] if config and config["title"] else "Staff Leave Management"
+        description = config["description"] if config and config["description"] else "Use the buttons below to request a leave or to return to duty."
+        image_url = config["image_url"] if config and config["image_url"] else None
+
         embed = discord.Embed(
-            title="Staff Leave Management",
-            description="Use the buttons below to request a leave or to return to duty.",
+            title=f"🏖️ {title}",
+            description=description,
             color=0x3B82F6
         )
-        embed.add_field(name="Request Leave", value="Submit your leave dates and reason.", inline=False)
-        embed.add_field(name="End Leave", value="Manually end an active leave and resume work.", inline=False)
+        embed.add_field(
+            name="📅 Request Leave",
+            value="Submit your leave dates and reason. The bot will automatically assign the configured leave role.",
+            inline=False
+        )
+        embed.add_field(
+            name="✅ End Leave",
+            value="Manually end an active leave and return to work. Leave days will be counted automatically.",
+            inline=False
+        )
+        if image_url:
+            embed.set_image(url=image_url)
         embed.set_footer(text="NeoMonster • Leave System")
 
         view = LeavePanelView(self)
         await interaction.response.send_message(embed=embed, view=view)
 
-    # ---------- /leavesetup (admin only) ----------
+    @leavepanel_group.command(name="edit", description="Customise the leave panel embed")
+    @app_commands.describe(
+        title="Panel title (default: Staff Leave Management)",
+        description="Intro text shown above the buttons",
+        image_url="Large image URL (optional)"
+    )
+    @admin_only()
+    async def leave_panel_edit(self, interaction: discord.Interaction, title: str = None, description: str = None, image_url: str = None):
+        await self.set_leave_panel_config(interaction.guild_id, title, description, image_url)
+        embed = BotEmbed.success("Panel Updated", "The leave panel appearance has been updated.")
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    @leavepanel_group.command(name="reset", description="Reset the leave panel to default appearance")
+    @admin_only()
+    async def leave_panel_reset(self, interaction: discord.Interaction):
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute("DELETE FROM leave_panel_config WHERE guild_id = ?", (interaction.guild_id,))
+            await db.commit()
+        embed = BotEmbed.success("Panel Reset", "The leave panel has been restored to default.")
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    # ================================================================
+    #  /leavesetup (admin only)
+    # ================================================================
     @app_commands.command(name="leavesetup", description="Configure the role assigned to staff on leave")
     @app_commands.describe(role="The role to be given during leave (should have no extra permissions)")
     @admin_only()
@@ -119,7 +189,9 @@ class Leave(commands.Cog):
         embed = BotEmbed.success("Leave Role Configured", f"The {role.mention} role will now be assigned to staff on leave.")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    # ---------- /leave slash command ----------
+    # ================================================================
+    #  /leave slash command
+    # ================================================================
     @app_commands.command(name="leave", description="Manage your leave status")
     @app_commands.describe(action="Request or end a leave", start_date="Start date (YYYY-MM-DD)", end_date="End date (YYYY-MM-DD)", reason="Reason for leave")
     @app_commands.choices(action=[
@@ -256,7 +328,7 @@ class Leave(commands.Cog):
         except discord.Forbidden:
             pass
 
-    # ---------- NEW: Reset leave stats for a staff member ----------
+    # ---------- Reset leave stats ----------
     @app_commands.command(name="resetleavestats", description="Reset the leave days of a staff member (admin only)")
     @app_commands.describe(member="The staff member whose leave days should be reset")
     @admin_only()
@@ -310,6 +382,14 @@ async def setup(bot):
                 end_date TEXT NOT NULL,
                 reason TEXT DEFAULT '',
                 active INTEGER DEFAULT 1
+            )
+        """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS leave_panel_config (
+                guild_id INTEGER PRIMARY KEY,
+                title TEXT,
+                description TEXT,
+                image_url TEXT
             )
         """)
         try:
