@@ -222,13 +222,6 @@ class Ask(commands.Cog):
             logger.error(f"Server status fetch failed: {e}")
             return None
 
-    # ---------- Command ----------
-    @app_commands.command(name="ask", description="Ask a question about the Minecraft server")
-    @app_commands.describe(question="Your question about the server")
-    @app_commands.checks.cooldown(1, 5.0)
-    async def ask_command(self, interaction: discord.Interaction, question: str):
-        await interaction.response.defer(thinking=True)
-
         # 1) FAQ (instant, whole‑word match)
         answer = self.search_faq(question)
         if answer:
