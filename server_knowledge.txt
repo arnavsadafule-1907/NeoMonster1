@@ -1,0 +1,234 @@
+=== SERVER OVERVIEW ===
+Name: DesireSMP
+IP: lux.spinex.cloud:19201
+ (update with actual IP)
+Version: 1.21+
+Type: SMP with Ranked & Strength modes
+Owner: Founder | IGL [#1]
+Discord: [server invite link]
+
+=== SERVER RULES ===
+• Logging Rules:
+  - No Login Abuse
+  - No Combat Logging (25s)
+  - No Vision Logging
+
+• Banned Actions:
+  - No Bed Bombing
+  - No Hacking
+  - No X-Ray
+  - No Exploits or Bug Abuse
+  - No Extra Alliances
+  - No Killing Naked Players
+  - No Entering the End Before the End War
+  - No Spawn Griefing
+  - No Alt Accounts
+
+• Banned Mods:
+  - Friends Guard
+  - Any Unfair Mod or Client
+  - X-Ray
+  - Any Packet Mod
+  - Any Duping Mod
+
+• Important Notice:
+  Take these rules seriously. Breaking them will result in strict punishment, regardless of who you are.
+
+=== PUNISHMENT SYSTEM ===
+• 5 Strikes = Permanent Ban
+
+• Common Punishments:
+  - Combat Log → Inventory Swap
+  - Vision Log → Rejoin within 3 minutes or your inventory will be cleared
+  - Duping / Light Hacks / X-Ray → 5 Strikes = Permanent Ban
+  - After 5 Official Strikes → Permanent Ban
+
+=== EXTRA RULES ===
+• Please use this mod to stop the network protocol disconnect:
+  https://modrinth.com/mod/network-protocol-disconnect
+• No using pistons and composters to see through walls
+• 1 Mace only
+• No blaming for naked killing – there is a plugin which saves you from naked killing, but if you hit another player first, this will not be considered
+
+=== SERVER MECHANICS & PERFORMANCE GUIDE ===
+To keep the server running at 20 TPS with 100 players online, we run optimized engine logic. Some vanilla mechanics behave slightly differently to prevent lag.
+
+⚔️ Mob Spawning & Farms
+- Per-Player Mob Caps: Mob spawning is isolated per player – another player's mob farm won't steal your nighttime spawns.
+- Tighter Despawn Spheres: Mobs despawn faster once you step away from them.
+- AFK Spots: If you move further than 56 blocks away from a mob, it will instantly despawn. Build your AFK spots within 24 to 48 blocks of your spawn platforms or kill chambers.
+
+🧟 Mob Spawner Tweaks
+- No Spawner AI: Mobs that spawn directly from Mob Spawners (dungeons/fortresses) have their movement AI disabled to reduce CPU load.
+- Farm Tip: Spawner mobs will not walk off ledges on their own. You must use water currents or pistons to push mobs out of the spawner room and into your kill chute.
+
+🏘️ Villager Trading Halls & Iron Farms
+- Inactive Villagers Freeze: Villagers freeze their pathfinding AI if no player is standing right next to them.
+- Trading Tip: Stand within 16 blocks of your villagers for them to scan workstations, restock trades, or sleep.
+- Iron Farm Tip: Place your zombie and villagers close together with a clear line of sight. Avoid spreading iron farms across large distances.
+
+🟥 Redstone & Item Drops
+- Faster Item Merging: Items dropped on the ground will merge into stacked groups from farther away.
+- Quick Item Despawns: Loose junk items left on the ground (cobblestone, dirt, netherrack, arrows) despawn faster than normal. Use hoppers, water chutes, and chest systems to clear ground clutter immediately.
+
+🛡️ Anti‑Xray Notice
+- Underground ores are obfuscated until you mine right next to them. You may see ores flicker into stone or deepslate as you dig – this is normal anti-cheat protection at work.
+
+Note: The server is well optimized for no lag issues and no spikes, so you may find difficulty in these above mentioned things. However, these will be fixed day by day as the player count decreases.
+
+=== CUSTOM RECIPES ===
+
+🔨 1. Anvil Recipe (Yields 2 Anvils)
+Top Row:    [Empty]  [Iron Block]  [Empty]
+Middle Row: [Empty]  [Iron Ingot]  [Empty]
+Bottom Row: [Iron Ingot] [Empty] [Iron Ingot]
+
+🧵 2. String Uncrafting Recipe (Yields 10 String)
+Middle Row: [Empty]  [Cobweb]  [Empty]
+
+🕸️ 3. Cobweb Crafting Recipe (Yields 1 Cobweb)
+Top Row:    [String]  [Empty]  [String]
+Middle Row: [Empty]   [String] [Empty]
+Bottom Row: [String]  [Empty]  [String]
+
+🍎 4. Golden Apple Recipe (Yields 1 Golden Apple)
+Top Row:    [Empty]     [Gold Ingot] [Empty]
+Middle Row: [Gold Ingot] [Apple]     [Gold Ingot]
+Bottom Row: [Empty]     [Gold Ingot] [Empty]
+
+📦 5. Ender Chest Recipe (Yields 1 Ender Chest)
+Top Row:    [Empty]       [Ender Pearl] [Empty]
+Middle Row: [Ender Pearl] [Chest]       [Ender Pearl]
+Bottom Row: [Empty]       [Ender Pearl] [Empty]
+
+💥 6. Gunpowder Recipe (Yields 1 Gunpowder)
+Top Row:    [Empty]        [Redstone Dust] [Empty]
+Middle Row: [Empty]        [Charcoal]      [Empty]
+Bottom Row: [Empty]        [Redstone Dust] [Empty]
+
+🔥 7. Blaze Rod Recipe (Yields 2 Blaze Rods)
+Middle Row: [Empty]  [Feather]  [Empty]
+
+=== ITEM LIMITS ===
+- Netherite Armor: Allowed
+- Maximum Enchantments:
+  - Protection: III (max)
+  - Sharpness: IV (max)
+- Spear with Lunge III: Allowed
+- Totem of Undying: Max 1 per player
+- Golden Apples: Max 2 stacks (128 total)
+- Experience Bottles: Max 3 stacks (192 total)
+
+=== BANNED ITEMS & ENCHANTS ===
+- Strength Potion: Banned
+- Mace (No Enchants): Max 3 per player (1 Heirchy Hammer, 2 Maces)
+- Fire Aspect: Banned
+- Knockback: Only Knockback 1 allowed
+- Enderpearl: Banned
+
+=== COOLDOWNS ===
+- Lunge: 10 seconds
+- Mace: 30 seconds
+- Enchanted Golden Apple: 60 seconds
+
+=== SERVER CONCEPTS & MODES ===
+
+🎮 Desire SMP Twist
+A unique twist on the classic SMP experience – check the #desiresmp-twist channel for details.
+
+🏆 Strength SMP S4
+- About Strength SMP: Competitive survival with custom abilities – see #strength-smp.
+- About Abilities: Special powers and perks – see #strength-abilities.
+
+🏅 Ranked SMP
+Competitive ranked survival mode – see #ranked-smp for rules and leaderboards.
+
+=== RANKED SMP PLUGIN ===
+
+🏆 What is Ranked SMP?
+The Ranked SMP plugin is a competitive Minecraft plugin where only the Top 20 players hold a special rank. Your rank determines the bonuses you receive, and you can climb the leaderboard by defeating higher-ranked players.
+
+👑 Rank System
+- Rank #1 has the strongest buffs
+- Rank #20 has the lowest buffs
+- Players outside the Top 20 remain completely vanilla with no rank perks
+
+⚔️ How to Gain/Lose Ranks
+- Kill a player with a higher rank → Steal their rank instantly
+- Die to a lower-ranked player → Lose your rank to them
+
+💪 Rank Buffs
+Each rank provides powerful bonuses:
+- ❤️ Extra Hearts
+- 🧪 Longer Potion Effect Duration
+- 📈 Increased XP Gain
+- 💰 Extra Inventory Slots (Top 10 Ranks only)
+
+🔄 Summary
+Defeat higher-ranked players = Steal their Rank = Stronger buffs = Become the #1 Ranked Player
+
+📺 For more information, watch this video:
+https://www.youtube.com/watch?v=y8OogXJZzXs
+
+=== STRENGTH S4 PLUGIN ===
+
+⚔️ What is Strength S4?
+The Strength S4 plugin is a PvP-based Minecraft plugin where your power depends on kills and deaths.
+
+- 🗡️ Kill a player → you get +1 Strength
+- ☠️ Die → you lose -1 Strength
+
+This "Strength" increases your damage (like the normal Minecraft strength effect which boosts melee damage).
+
+🛡️ 6 Melee Weapons
+Each has its own abilities (auto crit, stun, double damage, immortality, and more):
+1. Sword
+2. Axe
+3. Shield
+4. Bow
+5. Crossbow
+6. Trident
+
+📈 Summary
+More kills = More Strength = Stronger players
+
+📋 Commands
+- `/ability` – Activate your weapon ability
+- `/withdraw <amount>` – Withdraw your strength
+- `/trust <add/list/remove>` – Makes abilities not harm trusted players
+- `/strength` – Shows your strength and weapon
+- `/strengthsmp info` – Opens a GUI with every weapon ability and all items
+
+📺 For more information, watch this video:
+https://www.youtube.com/watch?v=wLyId6Z_csM
+
+=== STRENGTH S4 WEAPON ABILITIES ===
+
+🔱 Trident
+- Passive Ability: Every 2 hits you land will automatically summon a bolt of lightning onto your target.
+- Ultimate Ability: Land 3 hits to fully charge the ability, which allows you to ride a water wave.
+
+🏹 Crossbow
+- Passive Ability: Every 3 shots you fire will deal 2x (double) damage.
+- Ultimate Ability: Land 5 hits to fully charge the ability, allowing you to leash your enemy and pull them directly to you.
+
+🛡️ Shield
+- Passive Ability: You will take 20% less damage whenever your shield is actively stunned.
+- Ultimate Ability: Instantly grants the player complete immortality for 15 seconds.
+
+⚔️ Sword
+- Passive Ability: Every 3 hits you land will infect the enemy, causing them to lose 1 heart.
+- Ultimate Ability: Land 5 hits to charge. When activated, you will freeze your enemy in place for 3 seconds.
+
+🪓 Axe
+- Passive Ability: Landing 5 critical hits (crits) will completely stun your enemy for 1 second.
+- Ultimate Ability: Land 7 crits to charge. Once activated, all of your next attacks will be stored and released simultaneously onto your enemy for massive burst damage.
+
+🏹 Bow
+- Passive Ability: Every 2nd shot you fire will automatically home onto the nearest target.
+- Ultimate Ability: Land 10 hits to fully charge the ability, allowing you to shoot 3 powerful beams.
+
+=== CURRENT SERVER STATUS (TEMPORARY) ===
+⏳ Server is currently down due to hosting issues – please wait.
+🚫 Do not spam ping staff for whitelist – it will open automatically once the server is back.
+🎮 Performance and fun will cross your expectations – thank you for your patience.
