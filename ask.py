@@ -14,7 +14,7 @@ logger = logging.getLogger("discord.cogs.ask")
 # ====================================================================
 MINECRAFT_SERVER_IP = os.getenv("MINECRAFT_SERVER_IP", "play.decaysmp.net")
 SERVER_NAME = "DecaySMP"
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")   # <-- must be set in Railway
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")   # must be set in Railway
 
 # Simple FAQ knowledge base (keywords -> answer)
 FAQ = [
@@ -50,7 +50,7 @@ FAQ = [
 ]
 
 # ====================================================================
-#  Helper function to create Embeds (replaces BotEmbed)
+#  Helper function to create Embeds
 # ====================================================================
 def make_embed(title: str, description: str, color: int, footer: str = None) -> discord.Embed:
     embed = discord.Embed(title=title, description=description, color=color)
@@ -90,7 +90,8 @@ class Ask(commands.Cog):
         if GEMINI_API_KEY:
             try:
                 genai.configure(api_key=GEMINI_API_KEY)
-                model = genai.GenerativeModel("gemini-pro")
+                # ✅ FIX: using current Gemini model (gemini-1.5-flash)
+                model = genai.GenerativeModel("gemini-1.5-flash")
                 prompt = f"The Minecraft server IP is {MINECRAFT_SERVER_IP}. Answer the following question clearly and concisely:\n{question}"
                 response = model.generate_content(prompt)
                 ai_answer = response.text if response.text else "I couldn't generate an answer."
