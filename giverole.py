@@ -1,7 +1,7 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
-from checks import is_extra_owner
+from checks import admin_only
 from formatter import BotEmbed
 
 class GiveRole(commands.Cog):
@@ -14,20 +14,14 @@ class GiveRole(commands.Cog):
         role="The role to assign",
         reason="Reason for the role change (optional)"
     )
+    @admin_only()   # ✅ replaces all manual permission checks
     async def giverole(self, interaction: discord.Interaction, user: discord.Member, role: discord.Role, reason: str = None):
-        # Permission check: bot owner, server owner, or extra owner
-        if interaction.user.id not in interaction.client.owner_ids and \
-           interaction.user.id != interaction.guild.owner_id and \
-           not await is_extra_owner(interaction.guild_id, interaction.user.id):
-            embed = BotEmbed.error("Permission Denied", "Only the server owner, extra owners, or the bot owner can assign roles.")
-            return await interaction.response.send_message(embed=embed, ephemeral=True)
-
         # Prevent assigning @everyone
         if role.is_default():
             embed = BotEmbed.error("Invalid Role", "The @everyone role cannot be assigned manually.")
             return await interaction.response.send_message(embed=embed, ephemeral=True)
 
-        # Ensure the bot can assign this role (role must be below the bot's top role)
+        # Ensure the bot can assign this role (role below bot's top role)
         if role >= interaction.guild.me.top_role:
             embed = BotEmbed.error("Role Too High", "I cannot assign this role because it is above my highest role. Please move my role higher.")
             return await interaction.response.send_message(embed=embed, ephemeral=True)
