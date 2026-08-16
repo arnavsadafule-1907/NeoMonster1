@@ -4,16 +4,17 @@ from discord.ext import commands
 import os
 import asyncio
 import logging
-from typing import Optional
+import google.generativeai as genai
+from formatter import BotEmbed
 
-# Setup logger
 logger = logging.getLogger("discord.cogs.ask")
 
 # ====================================================================
-#  CONFIGURATION – edit these values
+#  CONFIGURATION – read from environment
 # ====================================================================
 MINECRAFT_SERVER_IP = os.getenv("MINECRAFT_SERVER_IP", "play.decaysmp.net")
 SERVER_NAME = "DecaySMP"
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")   # <-- must be set in Railway
 
 # Simple FAQ knowledge base (keywords -> answer)
 FAQ = [
@@ -66,14 +67,14 @@ class Ask(commands.Cog):
 
     @app_commands.command(name="ask", description="Ask a question about the Minecraft server")
     @app_commands.describe(question="Your question about the server")
-    @app_commands.checks.cooldown(1, 5.0)  # Prevents spam: 1 use per 5 seconds
+    @app_commands.checks.cooldown(1, 5.0)  # 1 use per 5 seconds
     async def ask_command(self, interaction: discord.Interaction, question: str):
         await interaction.response.defer(thinking=True)
 
         # 1) Try to answer from FAQ
         answer = self.search_faq(question)
         if answer:
-            embed = make_embed(f"📖 {SERVER_NAME} Help", answer, 0x00BFFF)  # Cyan
+            embed = make_embed(f"📖 {SERVER_NAME} Help", answer, 0x00BFFF)
             return await interaction.followup.send(embed=embed)
 
         # 2) Check for live server info keywords
@@ -82,22 +83,33 @@ class Ask(commands.Cog):
             if status_embed:
                 return await interaction.followup.send(embed=status_embed)
             else:
-                embed = make_embed(
-                    "Server Offline", 
-                    "Could not fetch live server status. The server may be offline.", 
-                    0xFF0000  # Red
-                )
+                embed = make_embed("Server Offline", "Could not fetch live server status.", 0xFF0000)
                 return await interaction.followup.send(embed=embed)
 
-        # 3) No answer found
+        # 3) AI fallback (Gemini)
+        if GEMINI_API_KEY:
+            try:
+                genai.configure(api_key=GEMINI_API_KEY)
+                model = genai.GenerativeModel("gemini-pro")
+                prompt = f"The Minecraft server IP is {MINECRAFT_SERVER_IP}. Answer the following question clearly and concisely:\n{question}"
+                response = model.generate_content(prompt)
+                ai_answer = response.text if response.text else "I couldn't generate an answer."
+                embed = make_embed("🤖 AI Answer", ai_answer, 0x9B59B6)
+                await interaction.followup.send(embed=embed)
+                return
+            except Exception as e:
+                logger.error(f"Gemini error: {e}")
+                # fall through to "unknown" message
+
+        # 4) No answer found
         embed = make_embed(
             "Unknown Question",
             "I couldn't find an answer. Please ask staff or rephrase your question.",
-            0xFFA500  # Orange
+            0xFFA500
         )
         await interaction.followup.send(embed=embed)
 
-    def search_faq(self, question: str) -> Optional[str]:
+    def search_faq(self, question: str) -> str | None:
         q = question.lower()
         for item in FAQ:
             for keyword in item["keywords"]:
@@ -110,12 +122,9 @@ class Ask(commands.Cog):
         keywords = ["players", "online", "status", "ip", "version", "motd", "ping"]
         return any(k in q for k in keywords)
 
-    async def get_server_status_embed(self) -> Optional[discord.Embed]:
-        """Fetch live server status using mcstatus without blocking the bot."""
+    async def get_server_status_embed(self) -> discord.Embed | None:
         try:
             from mcstatus import JavaServer
-
-            # --- FIX: Run the blocking .status() in a background thread ---
             server = JavaServer.lookup(MINECRAFT_SERVER_IP)
             status = await asyncio.to_thread(server.status)
 
@@ -132,22 +141,17 @@ class Ask(commands.Cog):
                 f"**Ping:** {latency}ms" if latency else ""
             )
 
-            embed = make_embed(f"🌐 {SERVER_NAME} Server Status", description, 0x00FF00)  # Green
+            embed = make_embed(f"🌐 {SERVER_NAME} Server Status", description, 0x00FF00)
             if motd:
                 embed.add_field(name="MOTD", value=motd, inline=False)
-            
             return embed
 
         except ImportError:
-            logger.error("mcstatus library not installed. Please run: pip install mcstatus")
+            logger.error("mcstatus not installed")
             return None
         except Exception as e:
-            logger.error(f"Failed to fetch server status: {e}")
+            logger.error(f"Server status fetch failed: {e}")
             return None
-
-    @commands.Cog.listener()
-    async def on_ready(self):
-        logger.info(f"{self.__class__.__name__} cog loaded!")
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(Ask(bot))
