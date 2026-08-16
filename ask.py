@@ -4,6 +4,8 @@ from discord.ext import commands
 import os
 import asyncio
 import logging
+import aiosqlite
+from datetime import datetime, timedelta
 from google import genai
 from google.genai import types
 from formatter import BotEmbed
@@ -16,15 +18,8 @@ logger = logging.getLogger("discord.cogs.ask")
 MINECRAFT_SERVER_IP = os.getenv("MINECRAFT_SERVER_IP", "play.decaysmp.net")
 SERVER_NAME = "DecaySMP"
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-KNOWLEDGE_FILE = "server_knowledge.txt"
-
-def load_knowledge() -> str:
-    if os.path.exists(KNOWLEDGE_FILE):
-        with open(KNOWLEDGE_FILE, "r", encoding="utf-8") as f:
-            return f.read()
-    else:
-        logger.warning(f"{KNOWLEDGE_FILE} not found – using minimal info.")
-        return f"Server IP: {MINECRAFT_SERVER_IP}. No additional info available."
+DB_PATH = os.getenv("DATABASE_PATH", "./data/security.db")
+CACHE_TTL = 60  # seconds – how long to keep the knowledge cache
 
 # ====================================================================
 #  FAQ (quick keyword matches)
@@ -50,6 +45,11 @@ FAQ = [
         "keywords": ["vote", "voting"],
         "answer": "Vote for us to earn rewards: [Vote link](https://minecraft-server-list.com/)"
     },
+    # Added whitelist FAQ for quick matches
+    {
+        "keywords": ["whitelist", "whitelisted", "how to join", "get whitelisted"],
+        "answer": "To get whitelisted on DesireSMP, go to the <#1537475289834065941> channel and follow the instructions there. Staff will review your application."
+    },
 ]
 
 def make_embed(title: str, description: str, color: int, footer: str = None) -> discord.Embed:
@@ -61,7 +61,40 @@ def make_embed(title: str, description: str, color: int, footer: str = None) -> 
 class Ask(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        self.knowledge = load_knowledge()
+        self._knowledge_cache = None
+        self._cache_timestamp = None
+
+    async def _get_knowledge_from_db(self) -> str:
+        """Fetch all knowledge entries from the database and format as text."""
+        async with aiosqlite.connect(DB_PATH) as db:
+            db.row_factory = aiosqlite.Row
+            cursor = await db.execute(
+                "SELECT section, content FROM knowledge_entries ORDER BY channel_id, id"
+            )
+            rows = await cursor.fetchall()
+
+        if not rows:
+            return "No knowledge available yet. Please ask staff."
+
+        # Group by section (or use 'general' if None)
+        sections = {}
+        for row in rows:
+            section = row["section"] or "general"
+            sections.setdefault(section, []).append(row["content"])
+
+        # Build the final text
+        parts = []
+        for section, contents in sections.items():
+            parts.append(f"=== {section.upper()} ===\n" + "\n".join(contents))
+        return "\n\n".join(parts)
+
+    async def get_knowledge(self) -> str:
+        """Return cached knowledge or fetch fresh."""
+        now = datetime.utcnow()
+        if self._knowledge_cache is None or self._cache_timestamp is None or (now - self._cache_timestamp).total_seconds() > CACHE_TTL:
+            self._knowledge_cache = await self._get_knowledge_from_db()
+            self._cache_timestamp = now
+        return self._knowledge_cache
 
     @app_commands.command(name="ask", description="Ask a question about the Minecraft server")
     @app_commands.describe(question="Your question about the server")
@@ -84,33 +117,31 @@ class Ask(commands.Cog):
                 embed = make_embed("Server Offline", "Could not fetch live server status.", 0xFF0000)
                 return await interaction.followup.send(embed=embed)
 
-        # 3) AI fallback (Gemini via new google.genai)
+        # 3) AI – always try Gemini if possible
         if GEMINI_API_KEY:
             try:
                 client = genai.Client(api_key=GEMINI_API_KEY)
-                
-                # Build the system prompt with the knowledge base
+                knowledge = await self.get_knowledge()
+
                 system_prompt = f"""
 You are the official assistant for the Minecraft server "{SERVER_NAME}" (IP: {MINECRAFT_SERVER_IP}).
 
 The following is the **complete server knowledge base** – rules, limits, custom features, economy, staff, etc.:
 
 === START KNOWLEDGE ===
-{self.knowledge}
+{knowledge}
 === END KNOWLEDGE ===
 
 **Instructions:**
 - Answer the user's question **using only the knowledge above** if possible.
 - If the question is about real‑time status (players online, etc.), tell the user to use `/ask players` or `/ask status`.
-- If the question is not covered in the knowledge base, you can use **general Minecraft knowledge**, but clearly state that it's general knowledge.
-- Be concise, helpful, and friendly.
-"""
+- If the question is **not covered** in the knowledge base, use your **general Minecraft knowledge** to answer, but clearly state that it's general knowledge.
+- If you genuinely don't know, say: "I don't have that information yet. Please ask staff or check the #server-announcements channel."
 
-                # Use the available model – gemini-2.5-flash from the list
-                model_name = "models/gemini-2.5-flash"
-                
+Be concise, helpful, and friendly.
+"""
                 response = client.models.generate_content(
-                    model=model_name,
+                    model="models/gemini-2.5-flash",
                     contents=[
                         types.Content(
                             role="user",
@@ -118,38 +149,47 @@ The following is the **complete server knowledge base** – rules, limits, custo
                         )
                     ]
                 )
-                
-                ai_answer = response.text if response.text else "I couldn't generate an answer."
+
+                ai_answer = response.text if response.text else "I don't have that information yet. Please ask staff or check the relevant channels."
                 embed = make_embed("🤖 AI Answer", ai_answer, 0x9B59B6)
                 await interaction.followup.send(embed=embed)
                 return
-                
+
             except Exception as e:
                 logger.error(f"Gemini error: {e}")
-                # fall through
+                # fall through to a polite fallback
 
-        # 4) No answer
+        # 4) Final fallback – polite and helpful
         embed = make_embed(
-            "Unknown Question",
-            "I couldn't find an answer. Please ask staff or rephrase your question.",
+            "🔍 Couldn't Find an Answer",
+            "I don't have that information yet. Please ask staff or check the relevant channels.\n\n"
+            "If you think this question should be answered, staff can add it to the knowledge base.",
             0xFFA500
         )
         await interaction.followup.send(embed=embed)
 
-    # ---------- Admin: Reload knowledge ----------
-    @app_commands.command(name="reloadknowledge", description="Reload the server knowledge base (admin only)")
+    # ---------- Admin: Reload knowledge from DB ----------
+    @app_commands.command(name="reloadknowledge", description="Force reload the server knowledge from Discord channels (admin only)")
     @app_commands.checks.has_permissions(manage_guild=True)
     async def reload_knowledge(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
         try:
-            self.knowledge = load_knowledge()
-            embed = make_embed("✅ Knowledge Reloaded", "Server info has been updated from disk.", 0x00FF00)
+            # Clear cache so next ask fetches fresh data
+            self._knowledge_cache = None
+            self._cache_timestamp = None
+            # Also trigger an immediate refresh from the updater cog if available
+            updater = self.bot.get_cog("KnowledgeUpdater")
+            if updater:
+                await updater.refresh_knowledge()
+                embed = make_embed("✅ Knowledge Reloaded", "Server info has been refreshed from Discord channels.", 0x00FF00)
+            else:
+                embed = make_embed("⚠️ Partial Reload", "Cache cleared, but KnowledgeUpdater cog not found. Manual refresh may be needed.", 0xFFA500)
             await interaction.followup.send(embed=embed, ephemeral=True)
         except Exception as e:
             embed = make_embed("❌ Reload Failed", str(e), 0xFF0000)
             await interaction.followup.send(embed=embed, ephemeral=True)
 
-    # ---------- Helper methods ----------
+    # ---------- Helper methods (unchanged) ----------
     def search_faq(self, question: str) -> str | None:
         q = question.lower()
         for item in FAQ:
