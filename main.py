@@ -36,8 +36,7 @@ class SecurityBot(commands.Bot):
             "backup", "altdetector", "slowmode", "raidalert", "chatbot",
             "massmention", "antivanity", "stafflog", "ownerrecovery", "polish",
             "publicbot", "globalblacklist", "announce",
-            "ticket", "serverlogger", "poll", "botwhitelist", "sync", "extraowner", "dmall", "staffstats", "leave", "giverole", "removerole",
-            "aichat"
+            "ticket", "serverlogger", "poll", "botwhitelist", "sync", "extraowner", "dmall", "staffstats", "leave", "giverole", "removerole"
         ]
         for cog in cogs:
             try:
