@@ -41,15 +41,14 @@ SAFETY_SETTINGS = [
 ]
 
 # ====================================================================
-#  MODEL FALLBACK LIST
+#  MODEL FALLBACK LIST – updated with gemini-3.6-flash first
 # ====================================================================
 MODEL_NAMES = [
-    "models/gemini-2.5-flash",
+    "models/gemini-3.6-flash",          # newest, recommended
+    "models/gemini-2.5-flash",          # fallback for older users
     "models/gemini-1.5-flash",
     "models/gemini-1.5-pro",
     "models/gemini-pro",
-    "models/gemini-2.0-flash-exp",
-    "models/gemini-2.0-pro-exp",
 ]
 
 # ====================================================================
@@ -65,7 +64,7 @@ class AIChat(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self._cooldown = {}
-        self._active_model = None  # will be set on first successful call
+        self._active_model = None
 
     # ---------- Database helpers ----------
     async def get_ai_channel(self, guild_id: int) -> int | None:
@@ -91,13 +90,11 @@ class AIChat(commands.Cog):
 
     # ---------- Find a working model ----------
     async def get_working_model(self, client):
-        """Try each model until one works, cache the result."""
         if self._active_model:
             return self._active_model
 
         for model_name in MODEL_NAMES:
             try:
-                # Quick test: generate a simple response
                 test = client.models.generate_content(
                     model=model_name,
                     contents=["Say hello"]
@@ -117,7 +114,6 @@ class AIChat(commands.Cog):
         user_id = message.author.id
         now = datetime.utcnow()
 
-        # Cooldown
         if user_id in self._cooldown:
             last = self._cooldown[user_id]
             if (now - last).total_seconds() < COOLDOWN_SECONDS:
@@ -130,7 +126,6 @@ class AIChat(commands.Cog):
                 return
         self._cooldown[user_id] = now
 
-        # Check API key
         if not GEMINI_API_KEY:
             embed = make_embed(
                 "⚠️ AI Not Configured",
@@ -142,13 +137,11 @@ class AIChat(commands.Cog):
 
         try:
             client = genai.Client(api_key=GEMINI_API_KEY)
-
-            # Find a working model
             model_name = await self.get_working_model(client)
             if not model_name:
                 embed = make_embed(
                     "❌ AI Unavailable",
-                    "No working Gemini model found. Please check the API key or contact an admin.",
+                    "No working Gemini model found. Please contact an admin.",
                     0xFF0000
                 )
                 await message.reply(embed=embed, mention_author=True)
@@ -179,7 +172,6 @@ Be conversational, engaging, and always respectful.
                 )
             )
 
-            # Check if response was blocked
             if not response.text:
                 if response.prompt_feedback and response.prompt_feedback.block_reason:
                     embed = make_embed(
@@ -187,44 +179,37 @@ Be conversational, engaging, and always respectful.
                         "Your question was blocked because it may contain inappropriate content.",
                         0xFF0000
                     )
-                    await message.reply(embed=embed, mention_author=True)
-                    return
                 else:
                     embed = make_embed(
                         "❌ No Response",
                         "I couldn't generate a response. Please try again.",
                         0xFFA500
                     )
-                    await message.reply(embed=embed, mention_author=True)
-                    return
+                await message.reply(embed=embed, mention_author=True)
+                return
 
-            ai_answer = response.text
-            embed = make_embed("🤖 AI Answer", ai_answer, 0x9B59B6)
+            embed = make_embed("🤖 AI Answer", response.text, 0x9B59B6)
             await message.reply(embed=embed, mention_author=True)
 
         except Exception as e:
             logger.error(f"Gemini error: {e}")
             embed = make_embed(
                 "❌ AI Error",
-                "The AI service is currently unavailable. Please try again later.\n"
-                f"Error: {str(e)[:100]}",  # show first 100 chars for debugging
+                "The AI service is currently unavailable. Please try again later.",
                 0xFF0000
             )
             await message.reply(embed=embed, mention_author=True)
 
-    # ---------- on_message listener ----------
+    # ---------- on_message ----------
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         if message.author.bot or not message.guild:
             return
-
         ai_channel_id = await self.get_ai_channel(message.guild.id)
         if not ai_channel_id or message.channel.id != ai_channel_id:
             return
-
         if message.content.startswith('/'):
             return
-
         await self.process_question(message, message.content)
 
     # ---------- Slash commands ----------
