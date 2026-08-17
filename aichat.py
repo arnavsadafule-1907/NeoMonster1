@@ -19,7 +19,7 @@ DB_PATH = os.getenv("DATABASE_PATH", "./data/security.db")
 COOLDOWN_SECONDS = 5
 
 # ====================================================================
-#  Safety Settings – blocks harmful content
+#  SAFETY SETTINGS
 # ====================================================================
 SAFETY_SETTINGS = [
     types.SafetySetting(
@@ -41,7 +41,19 @@ SAFETY_SETTINGS = [
 ]
 
 # ====================================================================
-#  Helper
+#  MODEL FALLBACK LIST
+# ====================================================================
+MODEL_NAMES = [
+    "models/gemini-2.5-flash",
+    "models/gemini-1.5-flash",
+    "models/gemini-1.5-pro",
+    "models/gemini-pro",
+    "models/gemini-2.0-flash-exp",
+    "models/gemini-2.0-pro-exp",
+]
+
+# ====================================================================
+#  HELPER
 # ====================================================================
 def make_embed(title: str, description: str, color: int, footer: str = None) -> discord.Embed:
     embed = discord.Embed(title=title, description=description, color=color)
@@ -52,7 +64,8 @@ def make_embed(title: str, description: str, color: int, footer: str = None) -> 
 class AIChat(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        self._cooldown = {}  # user_id -> last_used_timestamp
+        self._cooldown = {}
+        self._active_model = None  # will be set on first successful call
 
     # ---------- Database helpers ----------
     async def get_ai_channel(self, guild_id: int) -> int | None:
@@ -76,6 +89,29 @@ class AIChat(commands.Cog):
             await db.execute("DELETE FROM ai_channels WHERE guild_id = ?", (guild_id,))
             await db.commit()
 
+    # ---------- Find a working model ----------
+    async def get_working_model(self, client):
+        """Try each model until one works, cache the result."""
+        if self._active_model:
+            return self._active_model
+
+        for model_name in MODEL_NAMES:
+            try:
+                # Quick test: generate a simple response
+                test = client.models.generate_content(
+                    model=model_name,
+                    contents=["Say hello"]
+                )
+                if test.text:
+                    self._active_model = model_name
+                    logger.info(f"✅ AI model active: {model_name}")
+                    return model_name
+            except Exception as e:
+                logger.warning(f"Model {model_name} failed: {e}")
+                continue
+
+        return None
+
     # ---------- Safe AI processor ----------
     async def process_question(self, message: discord.Message, question: str):
         user_id = message.author.id
@@ -94,12 +130,31 @@ class AIChat(commands.Cog):
                 return
         self._cooldown[user_id] = now
 
-        # AI – Gemini with safety filters
-        if GEMINI_API_KEY:
-            try:
-                client = genai.Client(api_key=GEMINI_API_KEY)
+        # Check API key
+        if not GEMINI_API_KEY:
+            embed = make_embed(
+                "⚠️ AI Not Configured",
+                "The Gemini API key is missing. Please ask an admin to set it up.",
+                0xFFA500
+            )
+            await message.reply(embed=embed, mention_author=True)
+            return
 
-                system_prompt = """
+        try:
+            client = genai.Client(api_key=GEMINI_API_KEY)
+
+            # Find a working model
+            model_name = await self.get_working_model(client)
+            if not model_name:
+                embed = make_embed(
+                    "❌ AI Unavailable",
+                    "No working Gemini model found. Please check the API key or contact an admin.",
+                    0xFF0000
+                )
+                await message.reply(embed=embed, mention_author=True)
+                return
+
+            system_prompt = """
 You are a friendly, helpful AI assistant. You answer questions clearly and concisely.
 
 **Rules you MUST follow:**
@@ -111,65 +166,51 @@ You are a friendly, helpful AI assistant. You answer questions clearly and conci
 
 Be conversational, engaging, and always respectful.
 """
-                response = client.models.generate_content(
-                    model="models/gemini-2.5-flash",
-                    contents=[
-                        types.Content(
-                            role="user",
-                            parts=[types.Part(text=f"{system_prompt}\n\nUser question: {question}")]
-                        )
-                    ],
-                    config=types.GenerateContentConfig(
-                        safety_settings=SAFETY_SETTINGS
+            response = client.models.generate_content(
+                model=model_name,
+                contents=[
+                    types.Content(
+                        role="user",
+                        parts=[types.Part(text=f"{system_prompt}\n\nUser question: {question}")]
                     )
+                ],
+                config=types.GenerateContentConfig(
+                    safety_settings=SAFETY_SETTINGS
                 )
+            )
 
-                # Check if response was blocked
-                if not response.text:
-                    # Check if it was blocked due to safety
-                    if response.prompt_feedback and response.prompt_feedback.block_reason:
-                        embed = make_embed(
-                            "🚫 Blocked",
-                            "Your question was blocked because it may contain inappropriate content.",
-                            0xFF0000
-                        )
-                        await message.reply(embed=embed, mention_author=True)
-                        return
-                    else:
-                        embed = make_embed(
-                            "❌ No Response",
-                            "I couldn't generate a response. Please try again.",
-                            0xFFA500
-                        )
-                        await message.reply(embed=embed, mention_author=True)
-                        return
+            # Check if response was blocked
+            if not response.text:
+                if response.prompt_feedback and response.prompt_feedback.block_reason:
+                    embed = make_embed(
+                        "🚫 Blocked",
+                        "Your question was blocked because it may contain inappropriate content.",
+                        0xFF0000
+                    )
+                    await message.reply(embed=embed, mention_author=True)
+                    return
+                else:
+                    embed = make_embed(
+                        "❌ No Response",
+                        "I couldn't generate a response. Please try again.",
+                        0xFFA500
+                    )
+                    await message.reply(embed=embed, mention_author=True)
+                    return
 
-                # Post‑generation safety check (extra layer)
-                ai_answer = response.text
-                # Simple filter for obvious bad words (optional, but Gemini's safety handles most)
-                # We'll just trust Gemini's safety settings.
+            ai_answer = response.text
+            embed = make_embed("🤖 AI Answer", ai_answer, 0x9B59B6)
+            await message.reply(embed=embed, mention_author=True)
 
-                embed = make_embed("🤖 AI Answer", ai_answer, 0x9B59B6)
-                await message.reply(embed=embed, mention_author=True)
-                return
-
-            except Exception as e:
-                logger.error(f"Gemini error: {e}")
-                embed = make_embed(
-                    "❌ AI Error",
-                    "The AI service is currently unavailable. Please try again later.",
-                    0xFF0000
-                )
-                await message.reply(embed=embed, mention_author=True)
-                return
-
-        # Fallback if no API key
-        embed = make_embed(
-            "⚠️ AI Not Configured",
-            "The Gemini API key is missing. Please ask an admin to set it up.",
-            0xFFA500
-        )
-        await message.reply(embed=embed, mention_author=True)
+        except Exception as e:
+            logger.error(f"Gemini error: {e}")
+            embed = make_embed(
+                "❌ AI Error",
+                "The AI service is currently unavailable. Please try again later.\n"
+                f"Error: {str(e)[:100]}",  # show first 100 chars for debugging
+                0xFF0000
+            )
+            await message.reply(embed=embed, mention_author=True)
 
     # ---------- on_message listener ----------
     @commands.Cog.listener()
@@ -181,7 +222,6 @@ Be conversational, engaging, and always respectful.
         if not ai_channel_id or message.channel.id != ai_channel_id:
             return
 
-        # Ignore messages that start with a command prefix (optional)
         if message.content.startswith('/'):
             return
 
@@ -203,7 +243,6 @@ Be conversational, engaging, and always respectful.
         embed = make_embed("✅ AI Channel Removed", "The AI will no longer respond to messages.", 0x00FF00)
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    # ---------- Error handling for commands ----------
     @commands.Cog.listener()
     async def on_app_command_error(self, interaction: discord.Interaction, error):
         if isinstance(error, app_commands.MissingPermissions):
@@ -211,7 +250,6 @@ Be conversational, engaging, and always respectful.
             await interaction.response.send_message(embed=embed, ephemeral=True)
 
 async def setup(bot: commands.Bot):
-    # Ensure the ai_channels table exists
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("""
             CREATE TABLE IF NOT EXISTS ai_channels (
