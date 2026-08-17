@@ -5,10 +5,10 @@ import os
 import logging
 import aiosqlite
 import re
+import hashlib
 from datetime import datetime, timedelta
 import pytz
-from google import genai
-from google.genai import types
+from openai import OpenAI
 from formatter import BotEmbed
 
 logger = logging.getLogger("discord.cogs.aichat")
@@ -16,43 +16,29 @@ logger = logging.getLogger("discord.cogs.aichat")
 # ====================================================================
 #  CONFIGURATION
 # ====================================================================
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 DB_PATH = os.getenv("DATABASE_PATH", "./data/security.db")
-COOLDOWN_SECONDS = 5
-TIMEZONE = pytz.timezone("UTC")  # change to your local timezone
+COOLDOWN_SECONDS = 8
+CACHE_TTL_SECONDS = 3600  # 1 hour
+
+# DeepSeek endpoint
+DEEPSEEK_BASE_URL = "https://api.deepseek.com"
 
 # ====================================================================
-#  SAFETY SETTINGS
+#  SAFETY / SYSTEM PROMPT
 # ====================================================================
-SAFETY_SETTINGS = [
-    types.SafetySetting(
-        category=types.HarmCategory.HARM_CATEGORY_HARASSMENT,
-        threshold=types.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE
-    ),
-    types.SafetySetting(
-        category=types.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
-        threshold=types.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE
-    ),
-    types.SafetySetting(
-        category=types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
-        threshold=types.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE
-    ),
-    types.SafetySetting(
-        category=types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
-        threshold=types.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE
-    ),
-]
+SYSTEM_PROMPT = """
+You are a friendly, helpful AI assistant. You answer questions clearly and concisely.
 
-# ====================================================================
-#  MODEL FALLBACK LIST
-# ====================================================================
-MODEL_NAMES = [
-    "models/gemini-3.6-flash",
-    "models/gemini-2.5-flash",
-    "models/gemini-1.5-flash",
-    "models/gemini-1.5-pro",
-    "models/gemini-pro",
-]
+**Rules you MUST follow:**
+- Do NOT generate any 18+ or sexually explicit content.
+- Do NOT generate any abusive, hateful, harassing, or toxic language.
+- Do NOT generate any dangerous or illegal content.
+- If you don't know something, say "I don't know" rather than guessing.
+- If asked for a link, provide a safe, relevant link if it exists – otherwise say you don't have one.
+
+Be conversational, engaging, and always respectful.
+"""
 
 # ====================================================================
 #  HELPER
@@ -67,66 +53,44 @@ class AIChat(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self._cooldown = {}
-        self._active_model = None
-
-    # ---------- Database helpers ----------
-    async def get_ai_channel(self, guild_id: int) -> int | None:
-        async with aiosqlite.connect(DB_PATH) as db:
-            cursor = await db.execute(
-                "SELECT channel_id FROM ai_channels WHERE guild_id = ?", (guild_id,)
+        self._cache = {}  # question_hash -> (answer, timestamp)
+        self._client = None
+        if DEEPSEEK_API_KEY:
+            self._client = OpenAI(
+                api_key=DEEPSEEK_API_KEY,
+                base_url=DEEPSEEK_BASE_URL
             )
-            row = await cursor.fetchone()
-            return row[0] if row else None
+            logger.info("✅ DeepSeek client initialized.")
+        else:
+            logger.warning("⚠️ DEEPSEEK_API_KEY not set – AI will not work.")
 
-    async def set_ai_channel(self, guild_id: int, channel_id: int):
-        async with aiosqlite.connect(DB_PATH) as db:
-            await db.execute(
-                "INSERT OR REPLACE INTO ai_channels (guild_id, channel_id) VALUES (?, ?)",
-                (guild_id, channel_id)
-            )
-            await db.commit()
+    # ---------- Caching ----------
+    def _get_cached_answer(self, question: str) -> str | None:
+        h = hashlib.md5(question.lower().encode()).hexdigest()
+        if h in self._cache:
+            answer, ts = self._cache[h]
+            if datetime.utcnow() - ts < timedelta(seconds=CACHE_TTL_SECONDS):
+                return answer
+            else:
+                del self._cache[h]
+        return None
 
-    async def remove_ai_channel(self, guild_id: int):
-        async with aiosqlite.connect(DB_PATH) as db:
-            await db.execute("DELETE FROM ai_channels WHERE guild_id = ?", (guild_id,))
-            await db.commit()
+    def _cache_answer(self, question: str, answer: str):
+        h = hashlib.md5(question.lower().encode()).hexdigest()
+        self._cache[h] = (answer, datetime.utcnow())
 
-    # ---------- Local real‑time answers ----------
+    # ---------- Local answers ----------
     def local_answer(self, question: str) -> str | None:
         q = question.lower()
-        if re.search(r'\b(date|today|current date|what day|what is the date|todays date)\b', q):
-            now = datetime.now(TIMEZONE)
-            return f"📅 Today is **{now.strftime('%B %d, %Y')}** ({TIMEZONE.zone})."
-        if re.search(r'\b(time|current time|what time|the time|now)\b', q):
-            now = datetime.now(TIMEZONE)
-            return f"🕐 The current time is **{now.strftime('%H:%M:%S')}** ({TIMEZONE.zone})."
-        if re.search(r'\b(day of week|what day is it|weekday)\b', q):
-            now = datetime.now(TIMEZONE)
-            return f"📆 Today is **{now.strftime('%A')}**."
+        if re.search(r'\b(date|today|current date|what day|what is the date)\b', q):
+            now = datetime.now(pytz.timezone("UTC"))
+            return f"📅 Today is **{now.strftime('%B %d, %Y')}** (UTC)."
+        if re.search(r'\b(time|current time|what time|now)\b', q):
+            now = datetime.now(pytz.timezone("UTC"))
+            return f"🕐 The current time is **{now.strftime('%H:%M:%S')}** (UTC)."
         return None
 
-    # ---------- Find a working model ----------
-    async def get_working_model(self, client):
-        if self._active_model:
-            return self._active_model
-
-        for model_name in MODEL_NAMES:
-            try:
-                test = client.models.generate_content(
-                    model=model_name,
-                    contents=["Say hello"]
-                )
-                if test.text:
-                    self._active_model = model_name
-                    logger.info(f"✅ AI model active: {model_name}")
-                    return model_name
-            except Exception as e:
-                logger.warning(f"Model {model_name} failed: {e}")
-                continue
-
-        return None
-
-    # ---------- AI processor with live search ----------
+    # ---------- AI processor ----------
     async def process_question(self, message: discord.Message, question: str):
         user_id = message.author.id
         now = datetime.utcnow()
@@ -144,97 +108,58 @@ class AIChat(commands.Cog):
                 return
         self._cooldown[user_id] = now
 
-        # Local answers (date/time)
+        # Local answer
         local = self.local_answer(question)
         if local:
             embed = make_embed("📋 Real‑Time Answer", local, 0x00BFFF)
             await message.reply(embed=embed, mention_author=True)
             return
 
-        # Typing indicator
+        # Check cache
+        cached = self._get_cached_answer(question)
+        if cached:
+            embed = make_embed("🤖 AI Answer (cached)", cached, 0x9B59B6)
+            await message.reply(embed=embed, mention_author=True)
+            return
+
         await message.channel.typing()
 
-        # AI – Gemini with Google Search grounding
-        if not GEMINI_API_KEY:
+        if not self._client:
             embed = make_embed(
-                "⚠️ AI Not Configured",
-                "The Gemini API key is missing. Please ask an admin to set it up.",
+                "❌ AI Not Configured",
+                "The DeepSeek API key is missing. Please ask an admin to set it up.",
                 0xFFA500
             )
             await message.reply(embed=embed, mention_author=True)
             return
 
         try:
-            client = genai.Client(api_key=GEMINI_API_KEY)
-            model_name = await self.get_working_model(client)
-            if not model_name:
-                embed = make_embed(
-                    "❌ AI Unavailable",
-                    "No working Gemini model found. Please contact an admin.",
-                    0xFF0000
-                )
-                await message.reply(embed=embed, mention_author=True)
-                return
-
-            system_prompt = """
-You are a friendly, helpful AI assistant. You answer questions clearly and concisely.
-
-**Rules you MUST follow:**
-- Do NOT generate any 18+ or sexually explicit content.
-- Do NOT generate any abusive, hateful, harassing, or toxic language.
-- Do NOT generate any dangerous or illegal content.
-- If you don't know something, say "I don't know" rather than guessing.
-- If asked for a link, provide a safe, relevant link if it exists – otherwise say you don't have one.
-
-**Important:** You have access to Google Search. Use it to fetch **real‑time, up‑to‑date information** whenever the user asks about current events, sports scores, weather, news, stocks, or any time‑sensitive topic. If the question is general knowledge, you can answer from your training data.
-
-Be conversational, engaging, and always respectful.
-"""
-            response = client.models.generate_content(
-                model=model_name,
-                contents=[
-                    types.Content(
-                        role="user",
-                        parts=[types.Part(text=f"{system_prompt}\n\nUser question: {question}")]
-                    )
+            # DeepSeek API call (OpenAI-compatible)
+            response = self._client.chat.completions.create(
+                model="deepseek-chat",
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": question}
                 ],
-                config=types.GenerateContentConfig(
-                    safety_settings=SAFETY_SETTINGS,
-                    tools=[types.Tool(google_search=types.GoogleSearch())]  # 🔥 LIVE SEARCH
-                )
+                max_tokens=1500,
+                temperature=0.7
             )
 
-            if not response.text:
-                if response.prompt_feedback and response.prompt_feedback.block_reason:
-                    embed = make_embed(
-                        "🚫 Blocked",
-                        "Your question was blocked because it may contain inappropriate content.",
-                        0xFF0000
-                    )
-                else:
-                    embed = make_embed(
-                        "❌ No Response",
-                        "I couldn't generate a response. Please try again.",
-                        0xFFA500
-                    )
+            ai_answer = response.choices[0].message.content
+            if not ai_answer:
+                embed = make_embed("❌ No Response", "I couldn't generate a response. Please try again.", 0xFFA500)
                 await message.reply(embed=embed, mention_author=True)
                 return
 
-            # Include the search source if available (optional)
-            answer = response.text
-            if response.candidates and response.candidates[0].grounding_metadata:
-                sources = response.candidates[0].grounding_metadata.web_search_queries
-                if sources:
-                    answer += f"\n\n🔍 *Sources: {', '.join(sources[:2])}*"
-
-            embed = make_embed("🤖 AI Answer", answer, 0x9B59B6)
+            self._cache_answer(question, ai_answer)
+            embed = make_embed("🤖 AI Answer", ai_answer, 0x9B59B6)
             await message.reply(embed=embed, mention_author=True)
 
         except Exception as e:
-            logger.error(f"Gemini error: {e}")
+            logger.error(f"DeepSeek error: {e}")
             embed = make_embed(
                 "❌ AI Error",
-                "The AI service is currently unavailable. Please try again later.",
+                f"The AI service is currently unavailable.\n**Error:** `{str(e)[:150]}`",
                 0xFF0000
             )
             await message.reply(embed=embed, mention_author=True)
@@ -251,9 +176,25 @@ Be conversational, engaging, and always respectful.
             return
         await self.process_question(message, message.content)
 
+    # ---------- Database helpers ----------
+    async def get_ai_channel(self, guild_id: int) -> int | None:
+        async with aiosqlite.connect(DB_PATH) as db:
+            cursor = await db.execute("SELECT channel_id FROM ai_channels WHERE guild_id = ?", (guild_id,))
+            row = await cursor.fetchone()
+            return row[0] if row else None
+
+    async def set_ai_channel(self, guild_id: int, channel_id: int):
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute("INSERT OR REPLACE INTO ai_channels (guild_id, channel_id) VALUES (?, ?)", (guild_id, channel_id))
+            await db.commit()
+
+    async def remove_ai_channel(self, guild_id: int):
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute("DELETE FROM ai_channels WHERE guild_id = ?", (guild_id,))
+            await db.commit()
+
     # ---------- Slash commands ----------
     @app_commands.command(name="setaichannel", description="Set the AI chat channel (admin only)")
-    @app_commands.describe(channel="The channel where AI will respond")
     @app_commands.checks.has_permissions(manage_guild=True)
     async def set_channel(self, interaction: discord.Interaction, channel: discord.TextChannel):
         await self.set_ai_channel(interaction.guild_id, channel.id)
@@ -266,12 +207,6 @@ Be conversational, engaging, and always respectful.
         await self.remove_ai_channel(interaction.guild_id)
         embed = make_embed("✅ AI Channel Removed", "The AI will no longer respond to messages.", 0x00FF00)
         await interaction.response.send_message(embed=embed, ephemeral=True)
-
-    @commands.Cog.listener()
-    async def on_app_command_error(self, interaction: discord.Interaction, error):
-        if isinstance(error, app_commands.MissingPermissions):
-            embed = make_embed("⛔ Permission Denied", "You need `Manage Server` permission to use this command.", 0xFF0000)
-            await interaction.response.send_message(embed=embed, ephemeral=True)
 
 async def setup(bot: commands.Bot):
     async with aiosqlite.connect(DB_PATH) as db:
