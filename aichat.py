@@ -4,7 +4,9 @@ from discord.ext import commands
 import os
 import logging
 import aiosqlite
+import re
 from datetime import datetime, timedelta
+import pytz
 from google import genai
 from google.genai import types
 from formatter import BotEmbed
@@ -17,6 +19,7 @@ logger = logging.getLogger("discord.cogs.aichat")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 DB_PATH = os.getenv("DATABASE_PATH", "./data/security.db")
 COOLDOWN_SECONDS = 5
+TIMEZONE = pytz.timezone("UTC")  # change to your local timezone
 
 # ====================================================================
 #  SAFETY SETTINGS
@@ -41,11 +44,11 @@ SAFETY_SETTINGS = [
 ]
 
 # ====================================================================
-#  MODEL FALLBACK LIST – updated with gemini-3.6-flash first
+#  MODEL FALLBACK LIST
 # ====================================================================
 MODEL_NAMES = [
-    "models/gemini-3.6-flash",          # newest, recommended
-    "models/gemini-2.5-flash",          # fallback for older users
+    "models/gemini-3.6-flash",
+    "models/gemini-2.5-flash",
     "models/gemini-1.5-flash",
     "models/gemini-1.5-pro",
     "models/gemini-pro",
@@ -88,6 +91,20 @@ class AIChat(commands.Cog):
             await db.execute("DELETE FROM ai_channels WHERE guild_id = ?", (guild_id,))
             await db.commit()
 
+    # ---------- Local real‑time answers ----------
+    def local_answer(self, question: str) -> str | None:
+        q = question.lower()
+        if re.search(r'\b(date|today|current date|what day|what is the date|todays date)\b', q):
+            now = datetime.now(TIMEZONE)
+            return f"📅 Today is **{now.strftime('%B %d, %Y')}** ({TIMEZONE.zone})."
+        if re.search(r'\b(time|current time|what time|the time|now)\b', q):
+            now = datetime.now(TIMEZONE)
+            return f"🕐 The current time is **{now.strftime('%H:%M:%S')}** ({TIMEZONE.zone})."
+        if re.search(r'\b(day of week|what day is it|weekday)\b', q):
+            now = datetime.now(TIMEZONE)
+            return f"📆 Today is **{now.strftime('%A')}**."
+        return None
+
     # ---------- Find a working model ----------
     async def get_working_model(self, client):
         if self._active_model:
@@ -109,11 +126,12 @@ class AIChat(commands.Cog):
 
         return None
 
-    # ---------- Safe AI processor ----------
+    # ---------- AI processor with live search ----------
     async def process_question(self, message: discord.Message, question: str):
         user_id = message.author.id
         now = datetime.utcnow()
 
+        # Cooldown
         if user_id in self._cooldown:
             last = self._cooldown[user_id]
             if (now - last).total_seconds() < COOLDOWN_SECONDS:
@@ -126,6 +144,17 @@ class AIChat(commands.Cog):
                 return
         self._cooldown[user_id] = now
 
+        # Local answers (date/time)
+        local = self.local_answer(question)
+        if local:
+            embed = make_embed("📋 Real‑Time Answer", local, 0x00BFFF)
+            await message.reply(embed=embed, mention_author=True)
+            return
+
+        # Typing indicator
+        await message.channel.typing()
+
+        # AI – Gemini with Google Search grounding
         if not GEMINI_API_KEY:
             embed = make_embed(
                 "⚠️ AI Not Configured",
@@ -157,6 +186,8 @@ You are a friendly, helpful AI assistant. You answer questions clearly and conci
 - If you don't know something, say "I don't know" rather than guessing.
 - If asked for a link, provide a safe, relevant link if it exists – otherwise say you don't have one.
 
+**Important:** You have access to Google Search. Use it to fetch **real‑time, up‑to‑date information** whenever the user asks about current events, sports scores, weather, news, stocks, or any time‑sensitive topic. If the question is general knowledge, you can answer from your training data.
+
 Be conversational, engaging, and always respectful.
 """
             response = client.models.generate_content(
@@ -168,7 +199,8 @@ Be conversational, engaging, and always respectful.
                     )
                 ],
                 config=types.GenerateContentConfig(
-                    safety_settings=SAFETY_SETTINGS
+                    safety_settings=SAFETY_SETTINGS,
+                    tools=[types.Tool(google_search=types.GoogleSearch())]  # 🔥 LIVE SEARCH
                 )
             )
 
@@ -188,7 +220,14 @@ Be conversational, engaging, and always respectful.
                 await message.reply(embed=embed, mention_author=True)
                 return
 
-            embed = make_embed("🤖 AI Answer", response.text, 0x9B59B6)
+            # Include the search source if available (optional)
+            answer = response.text
+            if response.candidates and response.candidates[0].grounding_metadata:
+                sources = response.candidates[0].grounding_metadata.web_search_queries
+                if sources:
+                    answer += f"\n\n🔍 *Sources: {', '.join(sources[:2])}*"
+
+            embed = make_embed("🤖 AI Answer", answer, 0x9B59B6)
             await message.reply(embed=embed, mention_author=True)
 
         except Exception as e:
