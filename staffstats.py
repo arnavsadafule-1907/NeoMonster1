@@ -12,6 +12,16 @@ class StaffStats(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    # ---------- Permission check for reset commands ----------
+    async def is_reset_allowed(self, interaction: discord.Interaction) -> bool:
+        """Return True if the user is a bot owner or server owner."""
+        if interaction.user.id in interaction.client.owner_ids:
+            return True
+        if interaction.user.id == interaction.guild.owner_id:
+            return True
+        return False
+
+    # ---------- Staff stats view command ----------
     @app_commands.command(name="staffstats", description="View ticket statistics and leave days for a staff member")
     @app_commands.describe(user="Staff member to check (default: yourself)")
     @ticket_staff_only()
@@ -37,6 +47,115 @@ class StaffStats(commands.Cog):
 
         await interaction.response.send_message(embed=embed, ephemeral=False)
 
+    # ---------- Reset command ----------
+    @app_commands.command(name="resetstaffstats", description="Reset staff statistics (owner only)")
+    @app_commands.describe(
+        user="Staff member to reset (or 'all' for everyone)",
+        stat="Which stat to reset: claimed, closed, leavedays, or all",
+    )
+    @app_commands.choices(stat=[
+        app_commands.Choice(name="claimed", value="claimed"),
+        app_commands.Choice(name="closed", value="closed"),
+        app_commands.Choice(name="leavedays", value="leavedays"),
+        app_commands.Choice(name="all", value="all"),
+    ])
+    async def reset_staff_stats(
+        self,
+        interaction: discord.Interaction,
+        user: str,
+        stat: str
+    ):
+        # Permission check
+        if not await self.is_reset_allowed(interaction):
+            embed = BotEmbed.error(
+                "Permission Denied",
+                "Only the server owner or bot owner can reset staff statistics."
+            )
+            return await interaction.response.send_message(embed=embed, ephemeral=True)
+
+        # Handle "all" users
+        if user.lower() == "all":
+            embed = discord.Embed(
+                title="⚠️ Confirm Reset All",
+                description=(
+                    f"Are you sure you want to reset **{stat}** for **all staff members**?\n"
+                    "This action **cannot** be undone."
+                ),
+                color=discord.Color.red()
+            )
+            view = ConfirmResetView(self, interaction.guild_id, stat, None)
+            await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+            return
+
+        # Handle individual user
+        try:
+            target_user = await commands.MemberConverter().convert(interaction, user)
+        except commands.BadArgument:
+            embed = BotEmbed.error("Invalid User", "Could not find that user. Please mention a valid member or use `all`.")
+            return await interaction.response.send_message(embed=embed, ephemeral=True)
+
+        embed = discord.Embed(
+            title="⚠️ Confirm Reset",
+            description=(
+                f"Are you sure you want to reset **{stat}** for **{target_user.mention}**?\n"
+                "This action **cannot** be undone."
+            ),
+            color=discord.Color.red()
+        )
+        view = ConfirmResetView(self, interaction.guild_id, stat, target_user.id)
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+
+    # ---------- Actual reset logic ----------
+    async def execute_reset(self, interaction: discord.Interaction, guild_id: int, stat: str, user_id: int = None):
+        """Execute the reset after confirmation."""
+        async with aiosqlite.connect(DB_PATH) as db:
+            if user_id is None:
+                # Reset all staff in the guild
+                if stat == "all":
+                    await db.execute(
+                        "UPDATE staff_stats SET tickets_claimed = 0, tickets_closed = 0, leave_days = 0 WHERE guild_id = ?",
+                        (guild_id,)
+                    )
+                else:
+                    await db.execute(
+                        f"UPDATE staff_stats SET {stat} = 0 WHERE guild_id = ?",
+                        (guild_id,)
+                    )
+            else:
+                # Reset individual staff
+                if stat == "all":
+                    await db.execute(
+                        "UPDATE staff_stats SET tickets_claimed = 0, tickets_closed = 0, leave_days = 0 WHERE guild_id = ? AND user_id = ?",
+                        (guild_id, user_id)
+                    )
+                else:
+                    await db.execute(
+                        f"UPDATE staff_stats SET {stat} = 0 WHERE guild_id = ? AND user_id = ?",
+                        (guild_id, user_id)
+                    )
+            await db.commit()
+
+        # Send success embed
+        if user_id is None:
+            target_desc = "**all staff members**"
+        else:
+            member = interaction.guild.get_member(user_id)
+            target_desc = f"{member.mention if member else f'User {user_id}'}"
+
+        stat_names = {
+            "claimed": "Tickets Claimed",
+            "closed": "Tickets Closed",
+            "leavedays": "Leave Days",
+            "all": "All Statistics"
+        }
+
+        embed = BotEmbed.success(
+            "✅ Reset Complete",
+            f"**{stat_names.get(stat, stat)}** have been reset for {target_desc}."
+        )
+        await interaction.followup.send(embed=embed, ephemeral=True)
+
+    # ---------- Helper methods ----------
     @staticmethod
     async def get_staff_stats(guild_id: int, user_id: int) -> dict:
         async with aiosqlite.connect(DB_PATH) as db:
@@ -48,8 +167,8 @@ class StaffStats(commands.Cog):
             row = await cursor.fetchone()
             if row:
                 return {
-                    "claimed": row["tickets_claimed"],
-                    "closed": row["tickets_closed"],
+                    "claimed": row["tickets_claimed"] or 0,
+                    "closed": row["tickets_closed"] or 0,
                     "leave_days": row["leave_days"] or 0
                 }
             return {"claimed": 0, "closed": 0, "leave_days": 0}
@@ -59,6 +178,32 @@ class StaffStats(commands.Cog):
         async with aiosqlite.connect(DB_PATH) as db:
             cursor = await db.execute("SELECT 1 FROM leaves WHERE guild_id=? AND user_id=? AND active=1", (guild_id, user_id))
             return await cursor.fetchone() is not None
+
+
+# ---------- Confirmation View for reset ----------
+class ConfirmResetView(discord.ui.View):
+    def __init__(self, cog, guild_id: int, stat: str, user_id: int = None):
+        super().__init__(timeout=60)
+        self.cog = cog
+        self.guild_id = guild_id
+        self.stat = stat
+        self.user_id = user_id
+
+    @discord.ui.button(label="✅ Confirm", style=discord.ButtonStyle.danger)
+    async def confirm_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.defer(ephemeral=True)
+        await self.cog.execute_reset(interaction, self.guild_id, self.stat, self.user_id)
+        for child in self.children:
+            child.disabled = True
+        await interaction.edit_original_response(view=self)
+
+    @discord.ui.button(label="❌ Cancel", style=discord.ButtonStyle.secondary)
+    async def cancel_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        embed = BotEmbed.info("Cancelled", "Reset action has been cancelled.")
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        for child in self.children:
+            child.disabled = True
+        await interaction.edit_original_response(view=self)
 
 
 async def setup(bot):
@@ -73,7 +218,6 @@ async def setup(bot):
                 PRIMARY KEY (guild_id, user_id)
             )
         """)
-        # Add leave_days column if not exists (for existing tables)
         try:
             await db.execute("ALTER TABLE staff_stats ADD COLUMN leave_days INTEGER DEFAULT 0")
         except:
