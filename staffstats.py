@@ -3,6 +3,7 @@ from discord import app_commands
 from discord.ext import commands
 import aiosqlite
 import os
+import re
 from formatter import BotEmbed
 from checks import ticket_staff_only
 
@@ -20,6 +21,38 @@ class StaffStats(commands.Cog):
         if interaction.user.id == interaction.guild.owner_id:
             return True
         return False
+
+    # ---------- Helper to convert string to member ----------
+    async def convert_to_member(self, interaction: discord.Interaction, user_str: str) -> discord.Member | None:
+        """Convert a string (mention, ID, name) to a Member object."""
+        guild = interaction.guild
+        user_str = user_str.strip()
+
+        # Try as a raw ID
+        if user_str.isdigit():
+            return guild.get_member(int(user_str))
+
+        # Try as a mention <@123> or <@!123>
+        mention_match = re.match(r'<@!?(\d+)>', user_str)
+        if mention_match:
+            return guild.get_member(int(mention_match.group(1)))
+
+        # Try by exact username
+        member = discord.utils.get(guild.members, name=user_str)
+        if member:
+            return member
+
+        # Try by display name
+        member = discord.utils.get(guild.members, display_name=user_str)
+        if member:
+            return member
+
+        # Try by nickname
+        member = discord.utils.get(guild.members, nick=user_str)
+        if member:
+            return member
+
+        return None
 
     # ---------- Staff stats view command ----------
     @app_commands.command(name="staffstats", description="View ticket statistics and leave days for a staff member")
@@ -87,11 +120,13 @@ class StaffStats(commands.Cog):
             await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
             return
 
-        # Handle individual user
-        try:
-            target_user = await commands.MemberConverter().convert(interaction, user)
-        except commands.BadArgument:
-            embed = BotEmbed.error("Invalid User", "Could not find that user. Please mention a valid member or use `all`.")
+        # Handle individual user – convert string to Member
+        target_user = await self.convert_to_member(interaction, user)
+        if target_user is None:
+            embed = BotEmbed.error(
+                "Invalid User",
+                "Could not find that user. Please mention a valid member, use their ID, or use `all`."
+            )
             return await interaction.response.send_message(embed=embed, ephemeral=True)
 
         embed = discord.Embed(
