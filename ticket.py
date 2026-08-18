@@ -185,6 +185,7 @@ class TicketOpenModal(discord.ui.Modal, title="Open Ticket"):
 class Ticket(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self._claim_locks = {}  # channel_id -> asyncio.Lock  <-- FIX ADDED
 
     # ================================================================
     #  DATABASE HELPERS (unchanged)
@@ -473,34 +474,60 @@ class Ticket(commands.Cog):
         await self._log(interaction.guild, interaction.user, "open", ticket_channel, channel_name=channel_name)
 
     # ================================================================
-    #  CLAIM TICKET – now prevents double‑claim and renames channel
+    #  CLAIM TICKET – with per-channel lock (FIX APPLIED)
     # ================================================================
     async def claim_ticket(self, interaction: discord.Interaction, view: TicketView = None):
-        if not interaction.channel.name.startswith("ticket-"):
-            return await interaction.response.send_message(embed=BotEmbed.error("Not a Ticket", ""), ephemeral=True)
+        """Claim a ticket – thread‑safe with per‑channel asyncio lock."""
+        # Get or create a lock for this channel
+        lock = self._claim_locks.get(interaction.channel.id)
+        if lock is None:
+            lock = asyncio.Lock()
+            self._claim_locks[interaction.channel.id] = lock
 
-        metadata = await self.get_ticket_metadata(interaction.channel.id)
-        if metadata and metadata["claimed_by"]:
-            embed = BotEmbed.error("Already Claimed", f"This ticket is already claimed by <@{metadata['claimed_by']}>.")
-            return await interaction.response.send_message(embed=embed, ephemeral=True)
+        async with lock:
+            # Double‑check inside the lock
+            if not interaction.channel.name.startswith("ticket-"):
+                return await interaction.response.send_message(
+                    embed=BotEmbed.error("Not a Ticket", ""),
+                    ephemeral=True
+                )
 
-        # Rename channel to show it's claimed
-        new_name = f"claimed-{interaction.user.name}"
-        try:
-            await interaction.channel.edit(name=new_name)
-        except discord.Forbidden:
-            pass
+            metadata = await self.get_ticket_metadata(interaction.channel.id)
+            if not metadata:
+                return await interaction.response.send_message(
+                    embed=BotEmbed.error("Not a Ticket", "This channel is no longer a valid ticket."),
+                    ephemeral=True
+                )
 
-        await interaction.channel.set_permissions(interaction.user, read_messages=True, send_messages=True)
-        await self.update_ticket_claim(interaction.channel.id, interaction.user.id)
+            if metadata["claimed_by"]:
+                embed = BotEmbed.error("Already Claimed", f"This ticket is already claimed by <@{metadata['claimed_by']}>.")
+                return await interaction.response.send_message(embed=embed, ephemeral=True)
 
-        # Update the view to disable the Claim button
-        claimed_view = TicketView(self, metadata["ticket_type"], claimed_by=interaction.user.id)
-        await interaction.message.edit(view=claimed_view)
+            # Rename channel to show it's claimed
+            new_name = f"claimed-{interaction.user.name}"
+            try:
+                await interaction.channel.edit(name=new_name)
+            except discord.Forbidden:
+                pass
 
-        await interaction.response.send_message(f"✅ Ticket claimed by {interaction.user.mention}", ephemeral=False)
-        await self._log(interaction.guild, interaction.user, "claim", interaction.channel, channel_name=interaction.channel.name)
-        await self.increment_staff_stat(interaction.guild.id, interaction.user.id, "tickets_claimed")
+            await interaction.channel.set_permissions(interaction.user, read_messages=True, send_messages=True)
+
+            # Update database (now safe – locked)
+            await self.update_ticket_claim(interaction.channel.id, interaction.user.id)
+
+            # Update the view to disable the Claim button
+            claimed_view = TicketView(self, metadata["ticket_type"], claimed_by=interaction.user.id)
+            await interaction.message.edit(view=claimed_view)
+
+            await interaction.response.send_message(
+                embed=BotEmbed.success("Claimed", f"Ticket claimed by {interaction.user.mention}."),
+                ephemeral=False
+            )
+            await self._log(interaction.guild, interaction.user, "claim", interaction.channel, channel_name=interaction.channel.name)
+            await self.increment_staff_stat(interaction.guild.id, interaction.user.id, "tickets_claimed")
+
+        # Clean up the lock to prevent memory leak
+        self._claim_locks.pop(interaction.channel.id, None)
 
     # ================================================================
     #  BUTTON HANDLERS (unchanged except close_ticket_with_reason)
