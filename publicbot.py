@@ -35,7 +35,7 @@ class PublicBot(commands.Cog):
         # Send welcome DM to server owner
         try:
             embed = BotEmbed.info(
-                "🛡️ NeoMonster – Thank You for Choosing Us!",
+                "🛡️ DesireSmp – Thank You for Choosing Us!",
                 "Your server is now protected.\n\n"
                 "**Quick Start:**\n"
                 "• `/antinuke logchannel #logs` – Set security alerts\n"
@@ -70,10 +70,10 @@ class PublicBot(commands.Cog):
         return 123456789012345678
 
     # ========== VOTE COMMAND ==========
-    @app_commands.command(name="vote", description="Vote for NeoMonster on top.gg")
+    @app_commands.command(name="vote", description="Vote for DesireSmp on top.gg")
     async def vote(self, interaction: discord.Interaction):
         embed = BotEmbed.info(
-            "🗳️ Vote for NeoMonster",
+            "🗳️ Vote for DesireSmp",
             "Help us grow by voting!\n\n"
             "**[Vote on top.gg](https://top.gg/bot/1528368412093579376/vote)**\n"
             "Voting helps more servers discover our security bot."
@@ -81,13 +81,13 @@ class PublicBot(commands.Cog):
         await interaction.response.send_message(embed=embed)
 
     # ========== SUPPORT COMMAND ==========
-    @app_commands.command(name="support", description="Get support for NeoMonster")
+    @app_commands.command(name="support", description="Get support for DesireSmp")
     async def support(self, interaction: discord.Interaction):
         embed = BotEmbed.info(
-            "📞 NeoMonster Support",
+            "📞 DesireSmp Support",
             "**Need help?**\n\n"
             "• 📧 Email: contact@olympusbot.in\n"
-            "• 🌐 Website: https://neomonster1-production.up.railway.app/\n"
+            "• 🌐 Website: https://DesireSmp1-production.up.railway.app/\n"
             "• 📚 Documentation: `/help`\n"
             "• 🎫 Support Server: [Join](https://discord.gg/f8zTc4tmHx)\n\n"
             "Our team typically responds within 24 hours."
@@ -95,11 +95,11 @@ class PublicBot(commands.Cog):
         await interaction.response.send_message(embed=embed)
 
     # ========== INVITE COMMAND ==========
-    @app_commands.command(name="invite", description="Get the invite link for NeoMonster")
+    @app_commands.command(name="invite", description="Get the invite link for DesireSmp")
     async def invite(self, interaction: discord.Interaction):
         invite_url = "https://discord.com/oauth2/authorize?client_id=1528368412093579376&permissions=1100473370870&integration_type=0&scope=bot+applications.commands"
         embed = BotEmbed.info(
-            "🔗 Invite NeoMonster",
+            "🔗 Invite DesireSmp",
             f"**[Click here to invite me to your server]({invite_url})**\n\n"
             "Share this link with other server owners to help them stay protected!"
         )

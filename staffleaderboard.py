@@ -66,7 +66,7 @@ class StaffLeaderboard(commands.Cog):
             color=0x3B82F6,
             timestamp=interaction.created_at
         )
-        embed.set_footer(text="NeoMonster • Staff Stats")
+        embed.set_footer(text="DesireSmp • Staff Stats")
 
         medal_emojis = ["🥇", "🥈", "🥉"]
 

@@ -32,7 +32,7 @@ class Config(commands.GroupCog, name="antinuke"):
     # ---------- Help (open to everyone) ----------
     @app_commands.command(name="help", description="Show the anti‑nuke help menu")
     async def help_command(self, interaction: discord.Interaction):
-        embed = discord.Embed(title="🛡️ NeoMonster Anti‑Nuke Help", color=0x3B82F6)
+        embed = discord.Embed(title="🛡️ DesireSmp Anti‑Nuke Help", color=0x3B82F6)
         embed.add_field(name="/antinuke settings", value="View current configuration", inline=False)
         embed.add_field(name="/antinuke toggle", value="Enable/disable the system", inline=False)
         embed.add_field(name="/antinuke module", value="Turn detection modules on/off", inline=False)

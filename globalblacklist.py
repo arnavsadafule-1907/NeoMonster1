@@ -31,7 +31,7 @@ class GlobalBlacklist(commands.Cog):
         if await self.is_guild_blacklisted(guild.id):
             await guild.leave()
             try:
-                await guild.owner.send("⚠️ Your server is blacklisted from using NeoMonster due to abuse.")
+                await guild.owner.send("⚠️ Your server is blacklisted from using DesireSmp due to abuse.")
             except:
                 pass
 

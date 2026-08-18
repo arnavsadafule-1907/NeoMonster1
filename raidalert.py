@@ -44,7 +44,7 @@ class RaidAlert(commands.Cog):
         
         async with aiohttp.ClientSession() as session:
             webhook = discord.Webhook.from_url(webhook_url, session=session)
-            await webhook.send(embed=embed, username="NeoMonster Raid Alert")
+            await webhook.send(embed=embed, username="DesireSmp Raid Alert")
 
 
 async def setup(bot):

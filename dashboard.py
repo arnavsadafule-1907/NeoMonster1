@@ -46,7 +46,7 @@ def format_time(ts):
 
 # ---------- Discord OAuth ----------
 def get_oauth_url():
-    return f"https://discord.com/api/oauth2/authorize?client_id={DISCORD_CLIENT_ID}&redirect_uri=https%3A%2F%2Fneomonster1-production.up.railway.app%2Fcallback&response_type=code&scope=identify+guilds"
+    return f"https://discord.com/api/oauth2/authorize?client_id={DISCORD_CLIENT_ID}&redirect_uri=https%3A%2F%2FDesireSmp1-production.up.railway.app%2Fcallback&response_type=code&scope=identify+guilds"
 
 def exchange_code(code):
     data = {
@@ -54,7 +54,7 @@ def exchange_code(code):
         'client_secret': DISCORD_CLIENT_SECRET,
         'grant_type': 'authorization_code',
         'code': code,
-        'redirect_uri': 'https://neomonster1-production.up.railway.app/callback'
+        'redirect_uri': 'https://DesireSmp1-production.up.railway.app/callback'
     }
     headers = {'Content-Type': 'application/x-www-form-urlencoded'}
     r = requests.post('https://discord.com/api/oauth2/token', data=data, headers=headers)
@@ -86,8 +86,8 @@ LANDING_HTML = """
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>NeoMonster – Ultimate Discord Security Bot</title>
-    <meta name="description" content="Protect your Discord server from nukes, raids, and spam with NeoMonster – the most advanced security bot.">
+    <title>DesireSmp – Ultimate Discord Security Bot</title>
+    <meta name="description" content="Protect your Discord server from nukes, raids, and spam with DesireSmp – the most advanced security bot.">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -146,15 +146,15 @@ LANDING_HTML = """
     <nav class="navbar">
         <div class="nav-container">
             <a href="/" class="nav-brand">
-                <img src="{{ bot_avatar }}" alt="NeoMonster Logo">
-                NeoMonster
+                <img src="{{ bot_avatar }}" alt="DesireSmp Logo">
+                DesireSmp
             </a>
         </div>
     </nav>
 
     <section class="hero">
-        <img src="{{ bot_avatar }}" alt="NeoMonster Bot">
-        <h1>NeoMonster</h1>
+        <img src="{{ bot_avatar }}" alt="DesireSmp Bot">
+        <h1>DesireSmp</h1>
         <p>The most advanced Discord security bot. Real‑time anti‑nuke protection, intelligent moderation, and a powerful dashboard – trusted by {{ guild_count }}+ servers.</p>
         <div>
             <a href="https://discord.com/oauth2/authorize?client_id=1528368412093579376&permissions=1100473370870&integration_type=0&scope=bot+applications.commands" class="btn-invite" target="_blank">
@@ -185,7 +185,7 @@ LANDING_HTML = """
     </section>
 
     <section class="section" id="features">
-        <h2>Why NeoMonster?</h2>
+        <h2>Why DesireSmp?</h2>
         <p class="section-subtitle">Enterprise‑grade protection for your Discord community</p>
         <div class="feature-grid">
             <div class="feature-card">
@@ -237,7 +237,7 @@ LANDING_HTML = """
     </section>
 
     <footer class="footer">
-        <p>© 2026 <a href="/">NeoMonster</a>. All rights reserved.</p>
+        <p>© 2026 <a href="/">DesireSmp</a>. All rights reserved.</p>
         <p style="margin-top: 5px;">
             <a href="https://discord.com/oauth2/authorize?client_id=1528368412093579376&permissions=1100473370870&integration_type=0&scope=bot+applications.commands" target="_blank">Invite</a> •
             <a href="mailto:contact@olympusbot.in">Contact</a> •
@@ -255,7 +255,7 @@ DASHBOARD_HTML = """
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>NeoMonster – Admin Dashboard</title>
+    <title>DesireSmp – Admin Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.2/dist/cyborg/bootstrap.min.css" rel="stylesheet">
     <meta http-equiv="refresh" content="30">
     <style>
@@ -276,7 +276,7 @@ DASHBOARD_HTML = """
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4" style="background: #0a0a1a !important; border-bottom: 1px solid rgba(59,130,246,0.15);">
         <div class="container">
             <a class="navbar-brand fw-bold" href="/" style="color: var(--primary) !important;">
-                <img src="{{ bot_avatar }}" width="35" height="35" class="rounded-circle me-2"> NeoMonster
+                <img src="{{ bot_avatar }}" width="35" height="35" class="rounded-circle me-2"> DesireSmp
             </a>
             <div>
                 <a href="/" class="btn btn-back btn-sm">← Public Site</a>
@@ -376,7 +376,7 @@ DASHBOARD_HTML = """
             </div>
         </div>
         {% else %}
-        <div class="alert alert-warning">You don't have access to that server, or it's not protected by NeoMonster.</div>
+        <div class="alert alert-warning">You don't have access to that server, or it's not protected by DesireSmp.</div>
         {% endif %}
         {% endif %}
     </div>

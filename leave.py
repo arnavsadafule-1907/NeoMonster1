@@ -152,7 +152,7 @@ class Leave(commands.Cog):
         )
         if image_url:
             embed.set_image(url=image_url)
-        embed.set_footer(text="NeoMonster • Leave System")
+        embed.set_footer(text="DesireSmp • Leave System")
 
         view = LeavePanelView(self)
         await interaction.response.send_message(embed=embed, view=view)

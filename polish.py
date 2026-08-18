@@ -37,7 +37,7 @@ class Polish(commands.Cog):
         # Send a professional welcome DM to the server owner
         try:
             embed = discord.Embed(
-                title="🛡️ NeoMonsterYou for Choosing Us!",
+                title="🛡️ DesireSmpYou for Choosing Us!",
                 description=(
                     "Your server is now protected by the most advanced Discord security bot.\n\n"
                     "**Quick Setup:**\n"
@@ -46,7 +46,7 @@ class Polish(commands.Cog):
                     "• `/help` – View all commands\n\n"
                     "**Links:**\n"
                     f"• Invite: https://discord.com/oauth2/authorize?client_id={self.bot.user.id}&permissions=8&scope=bot%20applications.commands\n"
-                    "• Website: https://neomonster1-production.up.railway.app/"
+                    "• Website: https://DesireSmp1-production.up.railway.app/"
 
                 ),
                 color=discord.Color.green()
@@ -61,7 +61,7 @@ class Polish(commands.Cog):
         hours, remainder = divmod(int(uptime.total_seconds()), 3600)
         minutes, seconds = divmod(remainder, 60)
 
-        embed = BotEmbed.info("NeoMonster Bot Information")
+        embed = BotEmbed.info("DesireSmp Bot Information")
         embed.add_field(name="🤖 Bot Name", value=self.bot.user.name, inline=True)
         embed.add_field(name="🆔 Bot ID", value=self.bot.user.id, inline=True)
         embed.add_field(name="📅 Created", value=self.bot.user.created_at.strftime("%Y-%m-%d"), inline=True)
