@@ -11,7 +11,16 @@ DATABASE_PATH = os.getenv("DATABASE_PATH", "./data/security.db")
 DISCORD_CLIENT_ID = os.getenv("DISCORD_CLIENT_ID")
 DISCORD_CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET")
 FLASK_SECRET_KEY = os.getenv("FLASK_SECRET_KEY")
-OWNER_IDS = set(map(int, os.getenv("OWNER_IDS", "").split(",")))
+
+# ---------- FIXED: Safely parse OWNER_IDS ----------
+try:
+    owner_ids_str = os.getenv("OWNER_IDS", "")
+    if owner_ids_str:
+        OWNER_IDS = set(int(x.strip()) for x in owner_ids_str.split(",") if x.strip())
+    else:
+        OWNER_IDS = set()
+except ValueError:
+    OWNER_IDS = set()
 
 app = Flask(__name__)
 app.secret_key = FLASK_SECRET_KEY or secrets.token_hex(32)
@@ -384,7 +393,7 @@ DASHBOARD_HTML = """
 </html>
 """
 
-# ---------- Debug route (NEW) ----------
+# ---------- Debug route (unchanged) ----------
 @app.route("/debug")
 def debug():
     if 'user_id' not in session:
@@ -432,15 +441,12 @@ def callback():
     try:
         token_data = exchange_code(code)
         access_token = token_data['access_token']
-        # Store the access token so the debug route can use it
         session['access_token'] = access_token
 
-        # Fetch user info to get Discord ID
         user_info = get_user_info(access_token)
         session['user_id'] = int(user_info['id'])
         session['is_bot_owner'] = session['user_id'] in OWNER_IDS
 
-        # Fetch guilds where the user is owner/admin
         user_guilds = get_user_guilds(access_token)
         session['guild_ids'] = [g['id'] for g in user_guilds]
         session['guild_names'] = {g['id']: g['name'] for g in user_guilds}
@@ -457,7 +463,6 @@ def dashboard():
     bot = app.config.get("bot")
     if not bot: return "Bot not initialized.", 500
 
-    # Bot owner sees ALL guilds, others see only their owned/admin guilds
     if session.get('is_bot_owner'):
         bot_guilds = {g.id: g for g in bot.guilds}
     else:
@@ -479,7 +484,6 @@ def dashboard():
     logs = [(format_time(row[0]), row[1], row[2], row[3]) for row in logs]
     bot_avatar = bot.user.display_avatar.url
 
-    # Build user_guild_ids for template access checks
     viewable_guild_ids = list(bot_guilds.keys()) if session.get('is_bot_owner') else session['guild_ids']
 
     return render_template_string(DASHBOARD_HTML,
@@ -501,7 +505,6 @@ def logout():
 def toggle():
     guild_id = request.args.get("guild_id", type=int)
     if not guild_id: return "Missing guild_id", 400
-    # Bot owner can toggle any guild; others need authorization
     if not session.get('is_bot_owner') and ('guild_ids' not in session or guild_id not in session['guild_ids']):
         return redirect(url_for('login'))
 
