@@ -26,19 +26,19 @@ def mc_chat():
     if not player or not message:
         return jsonify({"error": "Missing fields"}), 400
 
-    # Build a professional embed
+    # Professional embed
     embed = {
         "embeds": [{
             "title": f"💬 {server} Chat",
             "description": message,
-            "color": 0x3B82F6,  # Blue
+            "color": 0x3B82F6,
             "author": {
                 "name": player,
-                "icon_url": "https://minotar.net/helm/" + player + "/32.png"  # Minecraft avatar
+                "icon_url": f"https://minotar.net/helm/{player}/32.png"
             },
             "footer": {
                 "text": "DesireSMP • Live Chat",
-                "icon_url": "https://cdn.discordapp.com/avatars/1528368412093579376/bot_avatar.png"  # Your bot's avatar
+                "icon_url": "https://cdn.discordapp.com/avatars/1528368412093579376/bot_avatar.png"
             },
             "timestamp": datetime.utcnow().isoformat()
         }]
@@ -46,10 +46,8 @@ def mc_chat():
 
     try:
         requests.post(DISCORD_WEBHOOK_URL, json=embed)
-        print(f"✅ Forwarded: {player} › {message}")
         return jsonify({"status": "ok"}), 200
     except Exception as e:
-        print(f"❌ Error: {e}")
         return jsonify({"error": str(e)}), 500
 
 @app.route("/", methods=["GET"])
