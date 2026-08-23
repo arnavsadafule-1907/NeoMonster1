@@ -64,6 +64,12 @@ class AntiNuke(commands.Cog):
         return False
 
     async def punish(self, guild: discord.Guild, user: discord.Member, event_type: str, settings: dict):
+        # 🛡️ IMMUNITY: never punish server owner or bot owner
+        if user.id == guild.owner_id:
+            return
+        if user.id in self.bot.owner_ids:
+            return
+
         if user.id in self.cooldowns and time.time() - self.cooldowns[user.id] < 30:
             return
         self.cooldowns[user.id] = time.time()
@@ -147,11 +153,21 @@ class AntiNuke(commands.Cog):
         if user.id == self.bot.user.id:
             return
 
+        # 🛡️ IMMUNITY: server owner and bot owner are never punished
+        if user.id == guild.owner_id:
+            return
+        if user.id in self.bot.owner_ids:
+            return
+
         # 🛡️ Ignore bots that are on the server's bot whitelist (e.g. other security bots)
         if user.bot:
-            from botwhitelist import is_bot_whitelisted
-            if await is_bot_whitelisted(guild.id, user.id):
-                return
+            try:
+                from botwhitelist import is_bot_whitelisted
+                if await is_bot_whitelisted(guild.id, user.id):
+                    return
+            except ImportError:
+                # botwhitelist module not present, skip
+                pass
 
         settings = await self.get_guild_settings(guild.id)
         if not settings.get("antinuke_enabled", 1):
