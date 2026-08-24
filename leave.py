@@ -364,6 +364,51 @@ class Leave(commands.Cog):
     async def before_check_leaves(self):
         await self.bot.wait_until_ready()
 
+    # ================================================================
+    #  🆕 AUTO-REPLY WHEN SOMEONE PINGS A STAFF ON LEAVE
+    # ================================================================
+    @commands.Cog.listener()
+    async def on_message(self, message: discord.Message):
+        # Ignore bots and DMs
+        if message.author.bot or not message.guild:
+            return
+
+        # Check each mention in the message
+        for user in message.mentions:
+            # Skip if the user is the message author (self‑ping)
+            if user.id == message.author.id:
+                continue
+
+            # Check if this user has an active leave
+            async with aiosqlite.connect(DB_PATH) as db:
+                db.row_factory = aiosqlite.Row
+                cursor = await db.execute(
+                    "SELECT end_date, reason FROM leaves WHERE guild_id = ? AND user_id = ? AND active = 1",
+                    (message.guild.id, user.id)
+                )
+                leave = await cursor.fetchone()
+
+            if leave:
+                end_date = date.fromisoformat(leave["end_date"])
+                reason = leave["reason"] or "Not specified"
+
+                embed = discord.Embed(
+                    title="📅 Staff on Leave",
+                    description=(
+                        f"⚠️ **{user.display_name} is currently on leave** until {end_date.strftime('%B %d, %Y')}.\n"
+                        "Please contact another staff member for assistance."
+                    ),
+                    color=discord.Color.orange()
+                )
+                if reason:
+                    embed.add_field(name="Reason", value=reason, inline=False)
+
+                try:
+                    await message.reply(embed=embed, mention_author=True)
+                except discord.Forbidden:
+                    pass
+                break  # Only reply once per message
+
 
 async def setup(bot):
     async with aiosqlite.connect(DB_PATH) as db:
