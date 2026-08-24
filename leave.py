@@ -365,7 +365,7 @@ class Leave(commands.Cog):
         await self.bot.wait_until_ready()
 
     # ================================================================
-    #  🆕 AUTO-REPLY WHEN SOMEONE PINGS A STAFF ON LEAVE
+    #  🆕 AUTO-REPLY + STAFF DM NOTIFICATION ON PING
     # ================================================================
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
@@ -392,7 +392,8 @@ class Leave(commands.Cog):
                 end_date = date.fromisoformat(leave["end_date"])
                 reason = leave["reason"] or "Not specified"
 
-                embed = discord.Embed(
+                # ---- 1. Reply to the pinger ----
+                embed_reply = discord.Embed(
                     title="📅 Staff on Leave",
                     description=(
                         f"⚠️ **{user.display_name} is currently on leave** until {end_date.strftime('%B %d, %Y')}.\n"
@@ -401,12 +402,41 @@ class Leave(commands.Cog):
                     color=discord.Color.orange()
                 )
                 if reason:
-                    embed.add_field(name="Reason", value=reason, inline=False)
+                    embed_reply.add_field(name="Reason", value=reason, inline=False)
 
                 try:
-                    await message.reply(embed=embed, mention_author=True)
+                    await message.reply(embed=embed_reply, mention_author=True)
                 except discord.Forbidden:
                     pass
+
+                # ---- 2. DM the staff member who was pinged ----
+                try:
+                    dm_embed = discord.Embed(
+                        title="🔔 You were pinged while on leave",
+                        description=(
+                            f"**{message.author.mention}** pinged you in {message.channel.mention}."
+                        ),
+                        color=discord.Color.blue()
+                    )
+                    dm_embed.add_field(
+                        name="📝 Their message",
+                        value=message.content[:1000] or "*No text content*",
+                        inline=False
+                    )
+                    dm_embed.add_field(
+                        name="🔗 Jump to message",
+                        value=f"[Click here]({message.jump_url})",
+                        inline=False
+                    )
+                    dm_embed.set_footer(text=f"Server: {message.guild.name}")
+
+                    await user.send(embed=dm_embed)
+                except discord.Forbidden:
+                    # Staff has DMs disabled – we can't notify them
+                    pass
+                except Exception:
+                    pass
+
                 break  # Only reply once per message
 
 
