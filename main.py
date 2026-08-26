@@ -54,7 +54,7 @@ class SecurityBot(commands.Bot):
             "massmention", "antivanity", "stafflog", "ownerrecovery", "polish",
             "publicbot", "globalblacklist", "announce",
             "ticket", "serverlogger", "poll", "botwhitelist", "sync", "extraowner", "dmall", "staffstats", "leave", "giverole", "removerole",
-            "staffleaderboard"
+            "staffleaderboard", "ticketcleanup"
         ]
         for cog in cogs:
             try:
