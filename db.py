@@ -8,12 +8,12 @@ TURSO_URL = os.getenv("TURSO_DATABASE_URL")
 TURSO_TOKEN = os.getenv("TURSO_AUTH_TOKEN")
 
 if TURSO_URL and TURSO_TOKEN:
+    # ----- Turso (production, persistent) -----
     _client = None
 
     async def get_client():
         global _client
         if _client is None:
-            # ✅ No await here – create_client is synchronous
             _client = create_client(TURSO_URL, auth_token=TURSO_TOKEN)
         return _client
 
@@ -33,7 +33,7 @@ if TURSO_URL and TURSO_TOKEN:
         )
 
 else:
-    # Fallback to aiosqlite (local development)
+    # ----- SQLite fallback (local development) -----
     import aiosqlite
     DATABASE_PATH = os.getenv("DATABASE_PATH", "./data/security.db")
     os.makedirs(os.path.dirname(DATABASE_PATH), exist_ok=True)
@@ -57,8 +57,11 @@ else:
             await db.commit()
 
 
+# ================================================================
+#  TABLE CREATION – all tables used by the bot
+# ================================================================
 async def _init_tables(conn):
-    # SQLite syntax – works with both aiosqlite and libsql
+    # 1. guild_settings (main config)
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS guild_settings (
             guild_id INTEGER PRIMARY KEY,
@@ -68,9 +71,13 @@ async def _init_tables(conn):
             punishment TEXT DEFAULT 'strip',
             quarantine_role_id INTEGER DEFAULT 0,
             log_channel_id INTEGER DEFAULT 0,
-            antinuke_enabled INTEGER DEFAULT 1
+            antinuke_enabled INTEGER DEFAULT 1,
+            mod_log_channel_id INTEGER DEFAULT 0,
+            poll_log_channel_id INTEGER DEFAULT 0
         )
     ''')
+
+    # 2. whitelist (anti‑nuke immunity)
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS whitelist (
             guild_id INTEGER NOT NULL,
@@ -79,6 +86,8 @@ async def _init_tables(conn):
             UNIQUE(guild_id, user_id, role_id)
         )
     ''')
+
+    # 3. antinuke_logs
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS antinuke_logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -89,4 +98,200 @@ async def _init_tables(conn):
             timestamp TEXT NOT NULL
         )
     ''')
+
+    # 4. ticket_metadata (active tickets)
+    await conn.execute('''
+        CREATE TABLE IF NOT EXISTS ticket_metadata (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            guild_id INTEGER NOT NULL,
+            ticket_number INTEGER NOT NULL,
+            channel_id INTEGER UNIQUE NOT NULL,
+            user_id INTEGER NOT NULL,
+            open_time TEXT NOT NULL,
+            claimed_by INTEGER,
+            ticket_type TEXT NOT NULL
+        )
+    ''')
+
+    # 5. ticket_types (ticket categories)
+    await conn.execute('''
+        CREATE TABLE IF NOT EXISTS ticket_types (
+            guild_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            category_id INTEGER NOT NULL,
+            support_role_id INTEGER DEFAULT 0,
+            welcome_message TEXT,
+            PRIMARY KEY (guild_id, name)
+        )
+    ''')
+
+    # 6. ticket_counter (sequential ticket numbers)
+    await conn.execute('''
+        CREATE TABLE IF NOT EXISTS ticket_counter (
+            guild_id INTEGER PRIMARY KEY,
+            counter INTEGER DEFAULT 0
+        )
+    ''')
+
+    # 7. ticket_panel_config (panel appearance)
+    await conn.execute('''
+        CREATE TABLE IF NOT EXISTS ticket_panel_config (
+            guild_id INTEGER PRIMARY KEY,
+            title TEXT,
+            description TEXT,
+            image_url TEXT,
+            fields TEXT
+        )
+    ''')
+
+    # 8. staff_stats (ticket counts, leave days)
+    await conn.execute('''
+        CREATE TABLE IF NOT EXISTS staff_stats (
+            guild_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            tickets_claimed INTEGER DEFAULT 0,
+            tickets_closed INTEGER DEFAULT 0,
+            leave_days INTEGER DEFAULT 0,
+            PRIMARY KEY (guild_id, user_id)
+        )
+    ''')
+
+    # 9. leaves (active leave records)
+    await conn.execute('''
+        CREATE TABLE IF NOT EXISTS leaves (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            guild_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            start_date TEXT NOT NULL,
+            end_date TEXT NOT NULL,
+            reason TEXT DEFAULT '',
+            active INTEGER DEFAULT 1
+        )
+    ''')
+
+    # 10. leave_settings (leave role configuration)
+    await conn.execute('''
+        CREATE TABLE IF NOT EXISTS leave_settings (
+            guild_id INTEGER PRIMARY KEY,
+            role_id INTEGER NOT NULL
+        )
+    ''')
+
+    # 11. leave_panel_config (panel appearance)
+    await conn.execute('''
+        CREATE TABLE IF NOT EXISTS leave_panel_config (
+            guild_id INTEGER PRIMARY KEY,
+            title TEXT,
+            description TEXT,
+            image_url TEXT
+        )
+    ''')
+
+    # 12. extra_owners (custom per‑server owners)
+    await conn.execute('''
+        CREATE TABLE IF NOT EXISTS extra_owners (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            guild_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            UNIQUE(guild_id, user_id)
+        )
+    ''')
+
+    # 13. global_blacklist (if used)
+    await conn.execute('''
+        CREATE TABLE IF NOT EXISTS global_blacklist (
+            user_id INTEGER PRIMARY KEY
+        )
+    ''')
+
+    # 14. bot_whitelist (if used)
+    await conn.execute('''
+        CREATE TABLE IF NOT EXISTS bot_whitelist (
+            guild_id INTEGER NOT NULL,
+            bot_id INTEGER NOT NULL,
+            UNIQUE(guild_id, bot_id)
+        )
+    ''')
+
+    # 15. raid_webhooks (if used)
+    await conn.execute('''
+        CREATE TABLE IF NOT EXISTS raid_webhooks (
+            guild_id INTEGER PRIMARY KEY,
+            webhook_url TEXT NOT NULL
+        )
+    ''')
+
+    # 16. altdetector_settings
+    await conn.execute('''
+        CREATE TABLE IF NOT EXISTS altdetector_settings (
+            guild_id INTEGER PRIMARY KEY,
+            enabled INTEGER DEFAULT 0,
+            min_days INTEGER DEFAULT 7,
+            log_channel_id INTEGER
+        )
+    ''')
+
+    # 17. massmention_settings
+    await conn.execute('''
+        CREATE TABLE IF NOT EXISTS massmention_settings (
+            guild_id INTEGER PRIMARY KEY,
+            enabled INTEGER DEFAULT 1,
+            threshold INTEGER DEFAULT 10,
+            punishment TEXT DEFAULT 'mute'
+        )
+    ''')
+
+    # 18. antivanity_settings
+    await conn.execute('''
+        CREATE TABLE IF NOT EXISTS antivanity_settings (
+            guild_id INTEGER PRIMARY KEY,
+            enabled INTEGER DEFAULT 0
+        )
+    ''')
+
+    # 19. report_settings
+    await conn.execute('''
+        CREATE TABLE IF NOT EXISTS report_settings (
+            guild_id INTEGER PRIMARY KEY,
+            report_channel_id INTEGER NOT NULL
+        )
+    ''')
+
+    # 20. antispam_settings (from antispam.py)
+    await conn.execute('''
+        CREATE TABLE IF NOT EXISTS antispam_settings (
+            guild_id INTEGER PRIMARY KEY,
+            enabled INTEGER DEFAULT 1,
+            threshold INTEGER DEFAULT 5,
+            window INTEGER DEFAULT 5,
+            mute_duration INTEGER DEFAULT 10
+        )
+    ''')
+
+    # 21. ai_channels (if you ever re‑enable AI)
+    await conn.execute('''
+        CREATE TABLE IF NOT EXISTS ai_channels (
+            guild_id INTEGER PRIMARY KEY,
+            channel_id INTEGER NOT NULL
+        )
+    ''')
+
+    # 22. knowledge_channels & knowledge_entries (if used)
+    await conn.execute('''
+        CREATE TABLE IF NOT EXISTS knowledge_channels (
+            guild_id INTEGER NOT NULL,
+            channel_id INTEGER PRIMARY KEY
+        )
+    ''')
+    await conn.execute('''
+        CREATE TABLE IF NOT EXISTS knowledge_entries (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            channel_id INTEGER NOT NULL,
+            section TEXT,
+            content TEXT NOT NULL,
+            last_updated TEXT NOT NULL
+        )
+    ''')
+
+    # Commit all changes
     await conn.commit()
