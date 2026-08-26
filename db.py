@@ -4,28 +4,20 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Read Turso credentials
 TURSO_URL = os.getenv("TURSO_DATABASE_URL")
 TURSO_TOKEN = os.getenv("TURSO_AUTH_TOKEN")
 
-# If Turso is configured, use it; otherwise fall back to SQLite (local dev)
 if TURSO_URL and TURSO_TOKEN:
-    # Create a single async client that persists across calls
     _client = None
 
     async def get_client():
         global _client
         if _client is None:
-            # Create the client (async)
-            _client = await create_client(TURSO_URL, auth_token=TURSO_TOKEN)
+            # ✅ No await here – create_client is synchronous
+            _client = create_client(TURSO_URL, auth_token=TURSO_TOKEN)
         return _client
 
-    async def execute_query(sql, params=()):
-        client = await get_client()
-        return await client.execute(sql, params)
-
     async def get_db():
-        # Return the client itself – all methods are awaitable
         return await get_client()
 
     async def init_db():
@@ -34,13 +26,14 @@ if TURSO_URL and TURSO_TOKEN:
 
     async def add_log(guild_id, user_id, event_type, punishment):
         from datetime import datetime, timezone
-        await execute_query(
+        client = await get_client()
+        await client.execute(
             "INSERT INTO antinuke_logs (guild_id, user_id, event_type, punishment, timestamp) VALUES (?, ?, ?, ?, ?)",
             (guild_id, user_id, event_type, punishment, datetime.now(timezone.utc).isoformat())
         )
 
 else:
-    # Fallback to aiosqlite for local development
+    # Fallback to aiosqlite (local development)
     import aiosqlite
     DATABASE_PATH = os.getenv("DATABASE_PATH", "./data/security.db")
     os.makedirs(os.path.dirname(DATABASE_PATH), exist_ok=True)
@@ -65,7 +58,7 @@ else:
 
 
 async def _init_tables(conn):
-    # SQLite syntax (works with both aiosqlite and libsql)
+    # SQLite syntax – works with both aiosqlite and libsql
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS guild_settings (
             guild_id INTEGER PRIMARY KEY,
