@@ -12,6 +12,23 @@ from formatter import BotEmbed
 load_dotenv()
 logger = setup_logging()
 
+# ---------- Safely parse OWNER_IDS ----------
+try:
+    owner_ids_str = os.getenv("OWNER_IDS", "")
+    if owner_ids_str:
+        OWNER_IDS = set(int(x.strip()) for x in owner_ids_str.split(",") if x.strip())
+    else:
+        OWNER_IDS = set()
+except ValueError:
+    OWNER_IDS = set()
+    logger.warning("OWNER_IDS environment variable contains invalid values – ignoring.")
+
+# ---------- Check for required token ----------
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+if not BOT_TOKEN:
+    logger.critical("BOT_TOKEN not set in environment variables. Bot cannot start.")
+    exit(1)
+
 class SecurityBot(commands.Bot):
     def __init__(self):
         intents = discord.Intents.default()
@@ -21,7 +38,7 @@ class SecurityBot(commands.Bot):
         intents.bans = True
         intents.voice_states = True
         super().__init__(command_prefix="/", intents=intents)
-        self.owner_ids = set(map(int, os.getenv("OWNER_IDS", "").split(",")))
+        self.owner_ids = OWNER_IDS
 
     async def setup_hook(self):
         await init_db()
@@ -53,7 +70,6 @@ class SecurityBot(commands.Bot):
         logger.info("Command tree synced")
 
     async def global_blacklist_check(self, interaction: discord.Interaction) -> bool:
-        """Return True if the user is allowed, False if blacklisted. Handles all errors silently."""
         try:
             global_blacklist_cog = self.get_cog("GlobalBlacklist")
             if global_blacklist_cog and await global_blacklist_cog.is_blacklisted(interaction.user.id):
@@ -62,7 +78,6 @@ class SecurityBot(commands.Bot):
                 )
                 return False
         except Exception:
-            # If anything goes wrong (e.g. cog not loaded yet), allow the command
             pass
         return True
 
