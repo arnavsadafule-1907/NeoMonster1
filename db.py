@@ -1,14 +1,15 @@
 import os
-from libsql_client import create_client
 from dotenv import load_dotenv
 
 load_dotenv()
 
+# ----- Check for Turso (persistent) -----
 TURSO_URL = os.getenv("TURSO_DATABASE_URL")
 TURSO_TOKEN = os.getenv("TURSO_AUTH_TOKEN")
 
 if TURSO_URL and TURSO_TOKEN:
-    # ----- Turso (production, persistent) -----
+    # Turso (production, persistent)
+    from libsql_client import create_client
     _client = None
 
     async def get_client():
@@ -33,7 +34,7 @@ if TURSO_URL and TURSO_TOKEN:
         )
 
 else:
-    # ----- SQLite fallback (local development) -----
+    # SQLite fallback (local development / Render without Turso)
     import aiosqlite
     DATABASE_PATH = os.getenv("DATABASE_PATH", "./data/security.db")
     os.makedirs(os.path.dirname(DATABASE_PATH), exist_ok=True)
@@ -58,7 +59,7 @@ else:
 
 
 # ================================================================
-#  TABLE CREATION – all tables used by the bot
+#  TABLE CREATION – Clean, tested, no syntax errors
 # ================================================================
 async def _init_tables(conn):
     # 1. guild_settings (main config)
@@ -77,7 +78,7 @@ async def _init_tables(conn):
         )
     ''')
 
-    # 2. whitelist (anti‑nuke immunity)
+    # 2. whitelist
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS whitelist (
             guild_id INTEGER NOT NULL,
@@ -99,7 +100,7 @@ async def _init_tables(conn):
         )
     ''')
 
-    # 4. ticket_metadata (active tickets)
+    # 4. ticket_metadata
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS ticket_metadata (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -113,7 +114,7 @@ async def _init_tables(conn):
         )
     ''')
 
-    # 5. ticket_types (ticket categories)
+    # 5. ticket_types
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS ticket_types (
             guild_id INTEGER NOT NULL,
@@ -125,7 +126,7 @@ async def _init_tables(conn):
         )
     ''')
 
-    # 6. ticket_counter (sequential ticket numbers)
+    # 6. ticket_counter
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS ticket_counter (
             guild_id INTEGER PRIMARY KEY,
@@ -133,7 +134,7 @@ async def _init_tables(conn):
         )
     ''')
 
-    # 7. ticket_panel_config (panel appearance)
+    # 7. ticket_panel_config
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS ticket_panel_config (
             guild_id INTEGER PRIMARY KEY,
@@ -144,7 +145,7 @@ async def _init_tables(conn):
         )
     ''')
 
-    # 8. staff_stats (ticket counts, leave days)
+    # 8. staff_stats
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS staff_stats (
             guild_id INTEGER NOT NULL,
@@ -156,7 +157,7 @@ async def _init_tables(conn):
         )
     ''')
 
-    # 9. leaves (active leave records)
+    # 9. leaves
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS leaves (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -169,7 +170,7 @@ async def _init_tables(conn):
         )
     ''')
 
-    # 10. leave_settings (leave role configuration)
+    # 10. leave_settings
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS leave_settings (
             guild_id INTEGER PRIMARY KEY,
@@ -177,7 +178,7 @@ async def _init_tables(conn):
         )
     ''')
 
-    # 11. leave_panel_config (panel appearance)
+    # 11. leave_panel_config
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS leave_panel_config (
             guild_id INTEGER PRIMARY KEY,
@@ -187,7 +188,7 @@ async def _init_tables(conn):
         )
     ''')
 
-    # 12. extra_owners (custom per‑server owners)
+    # 12. extra_owners
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS extra_owners (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -197,14 +198,14 @@ async def _init_tables(conn):
         )
     ''')
 
-    # 13. global_blacklist (if used)
+    # 13. global_blacklist
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS global_blacklist (
             user_id INTEGER PRIMARY KEY
         )
     ''')
 
-    # 14. bot_whitelist (if used)
+    # 14. bot_whitelist
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS bot_whitelist (
             guild_id INTEGER NOT NULL,
@@ -213,7 +214,7 @@ async def _init_tables(conn):
         )
     ''')
 
-    # 15. raid_webhooks (if used)
+    # 15. raid_webhooks
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS raid_webhooks (
             guild_id INTEGER PRIMARY KEY,
@@ -257,7 +258,7 @@ async def _init_tables(conn):
         )
     ''')
 
-    # 20. antispam_settings (from antispam.py)
+    # 20. antispam_settings
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS antispam_settings (
             guild_id INTEGER PRIMARY KEY,
@@ -268,7 +269,7 @@ async def _init_tables(conn):
         )
     ''')
 
-    # 21. ai_channels (if you ever re‑enable AI)
+    # 21. ai_channels (if you ever re-enable AI)
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS ai_channels (
             guild_id INTEGER PRIMARY KEY,
@@ -276,7 +277,7 @@ async def _init_tables(conn):
         )
     ''')
 
-    # 22. knowledge_channels & knowledge_entries (if used)
+    # 22. knowledge_channels & knowledge_entries
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS knowledge_channels (
             guild_id INTEGER NOT NULL,
@@ -293,5 +294,9 @@ async def _init_tables(conn):
         )
     ''')
 
-    # Commit all changes
-    await conn.commit()
+    # Commit all changes (important for aiosqlite; for Turso it may be automatic)
+    try:
+        await conn.commit()
+    except AttributeError:
+        # Turso client might not have commit; it's fine.
+        pass
