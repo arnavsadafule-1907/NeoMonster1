@@ -3,17 +3,37 @@ from discord import app_commands
 from discord.ext import commands
 from discord.ui import View, Button
 import asyncio
+import aiosqlite
+import os
 from datetime import datetime, timezone, timedelta
-from checks import staff_only
+from checks import staff_only, admin_only
 
-# In‑memory storage
+DB_PATH = os.getenv("DATABASE_PATH", "./data/security.db")
+
 active_polls = {}   # poll_id -> {"message": msg, "view": PollView, "end_time": datetime}
+
+# ---------- Poll Log Helper ----------
+async def get_poll_log_channel(guild_id: int) -> int | None:
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute(
+            "SELECT poll_log_channel_id FROM guild_settings WHERE guild_id = ?",
+            (guild_id,)
+        )
+        row = await cursor.fetchone()
+        return row[0] if row else None
+
+async def set_poll_log_channel(guild_id: int, channel_id: int):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "UPDATE guild_settings SET poll_log_channel_id = ? WHERE guild_id = ?",
+            (channel_id, guild_id)
+        )
+        await db.commit()
 
 # ---------- Embed Builder ----------
 def build_poll_embed(question: str, options: list, end_time: datetime, votes: dict = None):
     if votes is None:
-        votes = {opt: 0 for opt in options}  # option -> count
-
+        votes = {opt: 0 for opt in options}
     total = sum(votes.values())
     remaining = end_time - datetime.now(timezone.utc)
     if remaining.total_seconds() > 0:
@@ -26,7 +46,6 @@ def build_poll_embed(question: str, options: list, end_time: datetime, votes: di
         color=0x3B82F6,
         timestamp=end_time
     )
-
     for i, opt in enumerate(options):
         count = votes.get(opt, 0)
         percent = (count / total * 100) if total > 0 else 0
@@ -44,19 +63,34 @@ def build_poll_embed(question: str, options: list, end_time: datetime, votes: di
     )
     return embed
 
+# ---------- Poll Log Embed ----------
+def build_vote_log_embed(voter: discord.Member, option: str, new_count: int, poll_question: str):
+    embed = discord.Embed(
+        title="🗳️ Vote Cast",
+        description=f"**{voter.mention}** voted for **{option}**",
+        color=0x3B82F6,
+        timestamp=datetime.now(timezone.utc)
+    )
+    embed.add_field(
+        name="Current Vote Count",
+        value=f"**{option}** now has `{new_count}` votes.",
+        inline=False
+    )
+    embed.set_footer(text=f"Poll: {poll_question}")
+    return embed
 
 # ---------- Poll View ----------
 class PollView(View):
-    def __init__(self, question: str, options: list, end_time: datetime):
+    def __init__(self, question: str, options: list, end_time: datetime, guild_id: int):
         super().__init__(timeout=None)
         self.question = question
         self.options = options
         self.end_time = end_time
-        self.votes = {opt: 0 for opt in options}   # option -> count
-        self.voter_choice = {}   # user_id -> option
+        self.votes = {opt: 0 for opt in options}
+        self.voter_choice = {}
         self.message = None
+        self.guild_id = guild_id
 
-        # Create one button per option (max 10, Discord allows 5 per row, so we'll auto-split into rows of 5)
         for i, opt in enumerate(options):
             button = Button(
                 label=opt,
@@ -64,10 +98,8 @@ class PollView(View):
                 custom_id=f"poll_opt_{i}"
             )
             button.callback = self.make_callback(opt)
-            # Add to view – Discord automatically wraps after 5 buttons per row
             self.add_item(button)
 
-        # "Show Results" button (staff only)
         results_button = Button(
             label="📊 Show Results",
             style=discord.ButtonStyle.secondary,
@@ -80,18 +112,25 @@ class PollView(View):
         async def callback(interaction: discord.Interaction):
             user = interaction.user
 
-            # If user already voted, remove their old vote
             if user.id in self.voter_choice:
                 old = self.voter_choice[user.id]
                 self.votes[old] -= 1
 
-            # Record new vote
             self.votes[option] += 1
             self.voter_choice[user.id] = option
 
             # Update embed
             embed = build_poll_embed(self.question, self.options, self.end_time, self.votes)
             await interaction.message.edit(embed=embed)
+
+            # Log the vote to the poll log channel
+            log_channel_id = await get_poll_log_channel(self.guild_id)
+            if log_channel_id:
+                channel = interaction.guild.get_channel(log_channel_id)
+                if channel:
+                    log_embed = build_vote_log_embed(user, option, self.votes[option], self.question)
+                    await channel.send(embed=log_embed)
+
             await interaction.response.send_message(
                 f"✅ You voted for **{option}**.",
                 ephemeral=True
@@ -99,6 +138,7 @@ class PollView(View):
         return callback
 
     async def show_results_callback(self, interaction: discord.Interaction):
+        # Only staff can see detailed results (change to `if True` if you want everyone)
         if not await self._is_staff(interaction):
             await interaction.response.send_message("Only staff can view detailed results.", ephemeral=True)
             return
@@ -138,7 +178,7 @@ class PollView(View):
             await self.message.edit(embed=embed, view=self)
 
 
-# ---------- Auto‑close background task ----------
+# ---------- Auto‑close ----------
 async def auto_close_poll(poll_id: int):
     await asyncio.sleep(0.5)
     if poll_id not in active_polls:
@@ -158,6 +198,18 @@ async def auto_close_poll(poll_id: int):
 class Poll(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+
+    @app_commands.command(name="setpolllog", description="Set the channel for poll vote logs")
+    @app_commands.describe(channel="The channel where vote logs will be sent")
+    @admin_only()
+    async def set_poll_log(self, interaction: discord.Interaction, channel: discord.TextChannel):
+        await set_poll_log_channel(interaction.guild_id, channel.id)
+        embed = discord.Embed(
+            title="✅ Poll Log Channel Set",
+            description=f"Vote logs will be sent to {channel.mention}.",
+            color=0x00FF00
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @app_commands.command(name="poll", description="Create a professional poll (staff only)")
     @app_commands.describe(
@@ -180,7 +232,7 @@ class Poll(commands.Cog):
 
         end_time = datetime.now(timezone.utc) + timedelta(minutes=duration)
         embed = build_poll_embed(question, raw_opts, end_time)
-        view = PollView(question, raw_opts, end_time)
+        view = PollView(question, raw_opts, end_time, interaction.guild_id)
 
         await interaction.response.send_message(embed=embed, view=view)
         msg = await interaction.original_response()
@@ -193,11 +245,13 @@ class Poll(commands.Cog):
         }
         asyncio.create_task(auto_close_poll(poll_id))
 
-        # Optional logging
-        logger_cog = self.bot.get_cog("ServerLogger")
-        if logger_cog:
-            await logger_cog.log_poll_action(interaction.guild, interaction.user, "create", question=question, channel=interaction.channel)
-
 
 async def setup(bot):
+    # Ensure the poll_log_channel_id column exists
+    async with aiosqlite.connect(DB_PATH) as db:
+        try:
+            await db.execute("ALTER TABLE guild_settings ADD COLUMN poll_log_channel_id INTEGER DEFAULT 0")
+            await db.commit()
+        except:
+            pass
     await bot.add_cog(Poll(bot))
