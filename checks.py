@@ -24,6 +24,24 @@ async def is_extra_owner(guild_id: int, user_id: int) -> bool:
 # ================================================================
 #  ROLE CHECKS
 # ================================================================
+
+# ---------- New: Owner only ----------
+def owner_only():
+    """Restrict command to server owner, bot owners, and extra owners only."""
+    async def predicate(interaction: discord.Interaction) -> bool:
+        # 1) Bot owner (from .env)
+        if interaction.user.id in interaction.client.owner_ids:
+            return True
+        # 2) Server owner
+        if interaction.user.id == interaction.guild.owner_id:
+            return True
+        # 3) Extra owner (stored in DB)
+        if await is_extra_owner(interaction.guild.id, interaction.user.id):
+            return True
+        raise app_commands.MissingRole("Server Owner or Bot Owner")
+    return app_commands.check(predicate)
+
+# ---------- Nuke only ----------
 def nuke_only():
     async def predicate(interaction: discord.Interaction) -> bool:
         if interaction.user.id in interaction.client.owner_ids:
@@ -38,6 +56,7 @@ def nuke_only():
         raise app_commands.MissingRole(NUKE_ROLE)
     return app_commands.check(predicate)
 
+# ---------- Admin only ----------
 def admin_only():
     async def predicate(interaction: discord.Interaction) -> bool:
         if interaction.user.id in interaction.client.owner_ids:
@@ -55,8 +74,9 @@ def admin_only():
         raise app_commands.MissingRole(f"{ADMIN_ROLE} or {NUKE_ROLE}")
     return app_commands.check(predicate)
 
+# ---------- Staff only ----------
 def staff_only():
-    """Allows Staff.exe, admin.exe, nuke.exe, server owner, and extra owners."""
+    """Allows Staff.exe, admin.exe, nuke.exe, server owner, bot owners, and extra owners."""
     async def predicate(interaction: discord.Interaction) -> bool:
         if interaction.user.id in interaction.client.owner_ids:
             return True
@@ -76,8 +96,9 @@ def staff_only():
         raise app_commands.MissingRole(f"{STAFF_ROLE}, {ADMIN_ROLE}, or {NUKE_ROLE}")
     return app_commands.check(predicate)
 
+# ---------- Ticket staff only ----------
 def ticket_staff_only():
-    """Allows TicketSupporter, Staff.exe, admin.exe, nuke.exe, server owner, and extra owners."""
+    """Allows TicketSupporter, Staff.exe, admin.exe, nuke.exe, server owner, bot owners, and extra owners."""
     async def predicate(interaction: discord.Interaction) -> bool:
         if interaction.user.id in interaction.client.owner_ids:
             return True
