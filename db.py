@@ -8,9 +8,11 @@ load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 if DATABASE_URL:
-    # ----- PostgreSQL (Render internal) – persistent -----
+    # ----- PostgreSQL (Supabase) – persistent -----
     async def get_db():
         asyncpg = import_module("asyncpg")
+        # Use the URL directly – it should already be encoded.
+        # Your DATABASE_URL must be encoded: postgresql://user:password%2F%2B@host/db
         return await asyncpg.connect(DATABASE_URL)
 
     async def init_db():
@@ -55,13 +57,7 @@ else:
 #  TABLE CREATION – detects backend and uses correct syntax
 # ================================================================
 async def _init_tables(conn):
-    # Determine backend: PostgreSQL or SQLite
     is_postgres = DATABASE_URL is not None
-
-    # Use appropriate auto‑increment syntax
-    auto_inc = "SERIAL" if is_postgres else "INTEGER PRIMARY KEY AUTOINCREMENT"
-    # For primary keys that are not auto‑increment, we still need to define them as INTEGER PRIMARY KEY (works in both)
-    # We'll use a separate function to generate the correct column definitions.
 
     # 1. guild_settings
     await conn.execute('''
@@ -79,7 +75,7 @@ async def _init_tables(conn):
         )
     ''')
 
-    # 2. whitelist (no auto‑increment)
+    # 2. whitelist
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS whitelist (
             guild_id INTEGER NOT NULL,
@@ -89,7 +85,7 @@ async def _init_tables(conn):
         )
     ''')
 
-    # 3. antinuke_logs – uses auto‑increment
+    # 3. antinuke_logs (auto‑increment)
     if is_postgres:
         await conn.execute('''
             CREATE TABLE IF NOT EXISTS antinuke_logs (
@@ -113,7 +109,7 @@ async def _init_tables(conn):
             )
         ''')
 
-    # 4. ticket_metadata – uses auto‑increment
+    # 4. ticket_metadata (auto‑increment)
     if is_postgres:
         await conn.execute('''
             CREATE TABLE IF NOT EXISTS ticket_metadata (
@@ -141,7 +137,7 @@ async def _init_tables(conn):
             )
         ''')
 
-    # 5. ticket_types – composite primary key (no auto‑increment)
+    # 5. ticket_types (composite PK)
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS ticket_types (
             guild_id INTEGER NOT NULL,
@@ -153,7 +149,7 @@ async def _init_tables(conn):
         )
     ''')
 
-    # 6. ticket_counter – primary key is guild_id
+    # 6. ticket_counter
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS ticket_counter (
             guild_id INTEGER PRIMARY KEY,
@@ -161,7 +157,7 @@ async def _init_tables(conn):
         )
     ''')
 
-    # 7. ticket_panel_config – primary key is guild_id
+    # 7. ticket_panel_config
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS ticket_panel_config (
             guild_id INTEGER PRIMARY KEY,
@@ -172,7 +168,7 @@ async def _init_tables(conn):
         )
     ''')
 
-    # 8. staff_stats – composite primary key (no auto‑increment)
+    # 8. staff_stats (composite PK)
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS staff_stats (
             guild_id INTEGER NOT NULL,
@@ -184,7 +180,7 @@ async def _init_tables(conn):
         )
     ''')
 
-    # 9. leaves – uses auto‑increment
+    # 9. leaves (auto‑increment)
     if is_postgres:
         await conn.execute('''
             CREATE TABLE IF NOT EXISTS leaves (
@@ -210,7 +206,7 @@ async def _init_tables(conn):
             )
         ''')
 
-    # 10. leave_settings – primary key is guild_id
+    # 10. leave_settings
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS leave_settings (
             guild_id INTEGER PRIMARY KEY,
@@ -218,7 +214,7 @@ async def _init_tables(conn):
         )
     ''')
 
-    # 11. leave_panel_config – primary key is guild_id
+    # 11. leave_panel_config
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS leave_panel_config (
             guild_id INTEGER PRIMARY KEY,
@@ -228,7 +224,7 @@ async def _init_tables(conn):
         )
     ''')
 
-    # 12. extra_owners – uses auto‑increment
+    # 12. extra_owners (auto‑increment)
     if is_postgres:
         await conn.execute('''
             CREATE TABLE IF NOT EXISTS extra_owners (
@@ -248,14 +244,14 @@ async def _init_tables(conn):
             )
         ''')
 
-    # 13. global_blacklist – primary key is user_id
+    # 13. global_blacklist
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS global_blacklist (
             user_id INTEGER PRIMARY KEY
         )
     ''')
 
-    # 14. bot_whitelist – composite unique
+    # 14. bot_whitelist
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS bot_whitelist (
             guild_id INTEGER NOT NULL,
@@ -264,7 +260,7 @@ async def _init_tables(conn):
         )
     ''')
 
-    # 15. raid_webhooks – primary key is guild_id
+    # 15. raid_webhooks
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS raid_webhooks (
             guild_id INTEGER PRIMARY KEY,
@@ -272,7 +268,7 @@ async def _init_tables(conn):
         )
     ''')
 
-    # 16. altdetector_settings – primary key is guild_id
+    # 16. altdetector_settings
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS altdetector_settings (
             guild_id INTEGER PRIMARY KEY,
@@ -282,7 +278,7 @@ async def _init_tables(conn):
         )
     ''')
 
-    # 17. massmention_settings – primary key is guild_id
+    # 17. massmention_settings
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS massmention_settings (
             guild_id INTEGER PRIMARY KEY,
@@ -292,7 +288,7 @@ async def _init_tables(conn):
         )
     ''')
 
-    # 18. antivanity_settings – primary key is guild_id
+    # 18. antivanity_settings
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS antivanity_settings (
             guild_id INTEGER PRIMARY KEY,
@@ -300,7 +296,7 @@ async def _init_tables(conn):
         )
     ''')
 
-    # 19. report_settings – primary key is guild_id
+    # 19. report_settings
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS report_settings (
             guild_id INTEGER PRIMARY KEY,
@@ -308,7 +304,7 @@ async def _init_tables(conn):
         )
     ''')
 
-    # 20. antispam_settings – primary key is guild_id
+    # 20. antispam_settings
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS antispam_settings (
             guild_id INTEGER PRIMARY KEY,
@@ -319,7 +315,7 @@ async def _init_tables(conn):
         )
     ''')
 
-    # 21. ai_channels – primary key is guild_id
+    # 21. ai_channels
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS ai_channels (
             guild_id INTEGER PRIMARY KEY,
@@ -327,7 +323,7 @@ async def _init_tables(conn):
         )
     ''')
 
-    # 22. knowledge_channels – primary key is channel_id (composite? Actually, PRIMARY KEY is channel_id)
+    # 22. knowledge_channels
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS knowledge_channels (
             guild_id INTEGER NOT NULL,
@@ -335,7 +331,7 @@ async def _init_tables(conn):
         )
     ''')
 
-    # 23. knowledge_entries – uses auto‑increment
+    # 23. knowledge_entries (auto‑increment)
     if is_postgres:
         await conn.execute('''
             CREATE TABLE IF NOT EXISTS knowledge_entries (
@@ -357,7 +353,7 @@ async def _init_tables(conn):
             )
         ''')
 
-    # Commit – works for SQLite; for asyncpg we already auto-commit but it's safe
+    # Commit – safe for both backends
     try:
         await conn.commit()
     except AttributeError:
