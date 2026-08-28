@@ -1,41 +1,41 @@
 import os
+import aiosqlite
 from dotenv import load_dotenv
 
 load_dotenv()
 
-# ----- Check for Turso (persistent) -----
-TURSO_URL = os.getenv("TURSO_DATABASE_URL")
-TURSO_TOKEN = os.getenv("TURSO_AUTH_TOKEN")
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-if TURSO_URL and TURSO_TOKEN:
-    # Turso (production, persistent)
-    from libsql_client import create_client
-    _client = None
-
-    async def get_client():
-        global _client
-        if _client is None:
-            _client = create_client(TURSO_URL, auth_token=TURSO_TOKEN)
-        return _client
-
+if DATABASE_URL:
+    # ----- PostgreSQL (Supabase) – persistent -----
     async def get_db():
-        return await get_client()
+        # Import only when PostgreSQL is configured so SQLite-only deployments
+        # do not require the optional asyncpg package.
+        try:
+            import asyncpg
+        except ImportError as exc:
+            raise RuntimeError(
+                "DATABASE_URL is set, but asyncpg is not installed. "
+                "Install it with: pip install asyncpg"
+            ) from exc
+        return await asyncpg.connect(DATABASE_URL)
 
     async def init_db():
-        client = await get_client()
-        await _init_tables(client)
+        conn = await get_db()
+        await _init_tables(conn)
+        await conn.close()
 
     async def add_log(guild_id, user_id, event_type, punishment):
         from datetime import datetime, timezone
-        client = await get_client()
-        await client.execute(
-            "INSERT INTO antinuke_logs (guild_id, user_id, event_type, punishment, timestamp) VALUES (?, ?, ?, ?, ?)",
-            (guild_id, user_id, event_type, punishment, datetime.now(timezone.utc).isoformat())
+        conn = await get_db()
+        await conn.execute(
+            "INSERT INTO antinuke_logs (guild_id, user_id, event_type, punishment, timestamp) VALUES ($1, $2, $3, $4, $5)",
+            guild_id, user_id, event_type, punishment, datetime.now(timezone.utc).isoformat()
         )
+        await conn.close()
 
 else:
-    # SQLite fallback (local development / Render without Turso)
-    import aiosqlite
+    # ----- SQLite fallback (local development / no DATABASE_URL) -----
     DATABASE_PATH = os.getenv("DATABASE_PATH", "./data/security.db")
     os.makedirs(os.path.dirname(DATABASE_PATH), exist_ok=True)
 
@@ -59,10 +59,10 @@ else:
 
 
 # ================================================================
-#  TABLE CREATION – Clean, tested, no syntax errors
+#  TABLE CREATION – works with both PostgreSQL and SQLite
 # ================================================================
 async def _init_tables(conn):
-    # 1. guild_settings (main config)
+    # 1. guild_settings
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS guild_settings (
             guild_id INTEGER PRIMARY KEY,
@@ -294,9 +294,8 @@ async def _init_tables(conn):
         )
     ''')
 
-    # Commit all changes (important for aiosqlite; for Turso it may be automatic)
+    # Commit – works for SQLite; for asyncpg we already auto-commit but it's safe
     try:
         await conn.commit()
     except AttributeError:
-        # Turso client might not have commit; it's fine.
         pass
