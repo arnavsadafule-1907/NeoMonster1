@@ -1,4 +1,5 @@
 import os
+from importlib import import_module
 import aiosqlite
 from dotenv import load_dotenv
 
@@ -9,15 +10,9 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 if DATABASE_URL:
     # ----- PostgreSQL (Supabase) – persistent -----
     async def get_db():
-        # Import only when PostgreSQL is configured so SQLite-only deployments
-        # do not require the optional asyncpg package.
-        try:
-            import asyncpg
-        except ImportError as exc:
-            raise RuntimeError(
-                "DATABASE_URL is set, but asyncpg is not installed. "
-                "Install it with: pip install asyncpg"
-            ) from exc
+        # Load PostgreSQL support only when it is actually configured. This
+        # keeps the local SQLite setup usable without the optional dependency.
+        asyncpg = import_module("asyncpg")
         return await asyncpg.connect(DATABASE_URL)
 
     async def init_db():
