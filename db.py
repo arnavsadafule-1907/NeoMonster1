@@ -8,10 +8,8 @@ load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 if DATABASE_URL:
-    # ----- PostgreSQL (Supabase) – persistent -----
+    # ----- PostgreSQL (Render internal) – persistent -----
     async def get_db():
-        # Load PostgreSQL support only when it is actually configured. This
-        # keeps the local SQLite setup usable without the optional dependency.
         asyncpg = import_module("asyncpg")
         return await asyncpg.connect(DATABASE_URL)
 
@@ -30,7 +28,7 @@ if DATABASE_URL:
         await conn.close()
 
 else:
-    # ----- SQLite fallback (local development / no DATABASE_URL) -----
+    # ----- SQLite fallback (local development) -----
     DATABASE_PATH = os.getenv("DATABASE_PATH", "./data/security.db")
     os.makedirs(os.path.dirname(DATABASE_PATH), exist_ok=True)
 
@@ -54,9 +52,17 @@ else:
 
 
 # ================================================================
-#  TABLE CREATION – works with both PostgreSQL and SQLite
+#  TABLE CREATION – detects backend and uses correct syntax
 # ================================================================
 async def _init_tables(conn):
+    # Determine backend: PostgreSQL or SQLite
+    is_postgres = DATABASE_URL is not None
+
+    # Use appropriate auto‑increment syntax
+    auto_inc = "SERIAL" if is_postgres else "INTEGER PRIMARY KEY AUTOINCREMENT"
+    # For primary keys that are not auto‑increment, we still need to define them as INTEGER PRIMARY KEY (works in both)
+    # We'll use a separate function to generate the correct column definitions.
+
     # 1. guild_settings
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS guild_settings (
@@ -73,7 +79,7 @@ async def _init_tables(conn):
         )
     ''')
 
-    # 2. whitelist
+    # 2. whitelist (no auto‑increment)
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS whitelist (
             guild_id INTEGER NOT NULL,
@@ -83,33 +89,59 @@ async def _init_tables(conn):
         )
     ''')
 
-    # 3. antinuke_logs
-    await conn.execute('''
-        CREATE TABLE IF NOT EXISTS antinuke_logs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            guild_id INTEGER NOT NULL,
-            user_id INTEGER NOT NULL,
-            event_type TEXT NOT NULL,
-            punishment TEXT NOT NULL,
-            timestamp TEXT NOT NULL
-        )
-    ''')
+    # 3. antinuke_logs – uses auto‑increment
+    if is_postgres:
+        await conn.execute('''
+            CREATE TABLE IF NOT EXISTS antinuke_logs (
+                id SERIAL PRIMARY KEY,
+                guild_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                event_type TEXT NOT NULL,
+                punishment TEXT NOT NULL,
+                timestamp TEXT NOT NULL
+            )
+        ''')
+    else:
+        await conn.execute('''
+            CREATE TABLE IF NOT EXISTS antinuke_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                guild_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                event_type TEXT NOT NULL,
+                punishment TEXT NOT NULL,
+                timestamp TEXT NOT NULL
+            )
+        ''')
 
-    # 4. ticket_metadata
-    await conn.execute('''
-        CREATE TABLE IF NOT EXISTS ticket_metadata (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            guild_id INTEGER NOT NULL,
-            ticket_number INTEGER NOT NULL,
-            channel_id INTEGER UNIQUE NOT NULL,
-            user_id INTEGER NOT NULL,
-            open_time TEXT NOT NULL,
-            claimed_by INTEGER,
-            ticket_type TEXT NOT NULL
-        )
-    ''')
+    # 4. ticket_metadata – uses auto‑increment
+    if is_postgres:
+        await conn.execute('''
+            CREATE TABLE IF NOT EXISTS ticket_metadata (
+                id SERIAL PRIMARY KEY,
+                guild_id INTEGER NOT NULL,
+                ticket_number INTEGER NOT NULL,
+                channel_id INTEGER UNIQUE NOT NULL,
+                user_id INTEGER NOT NULL,
+                open_time TEXT NOT NULL,
+                claimed_by INTEGER,
+                ticket_type TEXT NOT NULL
+            )
+        ''')
+    else:
+        await conn.execute('''
+            CREATE TABLE IF NOT EXISTS ticket_metadata (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                guild_id INTEGER NOT NULL,
+                ticket_number INTEGER NOT NULL,
+                channel_id INTEGER UNIQUE NOT NULL,
+                user_id INTEGER NOT NULL,
+                open_time TEXT NOT NULL,
+                claimed_by INTEGER,
+                ticket_type TEXT NOT NULL
+            )
+        ''')
 
-    # 5. ticket_types
+    # 5. ticket_types – composite primary key (no auto‑increment)
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS ticket_types (
             guild_id INTEGER NOT NULL,
@@ -121,7 +153,7 @@ async def _init_tables(conn):
         )
     ''')
 
-    # 6. ticket_counter
+    # 6. ticket_counter – primary key is guild_id
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS ticket_counter (
             guild_id INTEGER PRIMARY KEY,
@@ -129,7 +161,7 @@ async def _init_tables(conn):
         )
     ''')
 
-    # 7. ticket_panel_config
+    # 7. ticket_panel_config – primary key is guild_id
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS ticket_panel_config (
             guild_id INTEGER PRIMARY KEY,
@@ -140,7 +172,7 @@ async def _init_tables(conn):
         )
     ''')
 
-    # 8. staff_stats
+    # 8. staff_stats – composite primary key (no auto‑increment)
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS staff_stats (
             guild_id INTEGER NOT NULL,
@@ -152,20 +184,33 @@ async def _init_tables(conn):
         )
     ''')
 
-    # 9. leaves
-    await conn.execute('''
-        CREATE TABLE IF NOT EXISTS leaves (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            guild_id INTEGER NOT NULL,
-            user_id INTEGER NOT NULL,
-            start_date TEXT NOT NULL,
-            end_date TEXT NOT NULL,
-            reason TEXT DEFAULT '',
-            active INTEGER DEFAULT 1
-        )
-    ''')
+    # 9. leaves – uses auto‑increment
+    if is_postgres:
+        await conn.execute('''
+            CREATE TABLE IF NOT EXISTS leaves (
+                id SERIAL PRIMARY KEY,
+                guild_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                start_date TEXT NOT NULL,
+                end_date TEXT NOT NULL,
+                reason TEXT DEFAULT '',
+                active INTEGER DEFAULT 1
+            )
+        ''')
+    else:
+        await conn.execute('''
+            CREATE TABLE IF NOT EXISTS leaves (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                guild_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                start_date TEXT NOT NULL,
+                end_date TEXT NOT NULL,
+                reason TEXT DEFAULT '',
+                active INTEGER DEFAULT 1
+            )
+        ''')
 
-    # 10. leave_settings
+    # 10. leave_settings – primary key is guild_id
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS leave_settings (
             guild_id INTEGER PRIMARY KEY,
@@ -173,7 +218,7 @@ async def _init_tables(conn):
         )
     ''')
 
-    # 11. leave_panel_config
+    # 11. leave_panel_config – primary key is guild_id
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS leave_panel_config (
             guild_id INTEGER PRIMARY KEY,
@@ -183,24 +228,34 @@ async def _init_tables(conn):
         )
     ''')
 
-    # 12. extra_owners
-    await conn.execute('''
-        CREATE TABLE IF NOT EXISTS extra_owners (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            guild_id INTEGER NOT NULL,
-            user_id INTEGER NOT NULL,
-            UNIQUE(guild_id, user_id)
-        )
-    ''')
+    # 12. extra_owners – uses auto‑increment
+    if is_postgres:
+        await conn.execute('''
+            CREATE TABLE IF NOT EXISTS extra_owners (
+                id SERIAL PRIMARY KEY,
+                guild_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                UNIQUE(guild_id, user_id)
+            )
+        ''')
+    else:
+        await conn.execute('''
+            CREATE TABLE IF NOT EXISTS extra_owners (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                guild_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                UNIQUE(guild_id, user_id)
+            )
+        ''')
 
-    # 13. global_blacklist
+    # 13. global_blacklist – primary key is user_id
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS global_blacklist (
             user_id INTEGER PRIMARY KEY
         )
     ''')
 
-    # 14. bot_whitelist
+    # 14. bot_whitelist – composite unique
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS bot_whitelist (
             guild_id INTEGER NOT NULL,
@@ -209,7 +264,7 @@ async def _init_tables(conn):
         )
     ''')
 
-    # 15. raid_webhooks
+    # 15. raid_webhooks – primary key is guild_id
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS raid_webhooks (
             guild_id INTEGER PRIMARY KEY,
@@ -217,7 +272,7 @@ async def _init_tables(conn):
         )
     ''')
 
-    # 16. altdetector_settings
+    # 16. altdetector_settings – primary key is guild_id
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS altdetector_settings (
             guild_id INTEGER PRIMARY KEY,
@@ -227,7 +282,7 @@ async def _init_tables(conn):
         )
     ''')
 
-    # 17. massmention_settings
+    # 17. massmention_settings – primary key is guild_id
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS massmention_settings (
             guild_id INTEGER PRIMARY KEY,
@@ -237,7 +292,7 @@ async def _init_tables(conn):
         )
     ''')
 
-    # 18. antivanity_settings
+    # 18. antivanity_settings – primary key is guild_id
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS antivanity_settings (
             guild_id INTEGER PRIMARY KEY,
@@ -245,7 +300,7 @@ async def _init_tables(conn):
         )
     ''')
 
-    # 19. report_settings
+    # 19. report_settings – primary key is guild_id
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS report_settings (
             guild_id INTEGER PRIMARY KEY,
@@ -253,7 +308,7 @@ async def _init_tables(conn):
         )
     ''')
 
-    # 20. antispam_settings
+    # 20. antispam_settings – primary key is guild_id
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS antispam_settings (
             guild_id INTEGER PRIMARY KEY,
@@ -264,7 +319,7 @@ async def _init_tables(conn):
         )
     ''')
 
-    # 21. ai_channels (if you ever re-enable AI)
+    # 21. ai_channels – primary key is guild_id
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS ai_channels (
             guild_id INTEGER PRIMARY KEY,
@@ -272,22 +327,35 @@ async def _init_tables(conn):
         )
     ''')
 
-    # 22. knowledge_channels & knowledge_entries
+    # 22. knowledge_channels – primary key is channel_id (composite? Actually, PRIMARY KEY is channel_id)
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS knowledge_channels (
             guild_id INTEGER NOT NULL,
             channel_id INTEGER PRIMARY KEY
         )
     ''')
-    await conn.execute('''
-        CREATE TABLE IF NOT EXISTS knowledge_entries (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            channel_id INTEGER NOT NULL,
-            section TEXT,
-            content TEXT NOT NULL,
-            last_updated TEXT NOT NULL
-        )
-    ''')
+
+    # 23. knowledge_entries – uses auto‑increment
+    if is_postgres:
+        await conn.execute('''
+            CREATE TABLE IF NOT EXISTS knowledge_entries (
+                id SERIAL PRIMARY KEY,
+                channel_id INTEGER NOT NULL,
+                section TEXT,
+                content TEXT NOT NULL,
+                last_updated TEXT NOT NULL
+            )
+        ''')
+    else:
+        await conn.execute('''
+            CREATE TABLE IF NOT EXISTS knowledge_entries (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                channel_id INTEGER NOT NULL,
+                section TEXT,
+                content TEXT NOT NULL,
+                last_updated TEXT NOT NULL
+            )
+        ''')
 
     # Commit – works for SQLite; for asyncpg we already auto-commit but it's safe
     try:
