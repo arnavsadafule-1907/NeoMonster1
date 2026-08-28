@@ -8,11 +8,9 @@ load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 if DATABASE_URL:
-    # ----- PostgreSQL (Supabase) – persistent -----
+    # ----- PostgreSQL (Neon) – persistent -----
     async def get_db():
         asyncpg = import_module("asyncpg")
-        # Use the URL directly – it should already be encoded.
-        # Your DATABASE_URL must be encoded: postgresql://user:password%2F%2B@host/db
         return await asyncpg.connect(DATABASE_URL)
 
     async def init_db():
@@ -304,16 +302,27 @@ async def _init_tables(conn):
         )
     ''')
 
-    # 20. antispam_settings
-    await conn.execute('''
-        CREATE TABLE IF NOT EXISTS antispam_settings (
-            guild_id INTEGER PRIMARY KEY,
-            enabled INTEGER DEFAULT 1,
-            threshold INTEGER DEFAULT 5,
-            window INTEGER DEFAULT 5,
-            mute_duration INTEGER DEFAULT 10
-        )
-    ''')
+    # 20. antispam_settings – FIXED: quoted "window"
+    if is_postgres:
+        await conn.execute('''
+            CREATE TABLE IF NOT EXISTS antispam_settings (
+                guild_id INTEGER PRIMARY KEY,
+                enabled INTEGER DEFAULT 1,
+                threshold INTEGER DEFAULT 5,
+                "window" INTEGER DEFAULT 5,
+                mute_duration INTEGER DEFAULT 10
+            )
+        ''')
+    else:
+        await conn.execute('''
+            CREATE TABLE IF NOT EXISTS antispam_settings (
+                guild_id INTEGER PRIMARY KEY,
+                enabled INTEGER DEFAULT 1,
+                threshold INTEGER DEFAULT 5,
+                window INTEGER DEFAULT 5,
+                mute_duration INTEGER DEFAULT 10
+            )
+        ''')
 
     # 21. ai_channels
     await conn.execute('''
