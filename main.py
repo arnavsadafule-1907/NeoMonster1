@@ -74,7 +74,7 @@ class SecurityBot(commands.Bot):
             global_blacklist_cog = self.get_cog("GlobalBlacklist")
             if global_blacklist_cog and await global_blacklist_cog.is_blacklisted(interaction.user.id):
                 await interaction.response.send_message(
-                    "⛔ You are globally blacklisted from using DesireSmp.", ephemeral=False
+                    "⛔ You are globally blacklisted from using NeoMonster.", ephemeral=False
                 )
                 return False
         except Exception:
@@ -84,7 +84,7 @@ class SecurityBot(commands.Bot):
     async def on_ready(self):
         logger.info(f"🛡️ Security Bot online as {self.user} (ID: {self.user.id})")
         await self.change_presence(activity=discord.Activity(
-            type=discord.ActivityType.watching, name="DesireSmp / 24/7 Protection"
+            type=discord.ActivityType.watching, name="NeoMonster / 24/7 Protection"
         ))
 
     async def on_app_command_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):

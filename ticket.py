@@ -330,7 +330,7 @@ class Ticket(commands.Cog):
                 pass
         if image_url:
             embed.set_image(url=image_url)
-        embed.set_footer(text="DesireSmp • Ticket System")
+        embed.set_footer(text="NeoMonster • Ticket System")
 
         options = [discord.SelectOption(label=t["name"], description=f"Open a {t['name'].lower()} ticket", emoji="🎟️") for t in types]
         select_menu = discord.ui.Select(

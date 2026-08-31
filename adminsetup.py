@@ -67,7 +67,7 @@ class AdminSetup(commands.Cog):
                 name=role_name,
                 permissions=perms,
                 colour=colour,
-                reason="Setup via DesireSmp"
+                reason="Setup via NeoMonster"
             )
             try:
                 await role.edit(position=interaction.guild.me.top_role.position - 1)

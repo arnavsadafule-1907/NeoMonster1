@@ -2491,7 +2491,7 @@ Traceback (most recent call last):
     raise ClientConnectionResetError("Cannot write to closing transport")
 aiohttp.client_exceptions.ClientConnectionResetError: Cannot write to closing transport
 2026-07-25 18:53:21,792 [INFO] discord.gateway: Shard ID None has connected to Gateway (Session ID: f44295649832b34915962a6039a7ab75).
-2026-07-25 18:53:23,829 [INFO] discord: 🛡️ Security Bot online as DesireSmp#5217 (ID: 1528368412093579376)
+2026-07-25 18:53:23,829 [INFO] discord: 🛡️ Security Bot online as NeoMonster#5217 (ID: 1528368412093579376)
 2026-07-25 18:58:40,363 [WARNING] discord.client: PyNaCl is not installed, voice will NOT be supported
 2026-07-25 18:58:40,364 [WARNING] discord.client: davey is not installed, voice will NOT be supported
 2026-07-25 18:58:40,365 [INFO] discord: Dashboard started on http://0.0.0.0:5000
@@ -2532,7 +2532,7 @@ aiohttp.client_exceptions.ClientConnectionResetError: Cannot write to closing tr
 2026-07-25 18:58:42,164 [INFO] discord: Database ready
 2026-07-25 18:58:43,058 [INFO] discord: Command tree synced
 2026-07-25 18:58:43,946 [INFO] discord.gateway: Shard ID None has connected to Gateway (Session ID: 5bf6872f20de936625a2fdfe55ba9b03).
-2026-07-25 18:58:46,110 [INFO] discord: 🛡️ Security Bot online as DesireSmp#5217 (ID: 1528368412093579376)
+2026-07-25 18:58:46,110 [INFO] discord: 🛡️ Security Bot online as NeoMonster#5217 (ID: 1528368412093579376)
 2026-07-25 19:14:06,226 [WARNING] discord.client: PyNaCl is not installed, voice will NOT be supported
 2026-07-25 19:14:06,226 [WARNING] discord.client: davey is not installed, voice will NOT be supported
 2026-07-25 19:14:06,228 [INFO] discord: Dashboard started on http://0.0.0.0:5000
@@ -2573,7 +2573,7 @@ aiohttp.client_exceptions.ClientConnectionResetError: Cannot write to closing tr
 2026-07-25 19:14:08,163 [INFO] discord: Database ready
 2026-07-25 19:14:09,459 [INFO] discord: Command tree synced
 2026-07-25 19:14:10,484 [INFO] discord.gateway: Shard ID None has connected to Gateway (Session ID: 857bc7f271b63ccf62322313e597d4c3).
-2026-07-25 19:14:12,524 [INFO] discord: 🛡️ Security Bot online as DesireSmp#5217 (ID: 1528368412093579376)
+2026-07-25 19:14:12,524 [INFO] discord: 🛡️ Security Bot online as NeoMonster#5217 (ID: 1528368412093579376)
 2026-07-25 19:17:50,704 [WARNING] discord.client: PyNaCl is not installed, voice will NOT be supported
 2026-07-25 19:17:50,704 [WARNING] discord.client: davey is not installed, voice will NOT be supported
 2026-07-25 19:17:50,706 [INFO] discord: Dashboard started on http://0.0.0.0:5000
@@ -2614,7 +2614,7 @@ aiohttp.client_exceptions.ClientConnectionResetError: Cannot write to closing tr
 2026-07-25 19:17:52,291 [INFO] discord: Database ready
 2026-07-25 19:17:52,993 [INFO] discord: Command tree synced
 2026-07-25 19:17:53,950 [INFO] discord.gateway: Shard ID None has connected to Gateway (Session ID: b1f7e1ba9968827dbdba292ac874c9a8).
-2026-07-25 19:17:56,036 [INFO] discord: 🛡️ Security Bot online as DesireSmp#5217 (ID: 1528368412093579376)
+2026-07-25 19:17:56,036 [INFO] discord: 🛡️ Security Bot online as NeoMonster#5217 (ID: 1528368412093579376)
 2026-07-25 19:24:35,737 [WARNING] discord.client: PyNaCl is not installed, voice will NOT be supported
 2026-07-25 19:24:35,738 [WARNING] discord.client: davey is not installed, voice will NOT be supported
 2026-07-25 19:24:35,740 [INFO] discord: Dashboard started on http://0.0.0.0:5000
@@ -2655,7 +2655,7 @@ aiohttp.client_exceptions.ClientConnectionResetError: Cannot write to closing tr
 2026-07-25 19:24:37,339 [INFO] discord: Database ready
 2026-07-25 19:24:38,166 [INFO] discord: Command tree synced
 2026-07-25 19:24:39,797 [INFO] discord.gateway: Shard ID None has connected to Gateway (Session ID: ce70576f9a9a4d5c532283399e9c1955).
-2026-07-25 19:24:41,831 [INFO] discord: 🛡️ Security Bot online as DesireSmp#5217 (ID: 1528368412093579376)
+2026-07-25 19:24:41,831 [INFO] discord: 🛡️ Security Bot online as NeoMonster#5217 (ID: 1528368412093579376)
 2026-07-25 19:30:38,676 [ERROR] discord.client: Ignoring exception in on_message
 Traceback (most recent call last):
   File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\ext\commands\bot.py", line 1227, in get_prefix
@@ -2746,7 +2746,7 @@ TypeError: command_prefix must be plain string, iterable of strings, or callable
 2026-07-25 19:34:25,425 [INFO] discord: Database ready
 2026-07-25 19:34:26,171 [INFO] discord: Command tree synced
 2026-07-25 19:34:27,050 [INFO] discord.gateway: Shard ID None has connected to Gateway (Session ID: dbc344e99b02014b9454e9fd2b55e632).
-2026-07-25 19:34:29,099 [INFO] discord: 🛡️ Security Bot online as DesireSmp#5217 (ID: 1528368412093579376)
+2026-07-25 19:34:29,099 [INFO] discord: 🛡️ Security Bot online as NeoMonster#5217 (ID: 1528368412093579376)
 2026-07-25 19:35:08,631 [ERROR] discord.client: Ignoring exception in on_message
 Traceback (most recent call last):
   File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\ext\commands\bot.py", line 1227, in get_prefix
@@ -2828,7 +2828,7 @@ discord.app_commands.errors.MissingRole: Role 'admin.exe or nuke.exe' is require
 2026-07-25 19:37:43,122 [INFO] discord: Database ready
 2026-07-25 19:37:43,889 [INFO] discord: Command tree synced
 2026-07-25 19:37:45,464 [INFO] discord.gateway: Shard ID None has connected to Gateway (Session ID: 610313c86155c71f259a7e7723db1b98).
-2026-07-25 19:37:47,532 [INFO] discord: 🛡️ Security Bot online as DesireSmp#5217 (ID: 1528368412093579376)
+2026-07-25 19:37:47,532 [INFO] discord: 🛡️ Security Bot online as NeoMonster#5217 (ID: 1528368412093579376)
 2026-07-25 19:38:30,766 [ERROR] discord.app_commands.tree: Ignoring exception in command 'announce'
 Traceback (most recent call last):
   File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\app_commands\tree.py", line 1302, in _call
@@ -2902,7 +2902,7 @@ discord.app_commands.errors.MissingRole: Role 'admin.exe or nuke.exe' is require
 2026-07-25 19:39:20,920 [INFO] discord: Database ready
 2026-07-25 19:39:21,447 [INFO] discord: Command tree synced
 2026-07-25 19:39:22,470 [INFO] discord.gateway: Shard ID None has connected to Gateway (Session ID: 03e6074d1e2186d98f961fbba260bef2).
-2026-07-25 19:39:24,646 [INFO] discord: 🛡️ Security Bot online as DesireSmp#5217 (ID: 1528368412093579376)
+2026-07-25 19:39:24,646 [INFO] discord: 🛡️ Security Bot online as NeoMonster#5217 (ID: 1528368412093579376)
 2026-07-25 19:39:27,605 [ERROR] discord.app_commands.tree: Ignoring exception in command 'setup'
 Traceback (most recent call last):
   File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\app_commands\tree.py", line 1302, in _call
@@ -2976,7 +2976,7 @@ discord.app_commands.errors.MissingRole: Role 'admin.exe or nuke.exe' is require
 2026-07-25 19:43:48,105 [INFO] discord: Database ready
 2026-07-25 19:43:48,690 [INFO] discord: Command tree synced
 2026-07-25 19:43:49,591 [INFO] discord.gateway: Shard ID None has connected to Gateway (Session ID: 27f933e1ee736990047997110f3600c0).
-2026-07-25 19:43:51,752 [INFO] discord: 🛡️ Security Bot online as DesireSmp#5217 (ID: 1528368412093579376)
+2026-07-25 19:43:51,752 [INFO] discord: 🛡️ Security Bot online as NeoMonster#5217 (ID: 1528368412093579376)
 2026-07-25 19:44:13,484 [WARNING] discord.client: PyNaCl is not installed, voice will NOT be supported
 2026-07-25 19:44:13,485 [WARNING] discord.client: davey is not installed, voice will NOT be supported
 2026-07-25 19:44:13,486 [INFO] discord: Dashboard started on http://0.0.0.0:5000
@@ -3018,7 +3018,7 @@ discord.app_commands.errors.MissingRole: Role 'admin.exe or nuke.exe' is require
 2026-07-25 19:44:15,047 [INFO] discord: Database ready
 2026-07-25 19:44:48,661 [INFO] discord: Command tree synced
 2026-07-25 19:44:50,405 [INFO] discord.gateway: Shard ID None has connected to Gateway (Session ID: 4c5db9a297877fa59319e2d0b77a9228).
-2026-07-25 19:44:52,426 [INFO] discord: 🛡️ Security Bot online as DesireSmp#5217 (ID: 1528368412093579376)
+2026-07-25 19:44:52,426 [INFO] discord: 🛡️ Security Bot online as NeoMonster#5217 (ID: 1528368412093579376)
 2026-07-25 19:46:33,174 [ERROR] discord.client: Ignoring exception in on_message
 Traceback (most recent call last):
   File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\ext\commands\bot.py", line 1227, in get_prefix
@@ -3084,7 +3084,7 @@ TypeError: command_prefix must be plain string, iterable of strings, or callable
 2026-07-25 19:54:22,746 [INFO] discord: Database ready
 2026-07-25 19:54:23,363 [INFO] discord: Command tree synced
 2026-07-25 19:54:26,022 [INFO] discord.gateway: Shard ID None has connected to Gateway (Session ID: d8dbef1073f1b53bae3f70e7f3192274).
-2026-07-25 19:54:28,082 [INFO] discord: 🛡️ Security Bot online as DesireSmp#5217 (ID: 1528368412093579376)
+2026-07-25 19:54:28,082 [INFO] discord: 🛡️ Security Bot online as NeoMonster#5217 (ID: 1528368412093579376)
 2026-07-25 20:28:05,675 [INFO] discord.gateway: Shard ID None has successfully RESUMED session d8dbef1073f1b53bae3f70e7f3192274.
 2026-07-25 21:54:12,373 [INFO] discord.gateway: Shard ID None has successfully RESUMED session d8dbef1073f1b53bae3f70e7f3192274.
 2026-07-25 23:39:48,680 [ERROR] discord.app_commands.tree: Ignoring exception in command 'module'
@@ -3170,7 +3170,7 @@ discord.errors.NotFound: 404 Not Found (error code: 10004): Unknown Guild
 2026-07-25 23:57:44,787 [INFO] discord: Database ready
 2026-07-25 23:57:45,429 [INFO] discord: Command tree synced
 2026-07-25 23:57:46,369 [INFO] discord.gateway: Shard ID None has connected to Gateway (Session ID: 9f538116e554449890557af1090a620d).
-2026-07-25 23:57:48,557 [INFO] discord: 🛡️ Security Bot online as DesireSmp#5217 (ID: 1528368412093579376)
+2026-07-25 23:57:48,557 [INFO] discord: 🛡️ Security Bot online as NeoMonster#5217 (ID: 1528368412093579376)
 2026-07-26 00:05:09,124 [ERROR] discord.client: Ignoring exception in on_member_remove
 Traceback (most recent call last):
   File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\client.py", line 508, in _run_event
@@ -3233,7 +3233,7 @@ discord.errors.NotFound: 404 Not Found (error code: 10004): Unknown Guild
 2026-07-26 00:06:06,261 [INFO] discord: Database ready
 2026-07-26 00:06:06,958 [INFO] discord: Command tree synced
 2026-07-26 00:06:08,158 [INFO] discord.gateway: Shard ID None has connected to Gateway (Session ID: aa3eb439ce0f16050d27a5b95fb23ee3).
-2026-07-26 00:06:10,214 [INFO] discord: 🛡️ Security Bot online as DesireSmp#5217 (ID: 1528368412093579376)
+2026-07-26 00:06:10,214 [INFO] discord: 🛡️ Security Bot online as NeoMonster#5217 (ID: 1528368412093579376)
 2026-07-26 00:10:08,277 [WARNING] discord.client: PyNaCl is not installed, voice will NOT be supported
 2026-07-26 00:10:08,278 [WARNING] discord.client: davey is not installed, voice will NOT be supported
 2026-07-26 00:10:08,279 [INFO] discord: Dashboard started on http://0.0.0.0:5000
@@ -3275,7 +3275,7 @@ discord.errors.NotFound: 404 Not Found (error code: 10004): Unknown Guild
 2026-07-26 00:10:09,781 [INFO] discord: Database ready
 2026-07-26 00:10:10,732 [INFO] discord: Command tree synced
 2026-07-26 00:10:11,703 [INFO] discord.gateway: Shard ID None has connected to Gateway (Session ID: 301874d1db06f96906bfa4a47add6793).
-2026-07-26 00:10:14,537 [INFO] discord: 🛡️ Security Bot online as DesireSmp#5217 (ID: 1528368412093579376)
+2026-07-26 00:10:14,537 [INFO] discord: 🛡️ Security Bot online as NeoMonster#5217 (ID: 1528368412093579376)
 2026-07-26 00:21:30,281 [WARNING] discord.client: PyNaCl is not installed, voice will NOT be supported
 2026-07-26 00:21:30,282 [WARNING] discord.client: davey is not installed, voice will NOT be supported
 2026-07-26 00:21:30,284 [INFO] discord: Dashboard started on http://0.0.0.0:5000
@@ -3317,7 +3317,7 @@ discord.errors.NotFound: 404 Not Found (error code: 10004): Unknown Guild
 2026-07-26 00:21:31,863 [INFO] discord: Database ready
 2026-07-26 00:21:32,489 [INFO] discord: Command tree synced
 2026-07-26 00:21:34,702 [INFO] discord.gateway: Shard ID None has connected to Gateway (Session ID: 6e5b8c725df201ca18bcecba988712d6).
-2026-07-26 00:21:37,058 [INFO] discord: 🛡️ Security Bot online as DesireSmp#5217 (ID: 1528368412093579376)
+2026-07-26 00:21:37,058 [INFO] discord: 🛡️ Security Bot online as NeoMonster#5217 (ID: 1528368412093579376)
 2026-07-26 00:22:36,911 [ERROR] discord.app_commands.tree: Ignoring exception in command 'report'
 Traceback (most recent call last):
   File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\app_commands\commands.py", line 859, in _do_call
@@ -3396,7 +3396,7 @@ discord.app_commands.errors.CommandOnCooldown: You are on cooldown. Try again in
 2026-07-26 14:25:39,578 [INFO] discord: Database ready
 2026-07-26 14:25:40,322 [INFO] discord: Command tree synced
 2026-07-26 14:25:41,772 [INFO] discord.gateway: Shard ID None has connected to Gateway (Session ID: c1d1a62f40c86405bc4208dbfeed03f8).
-2026-07-26 14:25:44,480 [INFO] discord: 🛡️ Security Bot online as DesireSmp#5217 (ID: 1528368412093579376)
+2026-07-26 14:25:44,480 [INFO] discord: 🛡️ Security Bot online as NeoMonster#5217 (ID: 1528368412093579376)
 2026-07-26 14:36:32,093 [ERROR] discord.client: Attempting a reconnect in 1.56s
 Traceback (most recent call last):
   File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\aiohttp\connector.py", line 1571, in _create_direct_connection
@@ -3582,7 +3582,7 @@ aiohttp.client_exceptions.ClientConnectorDNSError: Cannot connect to host gatewa
 2026-07-26 16:07:45,189 [INFO] discord: Loaded announce
 2026-07-26 16:07:46,568 [INFO] discord: Command tree synced
 2026-07-26 16:07:48,077 [INFO] discord.gateway: Shard ID None has connected to Gateway (Session ID: 17cfcadfcf13508fb2694a0b0facd318).
-2026-07-26 16:07:50,402 [INFO] discord: 🛡️ Security Bot online as DesireSmp#5217 (ID: 1528368412093579376)
+2026-07-26 16:07:50,402 [INFO] discord: 🛡️ Security Bot online as NeoMonster#5217 (ID: 1528368412093579376)
 2026-07-26 16:20:56,578 [ERROR] discord.app_commands.tree: Ignoring exception in command 'help'
 Traceback (most recent call last):
   File "C:\Users\aarya\OneDrive\Desktop\vectrsecure\venv\Lib\site-packages\discord\app_commands\commands.py", line 858, in _do_call
@@ -4502,4 +4502,4 @@ Traceback (most recent call last):
     raise ClientConnectionResetError("Cannot write to closing transport")
 aiohttp.client_exceptions.ClientConnectionResetError: Cannot write to closing transport
 2026-07-26 17:37:08,004 [INFO] discord.gateway: Shard ID None has connected to Gateway (Session ID: 91571908d59967d93f32048850ccd3f5).
-2026-07-26 17:37:10,737 [INFO] discord: 🛡️ Security Bot online as DesireSmp#5217 (ID: 1528368412093579376)
+2026-07-26 17:37:10,737 [INFO] discord: 🛡️ Security Bot online as NeoMonster#5217 (ID: 1528368412093579376)

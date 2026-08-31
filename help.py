@@ -338,7 +338,7 @@ class HelpView(View):
     def build_embed(self):
         if self.current_page == 0:
             embed = discord.Embed(
-                title="DesireSmp",
+                title="NeoMonster",
                 description="Advanced server security, automated moderation, and seamless community management — all in one powerful bot.",
                 color=BLUE_MAIN,
             )
@@ -348,7 +348,7 @@ class HelpView(View):
                 value=(
                     "**Prefix:** `/`\n"
                     "**Total Commands:** `65+`\n"
-                    "**Website:** [DesireSmp.bot](https://DesireSmp1-production.up.railway.app)\n"
+                    "**Website:** [NeoMonster.bot](https://NeoMonster1-production.up.railway.app)\n"
                     "**Support:** [Join Server](https://discord.gg/f8zTc4tmHx)"
                 ),
                 inline=False,
@@ -371,12 +371,12 @@ class HelpView(View):
                     display += " `NEW`"
                 cat_lines.append(display)
             embed.add_field(name="Categories", value="\n".join(cat_lines), inline=False)
-            embed.set_footer(text=f"Page 1 of {len(self.modules)} • DesireSmp Security")
+            embed.set_footer(text=f"Page 1 of {len(self.modules)} • NeoMonster Security")
             return embed
 
         full, name = self.modules[self.current_page]
         data = self.module_data[name]
-        embed = discord.Embed(title="DesireSmp", description=data["description"], color=BLUE_MAIN)
+        embed = discord.Embed(title="NeoMonster", description=data["description"], color=BLUE_MAIN)
         embed.set_thumbnail(url=self.bot.user.display_avatar.url)
         cmds = data.get("commands", [])
         if cmds:
@@ -386,7 +386,7 @@ class HelpView(View):
                 embed.add_field(name=field_name, value=chunk, inline=False)
         else:
             embed.add_field(name="Commands", value="No commands available.", inline=False)
-        embed.set_footer(text=f"Page {self.current_page+1} of {len(self.modules)} • DesireSmp Security")
+        embed.set_footer(text=f"Page {self.current_page+1} of {len(self.modules)} • NeoMonster Security")
         return embed
 
     async def select_callback(self, interaction: discord.Interaction):

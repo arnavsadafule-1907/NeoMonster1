@@ -21,7 +21,7 @@ def mc_chat():
 
     player = data.get("player")
     message = data.get("message")
-    server = data.get("server", "DesireSMP")
+    server = data.get("server", "NeoMonster")
 
     if not player or not message:
         return jsonify({"error": "Missing fields"}), 400
@@ -37,7 +37,7 @@ def mc_chat():
                 "icon_url": f"https://minotar.net/helm/{player}/32.png"
             },
             "footer": {
-                "text": "DesireSMP • Live Chat",
+                "text": "NeoMonster • Live Chat",
                 "icon_url": "https://cdn.discordapp.com/avatars/1528368412093579376/bot_avatar.png"
             },
             "timestamp": datetime.utcnow().isoformat()
