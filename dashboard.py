@@ -63,7 +63,7 @@ def exchange_code(code):
         'client_secret': DISCORD_CLIENT_SECRET,
         'grant_type': 'authorization_code',
         'code': code,
-        'redirect_uri': 'https://NeoMonster1-production.up.railway.app/callback'
+        'redirect_uri': 'https://neomonster1.onrender.comcallback'
     }
     headers = {'Content-Type': 'application/x-www-form-urlencoded'}
     r = requests.post('https://discord.com/api/oauth2/token', data=data, headers=headers)

@@ -87,7 +87,7 @@ class PublicBot(commands.Cog):
             "📞 NeoMonster Support",
             "**Need help?**\n\n"
             "• 📧 Email: contact@olympusbot.in\n"
-            "• 🌐 Website: https://NeoMonster1-production.up.railway.app/\n"
+            "• 🌐 Website: https://neomonster1.onrender.com\n"
             "• 📚 Documentation: `/help`\n"
             "• 🎫 Support Server: [Join](https://discord.gg/f8zTc4tmHx)\n\n"
             "Our team typically responds within 24 hours."
