@@ -1,17 +1,36 @@
 import os
+import sys
+import logging
 from importlib import import_module
 import aiosqlite
 from dotenv import load_dotenv
 
 load_dotenv()
 
+# Set up logging
+logger = logging.getLogger("discord.db")
+
 DATABASE_URL = os.getenv("DATABASE_URL")
 
+# ------------------------------------------------------------
+# Determine which database to use
+# ------------------------------------------------------------
 if DATABASE_URL:
+    try:
+        # Try to import asyncpg – required for PostgreSQL
+        asyncpg = import_module("asyncpg")
+        logger.info("✅ asyncpg found – using PostgreSQL")
+    except ImportError:
+        logger.error("❌ asyncpg not installed. Please add 'asyncpg>=0.29.0' to requirements.txt")
+        sys.exit(1)
+
     # ----- PostgreSQL (Neon) – persistent -----
     async def get_db():
-        asyncpg = import_module("asyncpg")
-        return await asyncpg.connect(DATABASE_URL)
+        try:
+            return await asyncpg.connect(DATABASE_URL)
+        except Exception as e:
+            logger.error(f"❌ Failed to connect to PostgreSQL: {e}")
+            raise
 
     async def init_db():
         conn = await get_db()
@@ -28,7 +47,8 @@ if DATABASE_URL:
         await conn.close()
 
 else:
-    # ----- SQLite fallback (local development) -----
+    # ----- SQLite fallback (local development only) -----
+    logger.warning("⚠️ DATABASE_URL not set – using SQLite (data will NOT persist on redeploy)")
     DATABASE_PATH = os.getenv("DATABASE_PATH", "./data/security.db")
     os.makedirs(os.path.dirname(DATABASE_PATH), exist_ok=True)
 
@@ -302,7 +322,7 @@ async def _init_tables(conn):
         )
     ''')
 
-    # 20. antispam_settings – FIXED: quoted "window"
+    # 20. antispam_settings – quoted "window" for PostgreSQL
     if is_postgres:
         await conn.execute('''
             CREATE TABLE IF NOT EXISTS antispam_settings (
