@@ -57,7 +57,8 @@ class HelpView(View):
             ("👑 Owner Tools", "Owner Tools"),
             ("📨 DM Management", "DM Management"),
             ("📌 Sticky Messages", "Sticky Messages"),
-            ("📡 Server Status", "Server Status"),
+            ("⛏️ Minecraft Status", "Minecraft Status"),
+            ("🤖 Bot Status", "Bot Status"),
         ]
 
         self.module_data = {
@@ -318,15 +319,39 @@ class HelpView(View):
                     "• Bot messages do not trigger re‑posts — no infinite loops.",
                 ]
             },
-            "Server Status": {
-                "description": "Live bot status and server information in one embed.",
+            # ---------- MINECRAFT STATUS ----------
+            "Minecraft Status": {
+                "description": "Check the live status of any Minecraft server (Java or Bedrock).",
                 "commands": [
-                    "`/serverstatus` — Show live bot stats (ping, uptime, memory) and server info (members, channels, roles, boosts).",
+                    "`/serverstatus [address] [edition]` — Check a Minecraft server's live status.",
+                    "`/livestatus [address] [edition]` — Alias for `/serverstatus`.",
+                    "`/setserver <address> [edition]` — Set a default server for this guild (admin only).",
+                    "`/removeserver` — Remove the default server (admin only).",
+                    "",
+                    "**What it shows:**",
+                    "• Online / Offline status",
+                    "• Player count (online / max)",
+                    "• Server version (e.g., Paper 1.21.1)",
+                    "• Latency (Java only)",
+                    "• MOTD",
+                    "• Sample of online players (Java only)",
+                    "",
+                    "**Examples:**",
+                    "• `/serverstatus play.hypixel.net`",
+                    "• `/serverstatus play.example.com:25565 java`",
+                    "• `/serverstatus play.example.net bedrock`",
+                ]
+            },
+            # ---------- BOT STATUS ----------
+            "Bot Status": {
+                "description": "Live bot stats and current Discord server information.",
+                "commands": [
+                    "`/botstatus` — Show bot uptime, ping, memory, Python version, and server stats.",
                     "",
                     "**What it shows:**",
                     "• 🤖 Bot: online, ping, uptime, memory, Python version",
                     "• 🌐 Global: guild count, total users, commands, version",
-                    "• 🏠 Server: name, owner, created, members, boost tier",
+                    "• 🏠 This Server: name, owner, created, members, boost tier",
                     "• 📊 Channels & Roles: text/voice/categories, roles, emojis",
                 ]
             },
@@ -353,7 +378,6 @@ class HelpView(View):
 
         # ---------- Safety check: Discord hard limit is 25 ----------
         if len(self.dropdown_options) > 25:
-            # Trim to first 25 to avoid crashing the help command.
             self.dropdown_options = self.dropdown_options[:25]
 
         self.select_menu = Select(
@@ -398,7 +422,7 @@ class HelpView(View):
                 name="Overview",
                 value=(
                     "**Prefix:** `/`\n"
-                    "**Total Commands:** `95+`\n"
+                    "**Total Commands:** `100+`\n"
                     "**Website:** [NeoMonster.bot](https://neomonster1.onrender.com)\n"
                     "**Support:** [Join Server](https://discord.gg/f8zTc4tmHx)"
                 ),
@@ -418,7 +442,7 @@ class HelpView(View):
             for full, name in self.modules[1:]:
                 emoji = full.split()[0]
                 display = f"{emoji} : **{name}**"
-                if name in ("DM Management", "Sticky Messages", "Server Status"):
+                if name in ("DM Management", "Sticky Messages", "Minecraft Status", "Bot Status"):
                     display += " `NEW`"
                 cat_lines.append(display)
             embed.add_field(name="Categories", value="\n".join(cat_lines), inline=False)
@@ -491,7 +515,6 @@ class HelpCog(commands.Cog):
             await interaction.response.send_message(embed=embed, view=view)
             view.message = await interaction.original_response()
         except Exception as e:
-            # Defensive: if something fails, tell the user instead of hanging
             import traceback
             traceback.print_exc()
             try:
