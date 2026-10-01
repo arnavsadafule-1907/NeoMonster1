@@ -33,13 +33,10 @@ class HelpView(View):
         self.emoji_ignore     = "⚙️"
         # ------------------------------------------------------------------------
 
+        # ✅ KEEP THIS UNDER 25 (Discord Select menu hard limit)
         self.modules = [
             ("🏠 Home", None),
             (f"{self.emoji_antinuke} Antinuke Security", "Antinuke Security"),
-            (f"{self.emoji_betray} Anti Betray", "Anti Betray"),
-            (f"{self.emoji_limit} Limit System", "Limit System"),
-            (f"{self.emoji_auto_emerg} Auto Emergency", "Auto Emergency"),
-            (f"{self.emoji_emergency} Emergency", "Emergency"),
             (f"{self.emoji_moderation} Moderation", "Moderation"),
             (f"{self.emoji_utility} Utility", "Utility"),
             (f"{self.emoji_automod} Automod", "Automod"),
@@ -56,48 +53,38 @@ class HelpView(View):
             ("📊 Polls", "Polls"),
             ("📋 Logging", "Logging"),
             ("📖 Setup Guide", "Setup Guide"),
-            ("📈 Staff Stats", "Staff Stats"),
-            ("🏖️ Leave System", "Leave System"),
+            ("📈 Staff System", "Staff System"),
             ("👑 Owner Tools", "Owner Tools"),
             ("📨 DM Management", "DM Management"),
             ("📌 Sticky Messages", "Sticky Messages"),
+            ("📡 Server Status", "Server Status"),
         ]
 
         self.module_data = {
+            # ---------- ANTINUKE (merged from 5 sub-categories) ----------
             "Antinuke Security": {
                 "description": "Anti‑nuke, anti‑spam, lockdown & raid protection. (admin.exe / nuke.exe)",
                 "commands": [
+                    "**🛡️ Anti‑Nuke**",
                     "`/antinuke settings` — View current security config",
                     "`/antinuke toggle` — Enable/disable anti‑nuke",
                     "`/antinuke emergency` — Lockdown or kick nukers",
                     "`/massmention` — Manage mass‑mention protection",
                     "`/antivanity` — Block custom invite links",
-                ]
-            },
-            "Anti Betray": {
-                "description": "Prevents trusted members from abusing power and betraying the server. (admin.exe / nuke.exe)",
-                "commands": [
+                    "",
+                    "**🕵️ Anti Betray**",
                     "`/antinuke whitelist add` — Add trusted admins",
                     "`/antinuke emergency kick_nuker` — Remove a rogue admin",
-                ]
-            },
-            "Limit System": {
-                "description": "Rate‑limit destructive actions to prevent mass spam and floods. (admin.exe / nuke.exe)",
-                "commands": [
+                    "",
+                    "**⏱️ Limit System**",
                     "`/antinuke threshold` — Set action limits",
                     "`/antinuke timewindow` — Detection time window",
-                ]
-            },
-            "Auto Emergency": {
-                "description": "Automatically locks the server when a nuke is detected. (admin.exe / nuke.exe)",
-                "commands": [
+                    "",
+                    "**🚨 Auto Emergency**",
                     "`/antinuke emergency lock` — Manual lockdown",
                     "`/antinuke emergency unlock` — Remove lockdown",
-                ]
-            },
-            "Emergency": {
-                "description": "Manual emergency controls for admins during an active attack. (admin.exe / nuke.exe)",
-                "commands": [
+                    "",
+                    "**⚔️ Emergency Controls**",
                     "`/antinuke emergency lock` — Lock all channels",
                     "`/antinuke emergency unlock` — Unlock all channels",
                     "`/antinuke emergency kick_nuker` — Kick a specific nuker",
@@ -270,26 +257,24 @@ class HelpView(View):
                     "**🔐 Bot Owner** (the person whose ID is in the `.env` file) can always use any command, even without a role.",
                 ]
             },
-            # ---------- NEW MODULES ----------
-            "Staff Stats": {
-                "description": "View ticket statistics and leave days for any staff member.",
+            # ---------- STAFF SYSTEM (merged Stats + Leave) ----------
+            "Staff System": {
+                "description": "Ticket statistics, leaderboard, leave system, and staff activity logs.",
                 "commands": [
-                    "`/staffstats @user` — Show tickets claimed, closed, total handled, leave days, and current leave status.",
+                    "**📊 Staff Stats**",
+                    "`/staffstats @user` — Show tickets claimed, closed, total handled, leave days, and leave status.",
                     "`/staffleaderboard` — View the staff leaderboard based on ticket activity.",
                     "`/addstaffstats` — Add to a staff member's statistics (owner only).",
                     "`/resetstaffstats` — Reset staff statistics (owner only).",
-                ]
-            },
-            "Leave System": {
-                "description": "Request and manage staff leave directly through the bot.",
-                "commands": [
+                    "`/stafflog @user` — View a staff member's moderation log.",
+                    "",
+                    "**🏖️ Leave System**",
                     "`/leavepanel send` — Send the persistent leave panel (admin only).",
                     "`/leavepanel edit` — Customise the leave panel embed (admin only).",
                     "`/leavepanel reset` — Reset the leave panel to default (admin only).",
                     "`/leavesetup @role` — Set the 'On Leave' role (admin only).",
                     "`/leave` — Request leave or end leave early (TicketSupporter+).",
                     "`/resetleavestats @user` — Reset leave days for a staff member (admin only).",
-                    "Use the buttons on the leave panel for quick actions.",
                 ]
             },
             "Owner Tools": {
@@ -304,7 +289,6 @@ class HelpView(View):
                     "`/sync` — Force sync all slash commands (bot owner only).",
                 ]
             },
-            # ---------- NEW: DM MANAGEMENT ----------
             "DM Management": {
                 "description": "Send bulk DMs to your server members with full tracking and control.",
                 "commands": [
@@ -320,7 +304,6 @@ class HelpView(View):
                     "• Full history with sent/failed counts available via `/dmhistory`.",
                 ]
             },
-            # ---------- NEW: STICKY MESSAGES ----------
             "Sticky Messages": {
                 "description": "Pin an auto‑reposting message at the bottom of a channel.",
                 "commands": [
@@ -335,13 +318,24 @@ class HelpView(View):
                     "• Bot messages do not trigger re‑posts — no infinite loops.",
                 ]
             },
+            "Server Status": {
+                "description": "Live bot status and server information in one embed.",
+                "commands": [
+                    "`/serverstatus` — Show live bot stats (ping, uptime, memory) and server info (members, channels, roles, boosts).",
+                    "",
+                    "**What it shows:**",
+                    "• 🤖 Bot: online, ping, uptime, memory, Python version",
+                    "• 🌐 Global: guild count, total users, commands, version",
+                    "• 🏠 Server: name, owner, created, members, boost tier",
+                    "• 📊 Channels & Roles: text/voice/categories, roles, emojis",
+                ]
+            },
         }
 
-        # Dropdown options (skip Home)
+        # ---------- Build dropdown options ----------
         self.dropdown_options = []
         for idx, (full, name) in enumerate(self.modules[1:]):
             emoji_str = full.split()[0]
-            # Properly parse custom emoji so Discord doesn't reject the option
             try:
                 parsed_emoji = discord.PartialEmoji.from_str(emoji_str)
             except Exception:
@@ -356,6 +350,11 @@ class HelpView(View):
                 option_kwargs["emoji"] = parsed_emoji
 
             self.dropdown_options.append(discord.SelectOption(**option_kwargs))
+
+        # ---------- Safety check: Discord hard limit is 25 ----------
+        if len(self.dropdown_options) > 25:
+            # Trim to first 25 to avoid crashing the help command.
+            self.dropdown_options = self.dropdown_options[:25]
 
         self.select_menu = Select(
             placeholder="Navigate to a category",
@@ -419,7 +418,7 @@ class HelpView(View):
             for full, name in self.modules[1:]:
                 emoji = full.split()[0]
                 display = f"{emoji} : **{name}**"
-                if name in ("DM Management", "Sticky Messages"):
+                if name in ("DM Management", "Sticky Messages", "Server Status"):
                     display += " `NEW`"
                 cat_lines.append(display)
             embed.add_field(name="Categories", value="\n".join(cat_lines), inline=False)
@@ -486,10 +485,22 @@ class HelpCog(commands.Cog):
 
     @app_commands.command(name="help", description="Browse all commands and modules")
     async def help_command(self, interaction: discord.Interaction):
-        view = HelpView(self.bot)
-        embed = view.build_embed()
-        await interaction.response.send_message(embed=embed, view=view)
-        view.message = await interaction.original_response()
+        try:
+            view = HelpView(self.bot)
+            embed = view.build_embed()
+            await interaction.response.send_message(embed=embed, view=view)
+            view.message = await interaction.original_response()
+        except Exception as e:
+            # Defensive: if something fails, tell the user instead of hanging
+            import traceback
+            traceback.print_exc()
+            try:
+                if interaction.response.is_done():
+                    await interaction.followup.send(f"❌ Help failed: `{e}`", ephemeral=True)
+                else:
+                    await interaction.response.send_message(f"❌ Help failed: `{e}`", ephemeral=True)
+            except Exception:
+                pass
 
 
 async def setup(bot):
