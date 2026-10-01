@@ -5,6 +5,7 @@ from discord.ui import View, Button, Select
 
 BLUE_MAIN = 0x3B82F6
 
+
 class HelpView(View):
     def __init__(self, bot: commands.Bot):
         super().__init__(timeout=120)
@@ -58,6 +59,8 @@ class HelpView(View):
             ("📈 Staff Stats", "Staff Stats"),
             ("🏖️ Leave System", "Leave System"),
             ("👑 Owner Tools", "Owner Tools"),
+            ("📨 DM Management", "DM Management"),
+            ("📌 Sticky Messages", "Sticky Messages"),
         ]
 
         self.module_data = {
@@ -182,6 +185,7 @@ class HelpView(View):
                     "`/voicestats` — Voice activity info",
                     "`/vc kick` — Kick from voice",
                     "`/vc mute` — Mute in voice",
+                    "`/vc unmute` — Unmute in voice",
                 ]
             },
             "Admin / Mod Setup": {
@@ -222,6 +226,7 @@ class HelpView(View):
                 "description": "Create interactive polls with up to 10 options. Requires Staff.exe or higher.",
                 "commands": [
                     "`/poll` — Create a poll (modal for options)",
+                    "`/setpolllog` — Set the channel for poll vote logs (admin only)",
                     "Vote by clicking the buttons below the poll!",
                 ]
             },
@@ -270,14 +275,20 @@ class HelpView(View):
                 "description": "View ticket statistics and leave days for any staff member.",
                 "commands": [
                     "`/staffstats @user` — Show tickets claimed, closed, total handled, leave days, and current leave status.",
+                    "`/staffleaderboard` — View the staff leaderboard based on ticket activity.",
+                    "`/addstaffstats` — Add to a staff member's statistics (owner only).",
+                    "`/resetstaffstats` — Reset staff statistics (owner only).",
                 ]
             },
             "Leave System": {
                 "description": "Request and manage staff leave directly through the bot.",
                 "commands": [
-                    "`/leavepanel` — Send the persistent leave panel (admin only).",
+                    "`/leavepanel send` — Send the persistent leave panel (admin only).",
+                    "`/leavepanel edit` — Customise the leave panel embed (admin only).",
+                    "`/leavepanel reset` — Reset the leave panel to default (admin only).",
                     "`/leavesetup @role` — Set the 'On Leave' role (admin only).",
                     "`/leave` — Request leave or end leave early (TicketSupporter+).",
+                    "`/resetleavestats @user` — Reset leave days for a staff member (admin only).",
                     "Use the buttons on the leave panel for quick actions.",
                 ]
             },
@@ -287,7 +298,41 @@ class HelpView(View):
                     "`/addowner @user` — Promote a user to extra owner.",
                     "`/removeowner @user` — Demote an extra owner.",
                     "`/listowners` — Show all extra owners.",
-                    "`/dmall` — Send an embed to every server member.",
+                    "`/dmall` — Send an embed to every server member via DM.",
+                    "`/cleanuptickets` — Delete orphaned ticket channels (owner only).",
+                    "`/closealltickets` — Close ALL active tickets (owner only).",
+                    "`/sync` — Force sync all slash commands (bot owner only).",
+                ]
+            },
+            # ---------- NEW: DM MANAGEMENT ----------
+            "DM Management": {
+                "description": "Send bulk DMs to your server members with full tracking and control.",
+                "commands": [
+                    "`/dmall` — Send an embed to every member in the server (server owner / extra owners only).",
+                    "`/dmstatus` — Show the status of the current or latest DM campaign.",
+                    "`/dmcancel` — Cancel the currently running DM campaign.",
+                    "`/dmhistory` — Show past DM campaigns with stats.",
+                    "",
+                    "**How it works:**",
+                    "• Every `/dmall` campaign is saved in the database.",
+                    "• Progress updates every 10 messages — safe from rate limits.",
+                    "• Campaigns can be cancelled mid‑send with `/dmcancel`.",
+                    "• Full history with sent/failed counts available via `/dmhistory`.",
+                ]
+            },
+            # ---------- NEW: STICKY MESSAGES ----------
+            "Sticky Messages": {
+                "description": "Pin an auto‑reposting message at the bottom of a channel.",
+                "commands": [
+                    "`/stick <content>` — Set a sticky message in the current channel (Staff.exe+).",
+                    "`/stickstop` — Disable the sticky message in this channel (keeps config).",
+                    "`/stickremove` — Remove the sticky message and delete it from the channel.",
+                    "`/sticklist` — List all sticky messages in this server.",
+                    "",
+                    "**How it works:**",
+                    "• Whenever a new message is sent, the bot deletes the old sticky and reposts it at the bottom.",
+                    "• Perfect for rules, links, or important info that must stay visible.",
+                    "• Bot messages do not trigger re‑posts — no infinite loops.",
                 ]
             },
         }
@@ -296,14 +341,21 @@ class HelpView(View):
         self.dropdown_options = []
         for idx, (full, name) in enumerate(self.modules[1:]):
             emoji_str = full.split()[0]
-            self.dropdown_options.append(
-                discord.SelectOption(
-                    label=name,
-                    description=self.module_data[name]["description"][:50],
-                    value=str(idx + 1),
-                    emoji=emoji_str
-                )
-            )
+            # Properly parse custom emoji so Discord doesn't reject the option
+            try:
+                parsed_emoji = discord.PartialEmoji.from_str(emoji_str)
+            except Exception:
+                parsed_emoji = None
+
+            option_kwargs = {
+                "label": name,
+                "description": self.module_data[name]["description"][:100],
+                "value": str(idx + 1),
+            }
+            if parsed_emoji is not None:
+                option_kwargs["emoji"] = parsed_emoji
+
+            self.dropdown_options.append(discord.SelectOption(**option_kwargs))
 
         self.select_menu = Select(
             placeholder="Navigate to a category",
@@ -347,8 +399,8 @@ class HelpView(View):
                 name="Overview",
                 value=(
                     "**Prefix:** `/`\n"
-                    "**Total Commands:** `65+`\n"
-                    "**Website:** [NeoMonster.bot](https://NeoMonster1-production.up.railway.app)\n"
+                    "**Total Commands:** `95+`\n"
+                    "**Website:** [NeoMonster.bot](https://neomonster1.onrender.com)\n"
                     "**Support:** [Join Server](https://discord.gg/f8zTc4tmHx)"
                 ),
                 inline=False,
@@ -367,7 +419,7 @@ class HelpView(View):
             for full, name in self.modules[1:]:
                 emoji = full.split()[0]
                 display = f"{emoji} : **{name}**"
-                if name == "Boycott/VcBan":
+                if name in ("DM Management", "Sticky Messages"):
                     display += " `NEW`"
                 cat_lines.append(display)
             embed.add_field(name="Categories", value="\n".join(cat_lines), inline=False)
