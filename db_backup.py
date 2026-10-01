@@ -3,6 +3,7 @@ from discord.ext import commands, tasks
 import os
 import shutil
 import aiohttp
+import asyncio
 from datetime import datetime
 from logger import setup_logging
 
@@ -22,8 +23,13 @@ class DBBackup(commands.Cog):
     def cog_unload(self):
         self.backup_loop.cancel()
 
-    # ---------- Startup: Download latest backup ----------
+    # ---------- Startup: schedule restore as a background task ----------
     async def cog_load(self):
+        # Do NOT await wait_until_ready() here — it would deadlock setup_hook.
+        # Instead, schedule the restore to run once the bot is ready.
+        self.bot.loop.create_task(self._post_ready_restore())
+
+    async def _post_ready_restore(self):
         await self.bot.wait_until_ready()
         await self.restore_latest_backup()
 
@@ -39,12 +45,10 @@ class DBBackup(commands.Cog):
                 logger.warning(f"⚠️ Backup channel {BACKUP_CHANNEL_ID} not found.")
                 return
 
-            # Find the most recent message with a .db attachment
             async for msg in channel.history(limit=20):
                 if msg.attachments:
                     attachment = msg.attachments[0]
                     if attachment.filename.endswith(".db"):
-                        # Download to temp file
                         os.makedirs(os.path.dirname(DATABASE_PATH), exist_ok=True)
                         async with aiohttp.ClientSession() as session:
                             async with session.get(attachment.url) as resp:
@@ -68,7 +72,6 @@ class DBBackup(commands.Cog):
         await self.bot.wait_until_ready()
 
     async def upload_backup(self):
-        """Upload the current DB file to the backup channel."""
         if not BACKUP_CHANNEL_ID:
             return
         if not os.path.exists(DATABASE_PATH):
@@ -80,13 +83,11 @@ class DBBackup(commands.Cog):
             if not channel:
                 return
 
-            # Copy DB to a temp file with timestamp (to avoid partial writes)
             os.makedirs("./data/tmp", exist_ok=True)
             timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
             temp_path = f"./data/tmp/security_{timestamp}.db"
             shutil.copyfile(DATABASE_PATH, temp_path)
 
-            # Upload to Discord
             with open(temp_path, "rb") as f:
                 file = discord.File(f, filename=f"security_{timestamp}.db")
                 await channel.send(
@@ -94,28 +95,22 @@ class DBBackup(commands.Cog):
                     file=file
                 )
 
-            # Delete temp file
             os.remove(temp_path)
-
-            # Clean up old backups (keep only MAX_BACKUPS)
             await self._cleanup_old_backups(channel)
-
             logger.info(f"✅ DB backup uploaded: {timestamp}")
 
         except Exception as e:
             logger.error(f"❌ Backup failed: {e}")
 
     async def _cleanup_old_backups(self, channel):
-        """Keep only the last MAX_BACKUPS backup messages."""
         backups = []
         async for msg in channel.history(limit=50):
             if msg.attachments and any(a.filename.endswith(".db") for a in msg.attachments):
                 backups.append(msg)
-        # Delete oldest ones
         for msg in backups[MAX_BACKUPS:]:
             try:
                 await msg.delete()
-            except:
+            except Exception:
                 pass
 
 
