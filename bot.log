@@ -4503,3 +4503,59 @@ Traceback (most recent call last):
 aiohttp.client_exceptions.ClientConnectionResetError: Cannot write to closing transport
 2026-07-26 17:37:08,004 [INFO] discord.gateway: Shard ID None has connected to Gateway (Session ID: 91571908d59967d93f32048850ccd3f5).
 2026-07-26 17:37:10,737 [INFO] discord: 🛡️ Security Bot online as NeoMonster#5217 (ID: 1528368412093579376)
+2026-09-25 15:47:27,477 [WARNING] discord.client: PyNaCl is not installed, voice will NOT be supported
+2026-09-25 15:47:27,478 [WARNING] discord.client: davey is not installed, voice will NOT be supported
+2026-09-25 15:47:27,479 [INFO] discord: Dashboard started on http://0.0.0.0:5000
+2026-09-25 15:47:27,481 [INFO] discord.client: logging in using static token
+2026-10-01 21:42:03,262 [WARNING] discord.client: PyNaCl is not installed, voice will NOT be supported
+2026-10-01 21:42:03,263 [WARNING] discord.client: davey is not installed, voice will NOT be supported
+2026-10-01 21:42:03,264 [INFO] discord: Dashboard started on http://0.0.0.0:5000
+2026-10-01 21:42:03,266 [INFO] discord.client: logging in using static token
+2026-10-01 21:42:04,465 [INFO] discord: Database ready
+2026-10-01 21:42:04,471 [INFO] discord: Loaded antinuke
+2026-10-01 21:42:04,499 [INFO] discord: Loaded config
+2026-10-01 21:42:04,505 [INFO] discord: Loaded recovery
+2026-10-01 21:42:04,514 [INFO] discord: Loaded help
+2026-10-01 21:42:04,532 [INFO] discord: Loaded moderation
+2026-10-01 21:42:04,535 [INFO] discord: Loaded utility
+2026-10-01 21:42:04,544 [INFO] discord: Loaded automod
+2026-10-01 21:42:04,550 [INFO] discord: Loaded welcoming
+2026-10-01 21:42:04,564 [INFO] discord: Loaded customroles
+2026-10-01 21:42:04,581 [INFO] discord: Loaded giveaway
+2026-10-01 21:42:04,583 [INFO] discord: Loaded boycott
+2026-10-01 21:42:04,588 [INFO] discord: Loaded automations
+2026-10-01 21:42:04,592 [INFO] discord: Loaded fun
+2026-10-01 21:42:04,599 [INFO] discord: Loaded voice
+2026-10-01 21:42:04,605 [INFO] discord: Loaded adminsetup
+2026-10-01 21:42:04,609 [INFO] discord: Loaded ignore
+2026-10-01 21:42:04,616 [INFO] discord: Loaded roleassign
+2026-10-01 21:42:04,624 [INFO] discord: Loaded report
+2026-10-01 21:42:04,633 [INFO] discord: Loaded antispam
+2026-10-01 21:42:04,640 [INFO] discord: Loaded messagelog
+2026-10-01 21:42:04,646 [INFO] discord: Loaded botprofile
+2026-10-01 21:42:04,652 [INFO] discord: Loaded backup
+2026-10-01 21:42:04,662 [INFO] discord: Loaded altdetector
+2026-10-01 21:42:04,665 [INFO] discord: Loaded slowmode
+2026-10-01 21:42:04,673 [INFO] discord: Loaded raidalert
+2026-10-01 21:42:04,678 [INFO] discord: Loaded chatbot
+2026-10-01 21:42:04,688 [INFO] discord: Loaded massmention
+2026-10-01 21:42:04,699 [INFO] discord: Loaded antivanity
+2026-10-01 21:42:04,709 [INFO] discord: Loaded stafflog
+2026-10-01 21:42:04,717 [INFO] discord: Loaded ownerrecovery
+2026-10-01 21:42:04,788 [INFO] discord: Loaded polish
+2026-10-01 21:42:04,794 [INFO] discord: Loaded publicbot
+2026-10-01 21:42:04,807 [INFO] discord: Loaded globalblacklist
+2026-10-01 21:42:04,813 [INFO] discord: Loaded announce
+2026-10-01 21:42:04,846 [INFO] discord: Loaded ticket
+2026-10-01 21:42:04,895 [INFO] discord: Loaded serverlogger
+2026-10-01 21:42:04,929 [INFO] discord: Loaded poll
+2026-10-01 21:42:04,946 [INFO] discord: Loaded botwhitelist
+2026-10-01 21:42:04,949 [INFO] discord: Loaded sync
+2026-10-01 21:42:04,957 [INFO] discord: Loaded extraowner
+2026-10-01 21:42:04,961 [INFO] discord: Loaded dmall
+2026-10-01 21:42:04,969 [INFO] discord: Loaded staffstats
+2026-10-01 21:42:04,983 [INFO] discord: Loaded leave
+2026-10-01 21:42:04,988 [INFO] discord: Loaded giverole
+2026-10-01 21:42:04,992 [INFO] discord: Loaded removerole
+2026-10-01 21:42:04,997 [INFO] discord: Loaded staffleaderboard
+2026-10-01 21:42:05,004 [INFO] discord: Loaded ticketcleanup
