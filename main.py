@@ -1,4 +1,5 @@
 import os
+import asyncio
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -29,6 +30,12 @@ if not BOT_TOKEN:
     logger.critical("BOT_TOKEN not set in environment variables. Bot cannot start.")
     exit(1)
 
+# ---------- Optional: test guild ID for fast sync during dev ----------
+# Set TEST_GUILD_ID in Render env if you want guild-only sync (instant, no rate limits).
+# Leave it unset in production to sync globally.
+TEST_GUILD_ID = os.getenv("TEST_GUILD_ID")
+
+
 class SecurityBot(commands.Bot):
     def __init__(self):
         intents = discord.Intents.default()
@@ -41,9 +48,14 @@ class SecurityBot(commands.Bot):
         self.owner_ids = OWNER_IDS
 
     async def setup_hook(self):
-        await init_db()
-        logger.info("Database ready")
+        # ---------- Database ----------
+        try:
+            await init_db()
+            logger.info("Database ready")
+        except Exception as e:
+            logger.error(f"Database init failed: {e}")
 
+        # ---------- Load cogs ----------
         cogs = [
             "antinuke", "config", "recovery", "help",
             "moderation", "utility", "automod", "welcoming",
@@ -53,8 +65,9 @@ class SecurityBot(commands.Bot):
             "backup", "altdetector", "slowmode", "raidalert", "chatbot",
             "massmention", "antivanity", "stafflog", "ownerrecovery", "polish",
             "publicbot", "globalblacklist", "announce",
-            "ticket", "serverlogger", "poll", "botwhitelist", "sync", "extraowner", "dmall", "staffstats", "leave", "giverole", "removerole",
-            "staffleaderboard", "ticketcleanup",
+            "ticket", "serverlogger", "poll", "botwhitelist", "sync",
+            "extraowner", "dmall", "staffstats", "leave", "giverole",
+            "removerole", "staffleaderboard", "ticketcleanup",
             "db_backup"
         ]
         for cog in cogs:
@@ -64,18 +77,31 @@ class SecurityBot(commands.Bot):
             except Exception as e:
                 logger.error(f"Failed to load {cog}: {e}")
 
-        # Register the safe blacklist check
+        # ---------- Register global blacklist check ----------
         self.tree.interaction_check = self.global_blacklist_check
 
-        await self.tree.sync()
-        logger.info("Command tree synced")
+        # ---------- Sync command tree with timeout ----------
+        try:
+            if TEST_GUILD_ID:
+                guild = discord.Object(id=int(TEST_GUILD_ID))
+                self.tree.copy_global_to(guild=guild)
+                synced = await asyncio.wait_for(self.tree.sync(guild=guild), timeout=30)
+                logger.info(f"Command tree synced to test guild ({len(synced)} commands)")
+            else:
+                synced = await asyncio.wait_for(self.tree.sync(), timeout=60)
+                logger.info(f"Command tree synced globally ({len(synced)} commands)")
+        except asyncio.TimeoutError:
+            logger.error("Command tree sync timed out – continuing startup anyway")
+        except Exception as e:
+            logger.error(f"Command tree sync failed: {e}")
 
     async def global_blacklist_check(self, interaction: discord.Interaction) -> bool:
         try:
             global_blacklist_cog = self.get_cog("GlobalBlacklist")
             if global_blacklist_cog and await global_blacklist_cog.is_blacklisted(interaction.user.id):
                 await interaction.response.send_message(
-                    "⛔ You are globally blacklisted from using NeoMonster.", ephemeral=False
+                    "⛔ You are globally blacklisted from using NeoMonster.",
+                    ephemeral=False
                 )
                 return False
         except Exception:
@@ -85,7 +111,8 @@ class SecurityBot(commands.Bot):
     async def on_ready(self):
         logger.info(f"🛡️ Security Bot online as {self.user} (ID: {self.user.id})")
         await self.change_presence(activity=discord.Activity(
-            type=discord.ActivityType.watching, name="NeoMonster / 24/7 Protection"
+            type=discord.ActivityType.watching,
+            name="NeoMonster / 24/7 Protection"
         ))
 
     async def on_app_command_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
@@ -110,6 +137,7 @@ if __name__ == "__main__":
     bot = SecurityBot()
     app.config["bot"] = bot
 
+    # ---------- Start Flask dashboard in background ----------
     port = int(os.environ.get("PORT", 5000))
     flask_thread = Thread(
         target=app.run,
@@ -117,6 +145,14 @@ if __name__ == "__main__":
         daemon=True
     )
     flask_thread.start()
-    logger.info("Dashboard started on http://0.0.0.0:5000")
+    logger.info(f"Dashboard started on http://0.0.0.0:{port}")
 
-    bot.run(os.getenv("BOT_TOKEN"))
+    # ---------- Start Discord bot ----------
+    try:
+        bot.run(BOT_TOKEN)
+    except discord.LoginFailure:
+        logger.critical("Login failed – BOT_TOKEN is invalid.")
+    except discord.PrivilegedIntentsRequired:
+        logger.critical("Privileged intents not enabled in the Discord Developer Portal.")
+    except Exception as e:
+        logger.critical(f"Bot crashed on startup: {e}")
