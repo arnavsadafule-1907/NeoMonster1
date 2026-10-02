@@ -16,8 +16,8 @@ REJOIN_WINDOW_DAYS = 7
 class Tracking(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.invite_cache = {}          # {guild_id: {code: uses}}
-        self.msg_cache = {}             # {guild_id: {user_id: pending}}
+        self.invite_cache = {}
+        self.msg_cache = {}
         self.flush_loop.start()
 
     async def cog_load(self):
@@ -28,7 +28,6 @@ class Tracking(commands.Cog):
 
     # ============== LAZY TABLE CREATION ==============
     async def _ensure_tables(self):
-        """Recreate tables if they were wiped by a DB restore."""
         async with aiosqlite.connect(DB_PATH) as db:
             await db.execute("""
                 CREATE TABLE IF NOT EXISTS invite_stats (
@@ -268,7 +267,7 @@ class Tracking(commands.Cog):
         )
         embed.set_thumbnail(url=user.display_avatar.url)
         embed.set_footer(text=f"Requested by {interaction.user}", icon_url=interaction.user.display_avatar.url)
-        await interaction.response.send_message(embed=embed)
+        await interaction.response.send_message(embed=embed, ephemeral=False)
 
     @app_commands.command(name="invited", description="Show who invited a user")
     @app_commands.describe(user="User to check")
@@ -285,7 +284,7 @@ class Tracking(commands.Cog):
         if not record:
             return await interaction.response.send_message(
                 embed=BotEmbed.info("No Record", f"No invite record for {user.mention}."),
-                ephemeral=True
+                ephemeral=False
             )
 
         inviter = interaction.guild.get_member(record["inviter_id"])
@@ -304,7 +303,7 @@ class Tracking(commands.Cog):
             embed.add_field(name="Rejoin", value="Yes", inline=True)
         embed.set_thumbnail(url=user.display_avatar.url)
         embed.set_footer(text=f"Requested by {interaction.user}")
-        await interaction.response.send_message(embed=embed)
+        await interaction.response.send_message(embed=embed, ephemeral=False)
 
     @app_commands.command(name="inviteleaderboard", description="Top inviters in this server")
     async def inviteleaderboard(self, interaction: discord.Interaction):
@@ -319,7 +318,8 @@ class Tracking(commands.Cog):
 
         if not rows:
             return await interaction.response.send_message(
-                embed=BotEmbed.info("No Data", "No invite data yet."), ephemeral=True
+                embed=BotEmbed.info("No Data", "No invite data yet."),
+                ephemeral=False
             )
 
         lines = []
@@ -338,7 +338,7 @@ class Tracking(commands.Cog):
             timestamp=interaction.created_at
         )
         embed.set_footer(text="NeoMonster • Invite Tracking")
-        await interaction.response.send_message(embed=embed)
+        await interaction.response.send_message(embed=embed, ephemeral=False)
 
     # ============== MESSAGE COMMANDS ==============
     @app_commands.command(name="messages", description="Show message stats for a user")
@@ -370,7 +370,7 @@ class Tracking(commands.Cog):
         )
         embed.set_thumbnail(url=user.display_avatar.url)
         embed.set_footer(text="Messages are being updated in real-time")
-        await interaction.response.send_message(embed=embed)
+        await interaction.response.send_message(embed=embed, ephemeral=False)
 
     @app_commands.command(name="msgleaderboard", description="Top message senders in this server")
     async def msgleaderboard(self, interaction: discord.Interaction):
@@ -387,7 +387,8 @@ class Tracking(commands.Cog):
 
         if not rows:
             return await interaction.response.send_message(
-                embed=BotEmbed.info("No Data", "No message data yet."), ephemeral=True
+                embed=BotEmbed.info("No Data", "No message data yet."),
+                ephemeral=False
             )
 
         lines = []
@@ -403,7 +404,7 @@ class Tracking(commands.Cog):
             timestamp=interaction.created_at
         )
         embed.set_footer(text="NeoMonster • Message Tracking")
-        await interaction.response.send_message(embed=embed)
+        await interaction.response.send_message(embed=embed, ephemeral=False)
 
     # ============== UNIFIED ADMIN COMMAND ==============
     @app_commands.command(name="managetracking", description="Manage invite or message stats for a user (staff only)")
@@ -439,18 +440,21 @@ class Tracking(commands.Cog):
 
         if count < 0:
             return await interaction.response.send_message(
-                embed=BotEmbed.error("Invalid", "Count must be positive."), ephemeral=True
+                embed=BotEmbed.error("Invalid", "Count must be positive."),
+                ephemeral=False
             )
 
         invite_stats = {"total", "joins", "leaves", "fakes", "rejoins"}
         msg_stats = {"daily", "all_time"}
         if system == "invites" and stat not in invite_stats:
             return await interaction.response.send_message(
-                embed=BotEmbed.error("Invalid", "That stat is only for messages."), ephemeral=True
+                embed=BotEmbed.error("Invalid", "That stat is only for messages."),
+                ephemeral=False
             )
         if system == "messages" and stat not in msg_stats:
             return await interaction.response.send_message(
-                embed=BotEmbed.error("Invalid", "That stat is only for invites."), ephemeral=True
+                embed=BotEmbed.error("Invalid", "That stat is only for invites."),
+                ephemeral=False
             )
 
         sign = 1 if action == "add" else -1
@@ -486,7 +490,7 @@ class Tracking(commands.Cog):
             "Tracking Updated",
             f"{'Added' if sign > 0 else 'Removed'} **{count}** to **{stat}** ({label}) for {user.mention}."
         )
-        await interaction.response.send_message(embed=embed)
+        await interaction.response.send_message(embed=embed, ephemeral=False)
 
 
 async def setup(bot):
