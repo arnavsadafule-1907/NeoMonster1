@@ -67,8 +67,9 @@ class SecurityBot(commands.Bot):
             "publicbot", "globalblacklist", "announce",
             "ticket", "serverlogger", "poll", "botwhitelist", "sync",
             "extraowner", "dmall", "staffstats", "leave", "giverole",
-            "removerole", "staffleaderboard", "ticketcleanup",
-            "db_backup", "sticky","serverstatus", "minecraft", "invites", "messagestats",
+            "staffleaderboard", "ticketcleanup",
+            "db_backup", "sticky", "serverstatus", "minecraft",
+            "tracking",
         ]
         for cog in cogs:
             try:
