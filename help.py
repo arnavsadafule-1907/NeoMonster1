@@ -297,13 +297,11 @@ class HelpView(View):
                     "`/dmall` — Send an embed to every member in the server (server owner / extra owners only).",
                     "`/dmstatus` — Show the status of the current or latest DM campaign.",
                     "`/dmcancel` — Cancel the currently running DM campaign.",
-                    "`/dmhistory` — Show past DM campaigns with stats.",
                     "",
                     "**How it works:**",
                     "• Every `/dmall` campaign is saved in the database.",
                     "• Progress updates every 10 messages — safe from rate limits.",
                     "• Campaigns can be cancelled mid-send with `/dmcancel`.",
-                    "• Full history with sent/failed counts available via `/dmhistory`.",
                 ]
             },
             "Sticky Messages": {
@@ -335,12 +333,11 @@ class HelpView(View):
             },
             # ---------- MINECRAFT STATUS ----------
             "Minecraft Status": {
-                "description": "Check the live status of any Minecraft server (Java or Bedrock).",
+                "description": "Check Minecraft server status — one-time or live.",
                 "commands": [
-                    "`/mcstatus [address] [edition]` — Check a Minecraft server's live status.",
-                    "`/livestatus [address] [edition]` — Alias for `/mcstatus`.",
-                    "`/mcset <address> [edition]` — Set a default server for this guild (admin only).",
-                    "`/mcremove` — Remove the default server (admin only).",
+                    "`/mcstatus <address> [edition]` — One-time status snapshot.",
+                    "`/mclive <address> [edition]` — Start a live panel in this channel (updates every 60s).",
+                    "`/mclive` — Stop the live panel in this channel.",
                     "",
                     "**What it shows:**",
                     "• Online / Offline status",
@@ -352,30 +349,27 @@ class HelpView(View):
                     "",
                     "**Examples:**",
                     "• `/mcstatus play.hypixel.net`",
-                    "• `/mcstatus play.example.com:25565 java`",
-                    "• `/mcstatus play.example.net bedrock`",
+                    "• `/mclive play.hypixel.net java`",
+                    "• `/mclive play.example.net bedrock`",
                 ]
             },
             # ---------- STATS & TRACKING (invites + messages) ----------
             "Stats & Tracking": {
-                "description": "Track invites and messages with leaderboards and staff management tools.",
+                "description": "Track invites and messages with leaderboards and staff management.",
                 "commands": [
                     "**📨 Invite Tracking**",
                     "`/invites [user]` — Show invite stats for a user.",
                     "`/invited [user]` — Show who invited a user.",
-                    "`/inviter [user]` — Alias for `/invited`.",
                     "`/inviteleaderboard` — Top inviters in this server.",
-                    "`/manageinvites <user> <stat> <add/remove> <count>` — Staff only.",
                     "",
                     "**💬 Message Tracking**",
                     "`/messages [user]` — Show message stats for a user.",
                     "`/msgleaderboard` — Top message senders in this server.",
-                    "`/managemsg <user> <stat> <add/remove> <count>` — Staff only.",
                     "",
-                    "**Managing stats:**",
+                    "**🛠️ Staff**",
+                    "`/managetracking <invites|messages> <user> <stat> <add|remove> <count>` — Staff only.",
                     "• Invite stats: `total`, `joins`, `leaves`, `fakes`, `rejoins`",
                     "• Message stats: `daily`, `alltime`",
-                    "• Staff / admin.exe / extra owners only",
                 ]
             },
         }
