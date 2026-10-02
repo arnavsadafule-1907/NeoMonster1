@@ -14,23 +14,23 @@ class HelpView(View):
         self.message = None
 
         # ---------- YOUR CUSTOM EMOJI CODES ----------
-        self.emoji_antinuke   = "<:sheild:1532827229149724835>"
-        self.emoji_betray     = "<:lock:1532827337832398969>"
-        self.emoji_limit      = "<:Limit:1532827385441943552>"
-        self.emoji_auto_emerg = "<:sword:1532827462998687815>"
-        self.emoji_emergency  = "<:sword2:1532827540081741964>"
-        self.emoji_moderation = "<:hammer_wrench:1532828069113626755>"
-        self.emoji_utility    = "<:wrenchs:1532827639696461935>"
-        self.emoji_automod    = "<:admin_modsetup:1532828408692740156>"
-        self.emoji_welcoming  = "<:welcome:1532827778217672785>"
-        self.emoji_customroles= "<:start2:1532827987802722395>"
-        self.emoji_giveaway   = "<:party:1532827934698508519>"
-        self.emoji_boycott    = "<:star:1532827870337175746>"
-        self.emoji_automations= "<:double_check:1532828586317316226>"
-        self.emoji_fun        = "<:fun:1532828529035710674>"
-        self.emoji_voice      = "<:microphone:1532828487579336714>"
-        self.emoji_admin      = "⚙️"
-        self.emoji_ignore     = "⚙️"
+        self.emoji_antinuke    = "<:sheild:1532827229149724835>"
+        self.emoji_betray      = "<:lock:1532827337832398969>"
+        self.emoji_limit       = "<:Limit:1532827385441943552>"
+        self.emoji_auto_emerg  = "<:sword:1532827462998687815>"
+        self.emoji_emergency   = "<:sword2:1532827540081741964>"
+        self.emoji_moderation  = "<:hammer_wrench:1532828069113626755>"
+        self.emoji_utility     = "<:wrenchs:1532827639696461935>"
+        self.emoji_automod     = "<:admin_modsetup:1532828408692740156>"
+        self.emoji_welcoming   = "<:welcome:1532827778217672785>"
+        self.emoji_customroles = "<:start2:1532827987802722395>"
+        self.emoji_giveaway    = "<:party:1532827934698508519>"
+        self.emoji_boycott     = "<:star:1532827870337175746>"
+        self.emoji_automations = "<:double_check:1532828586317316226>"
+        self.emoji_fun         = "<:fun:1532828529035710674>"
+        self.emoji_voice       = "<:microphone:1532828487579336714>"
+        self.emoji_admin       = "⚙️"
+        self.emoji_ignore      = "⚙️"
         # ------------------------------------------------------------------------
 
         # ✅ KEEP THIS UNDER 25 (Discord Select menu hard limit)
@@ -57,20 +57,20 @@ class HelpView(View):
             ("👑 Owner Tools", "Owner Tools"),
             ("📨 DM Management", "DM Management"),
             ("📌 Sticky Messages", "Sticky Messages"),
+            ("📡 Server Status", "Server Status"),
             ("⛏️ Minecraft Status", "Minecraft Status"),
-            ("🤖 Bot Status", "Bot Status"),
         ]
 
         self.module_data = {
             # ---------- ANTINUKE (merged from 5 sub-categories) ----------
             "Antinuke Security": {
-                "description": "Anti‑nuke, anti‑spam, lockdown & raid protection. (admin.exe / nuke.exe)",
+                "description": "Anti-nuke, anti-spam, lockdown & raid protection. (admin.exe / nuke.exe)",
                 "commands": [
-                    "**🛡️ Anti‑Nuke**",
+                    "**🛡️ Anti-Nuke**",
                     "`/antinuke settings` — View current security config",
-                    "`/antinuke toggle` — Enable/disable anti‑nuke",
+                    "`/antinuke toggle` — Enable/disable anti-nuke",
                     "`/antinuke emergency` — Lockdown or kick nukers",
-                    "`/massmention` — Manage mass‑mention protection",
+                    "`/massmention` — Manage mass-mention protection",
                     "`/antivanity` — Block custom invite links",
                     "",
                     "**🕵️ Anti Betray**",
@@ -120,11 +120,11 @@ class HelpView(View):
                 ]
             },
             "Welcoming": {
-                "description": "Custom welcome/farewell messages & auto‑role. (admin.exe / nuke.exe)",
+                "description": "Custom welcome/farewell messages & auto-role. (admin.exe / nuke.exe)",
                 "commands": [
                     "`/welcome channel` — Set welcome channel",
                     "`/welcome message` — Custom welcome text",
-                    "`/welcome role` — Auto‑assign role on join",
+                    "`/welcome role` — Auto-assign role on join",
                     "`/farewell channel` — Set farewell channel",
                 ]
             },
@@ -137,7 +137,7 @@ class HelpView(View):
                 ]
             },
             "Giveaway": {
-                "description": "Button‑based giveaways with rerolls & role requirements. (nuke.exe only)",
+                "description": "Button-based giveaways with rerolls & role requirements. (nuke.exe only)",
                 "commands": [
                     "`/gstart` — Start a giveaway",
                     "`/gend` — End a giveaway early",
@@ -160,11 +160,11 @@ class HelpView(View):
                 ]
             },
             "Fun": {
-                "description": "Memes, 8ball, rock‑paper‑scissors. (Anyone can use)",
+                "description": "Memes, 8ball, rock-paper-scissors. (Anyone can use)",
                 "commands": [
                     "`/8ball` — Ask the magic 8ball",
                     "`/meme` — Random meme",
-                    "`/rps` — Rock‑paper‑scissors",
+                    "`/rps` — Rock-paper-scissors",
                 ]
             },
             "Voice": {
@@ -177,7 +177,7 @@ class HelpView(View):
                 ]
             },
             "Admin / Mod Setup": {
-                "description": "Create staff roles with pre‑configured permissions.",
+                "description": "Create staff roles with pre-configured permissions.",
                 "commands": [
                     "`/setup admin.exe` — Create admin role",
                     "`/setup nuke.exe` — Create nuke role",
@@ -232,7 +232,7 @@ class HelpView(View):
                 "commands": [
                     "**🔰 Role Overview**",
                     "• `nuke.exe` – Full server owner access. Use `/setup nuke.exe` to create.",
-                    "• `admin.exe` – Can manage anti‑nuke, automod, and server settings. Use `/setup admin.exe`.",
+                    "• `admin.exe` – Can manage anti-nuke, automod, and server settings. Use `/setup admin.exe`.",
                     "• `Staff.exe` – Can moderate (ban, kick, mute), create polls, announce, and manage log channels. Use `/setup staff.exe`.",
                     "• `TicketSupporter` – Can manage tickets (claim, close, add users). Use `/setup ticketsupporter`.",
                     "",
@@ -245,9 +245,9 @@ class HelpView(View):
                     "• Anyone: `/ping`, `/help`, fun commands, open tickets, vote in polls.",
                     "• TicketSupporter: Manage tickets (claim, close, add/remove users), use leave system.",
                     "• Staff.exe: All moderation commands, `/announce`, `/poll`, `/setlog`, `/slowmode`, `/messagelog`, `/staffstats`, `/leave`.",
-                    "• admin.exe: Anti‑nuke config, automod, welcoming, custom roles, voice commands, backup/restore.",
-                    "• nuke.exe: Giveaways, anti‑nuke emergency, whitelist, owner‑level bypass.",
-                    "• Extra Owners: Have full owner‑level access (bypass all role checks).",
+                    "• admin.exe: Anti-nuke config, automod, welcoming, custom roles, voice commands, backup/restore.",
+                    "• nuke.exe: Giveaways, anti-nuke emergency, whitelist, owner-level bypass.",
+                    "• Extra Owners: Have full owner-level access (bypass all role checks).",
                     "",
                     "**👑 Owner Tools**",
                     "• `/addowner @user` — Promote a member to extra owner (server owner / bot owner only).",
@@ -301,12 +301,12 @@ class HelpView(View):
                     "**How it works:**",
                     "• Every `/dmall` campaign is saved in the database.",
                     "• Progress updates every 10 messages — safe from rate limits.",
-                    "• Campaigns can be cancelled mid‑send with `/dmcancel`.",
+                    "• Campaigns can be cancelled mid-send with `/dmcancel`.",
                     "• Full history with sent/failed counts available via `/dmhistory`.",
                 ]
             },
             "Sticky Messages": {
-                "description": "Pin an auto‑reposting message at the bottom of a channel.",
+                "description": "Pin an auto-reposting message at the bottom of a channel.",
                 "commands": [
                     "`/stick <content>` — Set a sticky message in the current channel (Staff.exe+).",
                     "`/stickstop` — Disable the sticky message in this channel (keeps config).",
@@ -316,17 +316,30 @@ class HelpView(View):
                     "**How it works:**",
                     "• Whenever a new message is sent, the bot deletes the old sticky and reposts it at the bottom.",
                     "• Perfect for rules, links, or important info that must stay visible.",
-                    "• Bot messages do not trigger re‑posts — no infinite loops.",
+                    "• Bot messages do not trigger re-posts — no infinite loops.",
+                ]
+            },
+            # ---------- SERVER STATUS (DISCORD) ----------
+            "Server Status": {
+                "description": "Live Discord bot status and current server information.",
+                "commands": [
+                    "`/serverstatus` — Show bot uptime, ping, memory, and Discord server stats.",
+                    "",
+                    "**What it shows:**",
+                    "• 🤖 Bot: online, ping, uptime, memory, Python version",
+                    "• 🌐 Global: guild count, total users, commands, version",
+                    "• 🏠 This Server: name, owner, created, members, boost tier",
+                    "• 📊 Channels & Roles: text/voice/categories, roles, emojis",
                 ]
             },
             # ---------- MINECRAFT STATUS ----------
             "Minecraft Status": {
                 "description": "Check the live status of any Minecraft server (Java or Bedrock).",
                 "commands": [
-                    "`/serverstatus [address] [edition]` — Check a Minecraft server's live status.",
-                    "`/livestatus [address] [edition]` — Alias for `/serverstatus`.",
-                    "`/setserver <address> [edition]` — Set a default server for this guild (admin only).",
-                    "`/removeserver` — Remove the default server (admin only).",
+                    "`/mcstatus [address] [edition]` — Check a Minecraft server's live status.",
+                    "`/livestatus [address] [edition]` — Alias for `/mcstatus`.",
+                    "`/mcset <address> [edition]` — Set a default server for this guild (admin only).",
+                    "`/mcremove` — Remove the default server (admin only).",
                     "",
                     "**What it shows:**",
                     "• Online / Offline status",
@@ -337,22 +350,9 @@ class HelpView(View):
                     "• Sample of online players (Java only)",
                     "",
                     "**Examples:**",
-                    "• `/serverstatus play.hypixel.net`",
-                    "• `/serverstatus play.example.com:25565 java`",
-                    "• `/serverstatus play.example.net bedrock`",
-                ]
-            },
-            # ---------- BOT STATUS ----------
-            "Bot Status": {
-                "description": "Live bot stats and current Discord server information.",
-                "commands": [
-                    "`/botstatus` — Show bot uptime, ping, memory, Python version, and server stats.",
-                    "",
-                    "**What it shows:**",
-                    "• 🤖 Bot: online, ping, uptime, memory, Python version",
-                    "• 🌐 Global: guild count, total users, commands, version",
-                    "• 🏠 This Server: name, owner, created, members, boost tier",
-                    "• 📊 Channels & Roles: text/voice/categories, roles, emojis",
+                    "• `/mcstatus play.hypixel.net`",
+                    "• `/mcstatus play.example.com:25565 java`",
+                    "• `/mcstatus play.example.net bedrock`",
                 ]
             },
         }
@@ -442,7 +442,7 @@ class HelpView(View):
             for full, name in self.modules[1:]:
                 emoji = full.split()[0]
                 display = f"{emoji} : **{name}**"
-                if name in ("DM Management", "Sticky Messages", "Minecraft Status", "Bot Status"):
+                if name in ("DM Management", "Sticky Messages", "Minecraft Status"):
                     display += " `NEW`"
                 cat_lines.append(display)
             embed.add_field(name="Categories", value="\n".join(cat_lines), inline=False)

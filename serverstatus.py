@@ -6,7 +6,6 @@ import psutil
 from datetime import datetime, timezone
 from formatter import BotEmbed
 
-# Bot startup time — set once when the module is imported
 START_TIME = datetime.now(timezone.utc)
 
 
@@ -14,12 +13,11 @@ class ServerStatus(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @app_commands.command(name="serverstatus", description="Show live bot status and server information")
+    @app_commands.command(name="serverstatus", description="Show live bot status and Discord server information")
     async def serverstatus(self, interaction: discord.Interaction):
         guild = interaction.guild
         bot = self.bot
 
-        # ---------- Uptime ----------
         uptime_delta = datetime.now(timezone.utc) - START_TIME
         total_seconds = int(uptime_delta.total_seconds())
         days, rem = divmod(total_seconds, 86400)
@@ -27,7 +25,6 @@ class ServerStatus(commands.Cog):
         minutes, seconds = divmod(rem, 60)
         uptime_str = f"{days}d {hours}h {minutes}m {seconds}s"
 
-        # ---------- Bot stats ----------
         ws_latency = round(bot.latency * 1000)
         try:
             memory_mb = psutil.Process().memory_info().rss / 1024 ** 2
@@ -37,7 +34,6 @@ class ServerStatus(commands.Cog):
 
         total_members = sum(g.member_count or 0 for g in bot.guilds)
 
-        # ---------- Build embed ----------
         embed = discord.Embed(
             title="🛡️ NeoMonster – Live Status",
             color=0x3B82F6,
@@ -45,7 +41,6 @@ class ServerStatus(commands.Cog):
         )
         embed.set_thumbnail(url=bot.user.display_avatar.url)
 
-        # ----- Bot section -----
         embed.add_field(
             name="🤖 Bot",
             value=(
@@ -62,22 +57,18 @@ class ServerStatus(commands.Cog):
             value=(
                 f"**Guilds:** `{len(bot.guilds)}`\n"
                 f"**Users:** `{total_members:,}`\n"
-                f"**Commands:** `95+`\n"
+                f"**Commands:** `100+`\n"
                 f"**Version:** `2.0.0`"
             ),
             inline=True
         )
 
-        # ----- Server section (only if in a guild) -----
         if guild:
             owner = guild.owner.mention if guild.owner else "Unknown"
             created = guild.created_at.strftime("%Y-%m-%d")
-
             text_channels = len(guild.text_channels)
             voice_channels = len(guild.voice_channels)
             categories = len(guild.categories)
-
-            # Boosts
             boost_tier = guild.premium_tier
             boost_count = guild.premium_subscription_count or 0
 
@@ -105,7 +96,6 @@ class ServerStatus(commands.Cog):
             )
 
         embed.set_footer(text="NeoMonster • Live status snapshot")
-
         await interaction.response.send_message(embed=embed)
 
 

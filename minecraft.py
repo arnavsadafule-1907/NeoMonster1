@@ -40,7 +40,6 @@ class MinecraftStatus(commands.Cog):
     async def query_server(self, address: str, edition: str):
         try:
             if edition == "bedrock":
-                # Bedrock default port is 19132
                 target = address if ":" in address else f"{address}:19132"
                 server = BedrockServer.lookup(target)
                 status = await server.async_status()
@@ -65,11 +64,7 @@ class MinecraftStatus(commands.Cog):
                 motd = getattr(status, "motd", None)
                 if motd:
                     motd_text = getattr(motd, "raw", None) or str(motd)
-                    embed.add_field(
-                        name="MOTD",
-                        value=f"```{motd_text[:1000]}```",
-                        inline=False
-                    )
+                    embed.add_field(name="MOTD", value=f"```{motd_text[:1000]}```", inline=False)
                 return embed
 
             else:  # Java
@@ -94,13 +89,8 @@ class MinecraftStatus(commands.Cog):
                 if getattr(status, "motd", None):
                     motd_text = getattr(status.motd, "raw", None) or str(status.motd)
                 if motd_text:
-                    embed.add_field(
-                        name="MOTD",
-                        value=f"```{motd_text[:1000]}```",
-                        inline=False
-                    )
+                    embed.add_field(name="MOTD", value=f"```{motd_text[:1000]}```", inline=False)
 
-                # Sample of online players (Java only)
                 if status.players.sample:
                     names = ", ".join(p.name for p in status.players.sample[:20])
                     embed.add_field(name="Players Online", value=names[:1000], inline=False)
@@ -124,7 +114,7 @@ class MinecraftStatus(commands.Cog):
                     embed=BotEmbed.error(
                         "No Default Server",
                         "No address provided and no default set.\n"
-                        "Use `/setserver <address>` first, or pass an address: `/serverstatus play.example.com`."
+                        "Use `/mcset <address>` first, or pass an address: `/mcstatus play.example.com`."
                     )
                 )
             address = row["address"]
@@ -133,8 +123,8 @@ class MinecraftStatus(commands.Cog):
         embed = await self.query_server(address, edition)
         await interaction.followup.send(embed=embed)
 
-    # ---------- /serverstatus ----------
-    @app_commands.command(name="serverstatus", description="Check a Minecraft server's live status")
+    # ---------- /mcstatus ----------
+    @app_commands.command(name="mcstatus", description="Check a Minecraft server's live status")
     @app_commands.describe(
         address="Server address (e.g., play.example.com or play.example.com:25565)",
         edition="Java or Bedrock (default: Java)"
@@ -143,7 +133,7 @@ class MinecraftStatus(commands.Cog):
         app_commands.Choice(name="Java", value="java"),
         app_commands.Choice(name="Bedrock", value="bedrock"),
     ])
-    async def serverstatus(
+    async def mcstatus(
         self,
         interaction: discord.Interaction,
         address: str = None,
@@ -152,7 +142,7 @@ class MinecraftStatus(commands.Cog):
         await self._handle(interaction, address, edition)
 
     # ---------- /livestatus (alias) ----------
-    @app_commands.command(name="livestatus", description="Alias for /serverstatus")
+    @app_commands.command(name="livestatus", description="Alias for /mcstatus")
     @app_commands.describe(
         address="Server address (e.g., play.example.com or play.example.com:25565)",
         edition="Java or Bedrock (default: Java)"
@@ -169,8 +159,8 @@ class MinecraftStatus(commands.Cog):
     ):
         await self._handle(interaction, address, edition)
 
-    # ---------- /setserver (admin only) ----------
-    @app_commands.command(name="setserver", description="Set the default Minecraft server for this guild")
+    # ---------- /mcset (admin only) ----------
+    @app_commands.command(name="mcset", description="Set the default Minecraft server for this guild")
     @app_commands.describe(
         address="Server address (e.g., play.example.com or play.example.com:25565)",
         edition="Java or Bedrock"
@@ -180,7 +170,7 @@ class MinecraftStatus(commands.Cog):
         app_commands.Choice(name="Bedrock", value="bedrock"),
     ])
     @admin_only()
-    async def setserver(
+    async def mcset(
         self,
         interaction: discord.Interaction,
         address: str,
@@ -190,14 +180,14 @@ class MinecraftStatus(commands.Cog):
         await interaction.response.send_message(
             embed=BotEmbed.success(
                 "Default Server Set",
-                f"`{address}` (**{edition.capitalize()}**) will be used when `/serverstatus` is run without an address."
+                f"`{address}` (**{edition.capitalize()}**) will be used when `/mcstatus` is run without an address."
             )
         )
 
-    # ---------- /removeserver (admin only) ----------
-    @app_commands.command(name="removeserver", description="Remove the default Minecraft server for this guild")
+    # ---------- /mcremove (admin only) ----------
+    @app_commands.command(name="mcremove", description="Remove the default Minecraft server for this guild")
     @admin_only()
-    async def removeserver(self, interaction: discord.Interaction):
+    async def mcremove(self, interaction: discord.Interaction):
         await self.remove_default(interaction.guild_id)
         await interaction.response.send_message(
             embed=BotEmbed.success("Default Server Removed", "No default server is set anymore.")
