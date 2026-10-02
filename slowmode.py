@@ -4,6 +4,7 @@ from discord.ext import commands
 from formatter import BotEmbed
 from checks import staff_only
 
+
 class Slowmode(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -30,11 +31,6 @@ class Slowmode(commands.Cog):
         else:
             embed = BotEmbed.success("Slowmode Enabled", f"Set {seconds}s slowmode in {count} channels.")
         await interaction.followup.send(embed=embed, ephemeral=False)
-
-    @app_commands.command(name="raidslowmode", description="Quick raid response: 30s slowmode everywhere")
-    @staff_only()
-    async def raid_slowmode(self, interaction: discord.Interaction):
-        await self.slowmode_all.callback(self, interaction, seconds=30, reason="Raid response")
 
 
 async def setup(bot):
