@@ -22,7 +22,7 @@ def api_stats():
         "user_count": sum(g.member_count for g in bot.guilds),
         "uptime": "Online",
         "latency_ms": round(bot.latency * 1000, 2),
-        "commands": 65,
+        "commands": 100,
         "version": "2.0.0",
         "invite_url": "https://discord.com/oauth2/authorize?client_id=1528368412093579376&permissions=1100473378998&integration_type=0&scope=bot+applications.commands"
     })

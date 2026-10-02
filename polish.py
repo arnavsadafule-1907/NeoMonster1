@@ -4,10 +4,11 @@ from discord.ext import commands, tasks
 import os
 import platform
 import psutil
-from datetime import datetime
+from datetime import datetime, timezone
 from formatter import BotEmbed
 
-START_TIME = datetime.utcnow()
+START_TIME = datetime.now(timezone.utc)
+
 
 class Polish(commands.Cog):
     def __init__(self, bot):
@@ -26,7 +27,6 @@ class Polish(commands.Cog):
         ]
         for status in statuses:
             await self.bot.change_presence(activity=status)
-            # No sleep needed – status changes on each loop iteration
 
     @status_rotation.before_loop
     async def before_status(self):
@@ -34,10 +34,9 @@ class Polish(commands.Cog):
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild):
-        # Send a professional welcome DM to the server owner
         try:
             embed = discord.Embed(
-                title="🛡️ NeoMonsterYou for Choosing Us!",
+                title="🛡️ NeoMonster – Thank You for Choosing Us!",
                 description=(
                     "Your server is now protected by the most advanced Discord security bot.\n\n"
                     "**Quick Setup:**\n"
@@ -47,7 +46,6 @@ class Polish(commands.Cog):
                     "**Links:**\n"
                     f"• Invite: https://discord.com/oauth2/authorize?client_id={self.bot.user.id}&permissions=8&scope=bot%20applications.commands\n"
                     "• Website: https://neomonster1.onrender.com"
-
                 ),
                 color=discord.Color.green()
             )
@@ -57,7 +55,7 @@ class Polish(commands.Cog):
 
     @app_commands.command(name="botinfo", description="Show detailed bot information")
     async def botinfo(self, interaction: discord.Interaction):
-        uptime = datetime.utcnow() - START_TIME
+        uptime = datetime.now(timezone.utc) - START_TIME
         hours, remainder = divmod(int(uptime.total_seconds()), 3600)
         minutes, seconds = divmod(remainder, 60)
 
@@ -70,7 +68,7 @@ class Polish(commands.Cog):
         embed.add_field(name="👥 Users", value=sum(g.member_count for g in self.bot.guilds), inline=True)
         embed.add_field(name="💾 Memory", value=f"{psutil.Process().memory_info().rss / 1024**2:.1f} MB", inline=True)
         embed.add_field(name="🐍 Python", value=platform.python_version(), inline=True)
-        embed.add_field(name="📊 Commands", value="65+", inline=True)
+        embed.add_field(name="📊 Commands", value="100+", inline=True)
         embed.add_field(name="💿 OS", value=platform.system(), inline=True)
         embed.set_thumbnail(url=self.bot.user.display_avatar.url)
         await interaction.response.send_message(embed=embed)

@@ -12,7 +12,7 @@ DISCORD_CLIENT_ID = os.getenv("DISCORD_CLIENT_ID")
 DISCORD_CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET")
 FLASK_SECRET_KEY = os.getenv("FLASK_SECRET_KEY")
 
-# ---------- FIXED: Safely parse OWNER_IDS ----------
+# ---------- Safely parse OWNER_IDS ----------
 try:
     owner_ids_str = os.getenv("OWNER_IDS", "")
     if owner_ids_str:
@@ -55,7 +55,7 @@ def format_time(ts):
 
 # ---------- Discord OAuth ----------
 def get_oauth_url():
-    return f"https://discord.com/api/oauth2/authorize?client_id={DISCORD_CLIENT_ID}&redirect_uri=https%3A%2F%2FNeoMonster1-production.up.railway.app%2Fcallback&response_type=code&scope=identify+guilds"
+    return f"https://discord.com/api/oauth2/authorize?client_id={DISCORD_CLIENT_ID}&redirect_uri=https%3A%2F%2Fneomonster1.onrender.com%2Fcallback&response_type=code&scope=identify+guilds"
 
 def exchange_code(code):
     data = {
@@ -63,7 +63,7 @@ def exchange_code(code):
         'client_secret': DISCORD_CLIENT_SECRET,
         'grant_type': 'authorization_code',
         'code': code,
-        'redirect_uri': 'https://neomonster1.onrender.comcallback'
+        'redirect_uri': 'https://neomonster1.onrender.com/callback'
     }
     headers = {'Content-Type': 'application/x-www-form-urlencoded'}
     r = requests.post('https://discord.com/api/oauth2/token', data=data, headers=headers)
@@ -81,14 +81,13 @@ def get_user_guilds(token):
     r = requests.get('https://discord.com/api/users/@me/guilds', headers=headers)
     r.raise_for_status()
     guilds = r.json()
-    # Keep only servers where the user is OWNER (or has ADMINISTRATOR permission)
     user_guilds = []
     for g in guilds:
         if g['owner'] or (int(g['permissions']) & 0x8):
             user_guilds.append(g)
     return user_guilds
 
-# ---------- LANDING PAGE (unchanged) ----------
+# ---------- LANDING PAGE ----------
 LANDING_HTML = """
 <!doctype html>
 <html lang="en">
@@ -179,7 +178,7 @@ LANDING_HTML = """
                 <div class="stat-label">Servers Protected</div>
             </div>
             <div class="stat-item">
-                <div class="stat-number">65+</div>
+                <div class="stat-number">100+</div>
                 <div class="stat-label">Commands</div>
             </div>
             <div class="stat-item">
@@ -257,7 +256,7 @@ LANDING_HTML = """
 </html>
 """
 
-# ---------- DASHBOARD HTML (unchanged) ----------
+# ---------- DASHBOARD HTML ----------
 DASHBOARD_HTML = """
 <!doctype html>
 <html lang="en">
@@ -393,7 +392,7 @@ DASHBOARD_HTML = """
 </html>
 """
 
-# ---------- Debug route (unchanged) ----------
+# ---------- Debug route ----------
 @app.route("/debug")
 def debug():
     if 'user_id' not in session:
@@ -525,7 +524,7 @@ def view_logs():
     logs = get_recent_logs(guild_id, 50)
     return jsonify([dict(zip(["timestamp", "user_id", "event_type", "punishment"], row)) for row in logs])
 
-# ---------- Public API (unchanged) ----------
+# ---------- Public API ----------
 @app.route("/api/stats")
 def api_stats():
     bot = app.config.get("bot")
@@ -536,7 +535,7 @@ def api_stats():
         "guild_count": len(bot.guilds),
         "user_count": sum(g.member_count for g in bot.guilds),
         "latency_ms": round(bot.latency * 1000, 2),
-        "commands": 65, "version": "2.0.0",
+        "commands": 100, "version": "2.0.0",
         "invite_url": "https://discord.com/oauth2/authorize?client_id=1528368412093579376&permissions=1100473370870&integration_type=0&scope=bot+applications.commands"
     })
 
