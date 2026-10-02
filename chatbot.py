@@ -1,12 +1,5 @@
 import discord
-from discord import app_commands
 from discord.ext import commands
-import aiosqlite
-import os
-from formatter import BotEmbed
-from checks import admin_only
-
-DB_PATH = os.getenv("DATABASE_PATH", "./data/security.db")
 
 DEFAULT_RESPONSES = {
     "hello": "Hello! How can I help you?",
@@ -19,6 +12,7 @@ DEFAULT_RESPONSES = {
     "ip": "This server doesn't have a game IP. This is a Discord community.",
 }
 
+
 class Chatbot(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -28,32 +22,12 @@ class Chatbot(commands.Cog):
     async def on_message(self, message):
         if message.author.bot or not message.guild:
             return
-        # Check if the bot is mentioned
         if self.bot.user in message.mentions:
             content = message.content.replace(f"<@{self.bot.user.id}>", "").strip().lower()
             for trigger, response in self.responses.items():
                 if trigger in content:
                     await message.channel.send(response)
                     return
-
-    @app_commands.command(name="addresponse", description="Add an auto‑response")
-    @app_commands.describe(trigger="Phrase to watch for", response="Bot's reply")
-    @admin_only()
-    async def add_response(self, interaction: discord.Interaction, trigger: str, response: str):
-        self.responses[trigger.lower()] = response
-        embed = BotEmbed.success("Response Added", f"When someone mentions me with `{trigger}`, I'll respond.")
-        await interaction.response.send_message(embed=embed, ephemeral=False)
-
-    @app_commands.command(name="removeresponse", description="Remove an auto‑response")
-    @app_commands.describe(trigger="Trigger phrase to remove")
-    @admin_only()
-    async def remove_response(self, interaction: discord.Interaction, trigger: str):
-        if trigger.lower() in self.responses and trigger.lower() not in DEFAULT_RESPONSES:
-            del self.responses[trigger.lower()]
-            embed = BotEmbed.success("Response Removed", f"Removed response for `{trigger}`.")
-        else:
-            embed = BotEmbed.error("Cannot Remove", "Default responses cannot be removed, or trigger not found.")
-        await interaction.response.send_message(embed=embed, ephemeral=False)
 
 
 async def setup(bot):
