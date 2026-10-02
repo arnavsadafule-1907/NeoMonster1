@@ -26,6 +26,46 @@ class Tracking(commands.Cog):
     def cog_unload(self):
         self.flush_loop.cancel()
 
+    # ============== LAZY TABLE CREATION ==============
+    async def _ensure_tables(self):
+        """Recreate tables if they were wiped by a DB restore."""
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute("""
+                CREATE TABLE IF NOT EXISTS invite_stats (
+                    guild_id INTEGER NOT NULL,
+                    user_id INTEGER NOT NULL,
+                    total INTEGER DEFAULT 0,
+                    joins INTEGER DEFAULT 0,
+                    leaves INTEGER DEFAULT 0,
+                    fakes INTEGER DEFAULT 0,
+                    rejoins INTEGER DEFAULT 0,
+                    PRIMARY KEY (guild_id, user_id)
+                )
+            """)
+            await db.execute("""
+                CREATE TABLE IF NOT EXISTS invite_records (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    guild_id INTEGER NOT NULL,
+                    member_id INTEGER NOT NULL,
+                    inviter_id INTEGER NOT NULL,
+                    joined_at TEXT NOT NULL,
+                    left_at TEXT,
+                    is_fake INTEGER DEFAULT 0,
+                    is_rejoin INTEGER DEFAULT 0
+                )
+            """)
+            await db.execute("""
+                CREATE TABLE IF NOT EXISTS message_stats (
+                    guild_id INTEGER NOT NULL,
+                    user_id INTEGER NOT NULL,
+                    all_time INTEGER DEFAULT 0,
+                    daily INTEGER DEFAULT 0,
+                    daily_date TEXT,
+                    PRIMARY KEY (guild_id, user_id)
+                )
+            """)
+            await db.commit()
+
     # ============== INVITE CACHE ==============
     async def _initial_invite_cache(self):
         await self.bot.wait_until_ready()
@@ -60,6 +100,7 @@ class Tracking(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_join(self, member):
+        await self._ensure_tables()
         guild = member.guild
         old_cache = dict(self.invite_cache.get(guild.id, {}))
         used = await self.find_used_invite(guild, old_cache)
@@ -115,6 +156,7 @@ class Tracking(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_remove(self, member):
+        await self._ensure_tables()
         guild = member.guild
         async with aiosqlite.connect(DB_PATH) as db:
             db.row_factory = aiosqlite.Row
@@ -142,6 +184,7 @@ class Tracking(commands.Cog):
     # ============== MESSAGE TRACKING ==============
     @tasks.loop(seconds=30)
     async def flush_loop(self):
+        await self._ensure_tables()
         await self._flush_messages()
 
     @flush_loop.before_loop
@@ -193,6 +236,7 @@ class Tracking(commands.Cog):
     @app_commands.command(name="invites", description="Show invite stats for a user")
     @app_commands.describe(user="User to check (default: yourself)")
     async def invites_cmd(self, interaction: discord.Interaction, user: discord.Member = None):
+        await self._ensure_tables()
         user = user or interaction.user
         async with aiosqlite.connect(DB_PATH) as db:
             db.row_factory = aiosqlite.Row
@@ -229,6 +273,7 @@ class Tracking(commands.Cog):
     @app_commands.command(name="invited", description="Show who invited a user")
     @app_commands.describe(user="User to check")
     async def invited_cmd(self, interaction: discord.Interaction, user: discord.Member):
+        await self._ensure_tables()
         async with aiosqlite.connect(DB_PATH) as db:
             db.row_factory = aiosqlite.Row
             cursor = await db.execute(
@@ -263,6 +308,7 @@ class Tracking(commands.Cog):
 
     @app_commands.command(name="inviteleaderboard", description="Top inviters in this server")
     async def inviteleaderboard(self, interaction: discord.Interaction):
+        await self._ensure_tables()
         async with aiosqlite.connect(DB_PATH) as db:
             db.row_factory = aiosqlite.Row
             cursor = await db.execute(
@@ -298,6 +344,7 @@ class Tracking(commands.Cog):
     @app_commands.command(name="messages", description="Show message stats for a user")
     @app_commands.describe(user="User to check (default: yourself)")
     async def messages_cmd(self, interaction: discord.Interaction, user: discord.Member = None):
+        await self._ensure_tables()
         user = user or interaction.user
         await self._flush_messages()
 
@@ -327,6 +374,7 @@ class Tracking(commands.Cog):
 
     @app_commands.command(name="msgleaderboard", description="Top message senders in this server")
     async def msgleaderboard(self, interaction: discord.Interaction):
+        await self._ensure_tables()
         await self._flush_messages()
 
         async with aiosqlite.connect(DB_PATH) as db:
@@ -387,12 +435,13 @@ class Tracking(commands.Cog):
     )
     @staff_only()
     async def managetracking(self, interaction, system: str, user: discord.Member, stat: str, action: str, count: int):
+        await self._ensure_tables()
+
         if count < 0:
             return await interaction.response.send_message(
                 embed=BotEmbed.error("Invalid", "Count must be positive."), ephemeral=True
             )
 
-        # Validate stat matches system
         invite_stats = {"total", "joins", "leaves", "fakes", "rejoins"}
         msg_stats = {"daily", "all_time"}
         if system == "invites" and stat not in invite_stats:

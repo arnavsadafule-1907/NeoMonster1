@@ -17,6 +17,20 @@ class MinecraftStatus(commands.Cog):
     def cog_unload(self):
         self.update_panels.cancel()
 
+    # ---------- Lazy table creation (survives DB restore) ----------
+    async def _ensure_table(self):
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute("""
+                CREATE TABLE IF NOT EXISTS mc_live_panels (
+                    channel_id INTEGER PRIMARY KEY,
+                    guild_id INTEGER NOT NULL,
+                    message_id INTEGER NOT NULL,
+                    address TEXT NOT NULL,
+                    edition TEXT DEFAULT 'java'
+                )
+            """)
+            await db.commit()
+
     # ---------- Core query ----------
     async def query_server(self, address: str, edition: str):
         try:
@@ -110,6 +124,8 @@ class MinecraftStatus(commands.Cog):
         address: str = None,
         edition: str = "java"
     ):
+        await self._ensure_table()
+
         # ---- Stop mode ----
         if address is None:
             async with aiosqlite.connect(DB_PATH) as db:
@@ -127,7 +143,6 @@ class MinecraftStatus(commands.Cog):
                 await db.execute("DELETE FROM mc_live_panels WHERE channel_id = ?", (interaction.channel_id,))
                 await db.commit()
 
-            # Try to mark the old panel as stopped
             try:
                 msg = await interaction.channel.fetch_message(row["message_id"])
                 stopped = discord.Embed(
@@ -147,7 +162,6 @@ class MinecraftStatus(commands.Cog):
         # ---- Start mode ----
         await interaction.response.defer()
 
-        # Check for existing panel in this channel
         async with aiosqlite.connect(DB_PATH) as db:
             cursor = await db.execute(
                 "SELECT 1 FROM mc_live_panels WHERE channel_id = ?",
@@ -175,6 +189,7 @@ class MinecraftStatus(commands.Cog):
     # ---------- Background update loop ----------
     @tasks.loop(seconds=60)
     async def update_panels(self):
+        await self._ensure_table()
         async with aiosqlite.connect(DB_PATH) as db:
             db.row_factory = aiosqlite.Row
             cursor = await db.execute("SELECT * FROM mc_live_panels")
@@ -213,6 +228,7 @@ class MinecraftStatus(commands.Cog):
 
 
 async def setup(bot):
+    # Best-effort create now; also created lazily on every use
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("""
             CREATE TABLE IF NOT EXISTS mc_live_panels (
