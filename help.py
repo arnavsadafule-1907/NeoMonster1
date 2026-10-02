@@ -59,6 +59,7 @@ class HelpView(View):
             ("📌 Sticky Messages", "Sticky Messages"),
             ("📡 Server Status", "Server Status"),
             ("⛏️ Minecraft Status", "Minecraft Status"),
+            ("📊 Stats & Tracking", "Stats & Tracking"),
         ]
 
         self.module_data = {
@@ -355,6 +356,28 @@ class HelpView(View):
                     "• `/mcstatus play.example.net bedrock`",
                 ]
             },
+            # ---------- STATS & TRACKING (invites + messages) ----------
+            "Stats & Tracking": {
+                "description": "Track invites and messages with leaderboards and staff management tools.",
+                "commands": [
+                    "**📨 Invite Tracking**",
+                    "`/invites [user]` — Show invite stats for a user.",
+                    "`/invited [user]` — Show who invited a user.",
+                    "`/inviter [user]` — Alias for `/invited`.",
+                    "`/inviteleaderboard` — Top inviters in this server.",
+                    "`/manageinvites <user> <stat> <add/remove> <count>` — Staff only.",
+                    "",
+                    "**💬 Message Tracking**",
+                    "`/messages [user]` — Show message stats for a user.",
+                    "`/msgleaderboard` — Top message senders in this server.",
+                    "`/managemsg <user> <stat> <add/remove> <count>` — Staff only.",
+                    "",
+                    "**Managing stats:**",
+                    "• Invite stats: `total`, `joins`, `leaves`, `fakes`, `rejoins`",
+                    "• Message stats: `daily`, `alltime`",
+                    "• Staff / admin.exe / extra owners only",
+                ]
+            },
         }
 
         # ---------- Build dropdown options ----------
@@ -442,7 +465,7 @@ class HelpView(View):
             for full, name in self.modules[1:]:
                 emoji = full.split()[0]
                 display = f"{emoji} : **{name}**"
-                if name in ("DM Management", "Sticky Messages", "Minecraft Status"):
+                if name in ("DM Management", "Sticky Messages", "Minecraft Status", "Stats & Tracking"):
                     display += " `NEW`"
                 cat_lines.append(display)
             embed.add_field(name="Categories", value="\n".join(cat_lines), inline=False)
