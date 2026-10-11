@@ -9,6 +9,7 @@ from formatter import BotEmbed
 
 DB_PATH = os.getenv("DATABASE_PATH", "./data/security.db")
 
+
 class Moderation(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -29,15 +30,6 @@ class Moderation(commands.Cog):
                 (channel_id, guild_id)
             )
             await db.commit()
-
-    # ---------- Command to set the log channel ----------
-    @app_commands.command(name="setmodlog", description="Set the channel for moderation logs")
-    @app_commands.describe(channel="The channel where moderation actions will be logged")
-    @staff_only()
-    async def set_modlog(self, interaction: discord.Interaction, channel: discord.TextChannel):
-        await self.set_mod_log_channel(interaction.guild_id, channel.id)
-        embed = BotEmbed.success("Moderation Log Set", f"Logs will be sent to {channel.mention}.")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
 
     # ---------- Internal log method ----------
     async def _log(self, guild, moderator, action, target, reason=None, duration=None):
@@ -109,7 +101,7 @@ class Moderation(commands.Cog):
             embed = BotEmbed.success("Member Muted", f"{member.mention} has been muted for {duration} minutes.\n**Reason:** {reason}")
             await self._log(interaction.guild, interaction.user, "Mute", member, reason, f"{duration} minutes")
         except discord.Forbidden:
-            embed = BotEmbed.error("Permission Denied", "I cannot mute this member. Ensure I have **Moderate Members** permission and my role is above theirs.")
+            embed = BotEmbed.error("Permission Denied", "I cannot mute this member.")
         await interaction.response.send_message(embed=embed)
 
     # ---------- UNMUTE ----------
@@ -163,7 +155,6 @@ class Moderation(commands.Cog):
     async def on_member_update(self, before: discord.Member, after: discord.Member):
         if before.is_timed_out() and not after.is_timed_out():
             guild = after.guild
-            # Try to find who removed it via audit log
             try:
                 async for entry in guild.audit_logs(limit=5, action=discord.AuditLogAction.member_update):
                     if entry.target.id == after.id and entry.changes.before.timeout and entry.changes.after.timeout is None:
@@ -176,7 +167,6 @@ class Moderation(commands.Cog):
 
 
 async def setup(bot):
-    # Ensure mod_log_channel_id column exists in guild_settings
     async with aiosqlite.connect(DB_PATH) as db:
         try:
             await db.execute("ALTER TABLE guild_settings ADD COLUMN mod_log_channel_id INTEGER DEFAULT 0")
