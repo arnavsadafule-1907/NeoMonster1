@@ -1,4 +1,4 @@
-\import discord
+import discord
 from discord import app_commands
 from discord.ext import commands
 import aiosqlite
@@ -13,11 +13,13 @@ from checks import admin_only, ticket_staff_only
 DB_PATH = os.getenv("DATABASE_PATH", "./data/security.db")
 
 # ============================================================
-#  PANEL EMOJIS
+#  PANEL EMOJIS — replace with animated ones if you want
+#  Animated: <a:name:id>    Static: <:name:id>    Unicode: 🎟️
 # ============================================================
 PANEL_EMOJIS = {
     "title":  "🎟️",
     "footer": "🛡️",
+    "button": "🎟️",
 }
 
 
@@ -90,7 +92,30 @@ class TicketView(discord.ui.View):
 
 
 # -------------------------------------------------------------------
-#  Modals — ticket actions
+#  Ticket Type Picker — shown after clicking "Open Ticket"
+# -------------------------------------------------------------------
+class TicketTypePickerView(discord.ui.View):
+    def __init__(self, cog, types):
+        super().__init__(timeout=120)
+        self.cog = cog
+
+        for t in types[:20]:
+            button = discord.ui.Button(
+                label=t["name"][:80],
+                style=discord.ButtonStyle.primary,
+                custom_id=f"ticket_pick_{t['name']}"
+            )
+            button.callback = self._make_callback(t["name"])
+            self.add_item(button)
+
+    def _make_callback(self, ticket_type_name: str):
+        async def callback(interaction: discord.Interaction):
+            await interaction.response.send_modal(TicketOpenModal(self.cog, ticket_type_name))
+        return callback
+
+
+# -------------------------------------------------------------------
+#  Modals
 # -------------------------------------------------------------------
 class AddUserModal(discord.ui.Modal, title="Add User to Ticket"):
     def __init__(self, cog, channel):
@@ -189,15 +214,11 @@ class TicketOpenModal(discord.ui.Modal, title="Open Ticket"):
         )
 
 
-# -------------------------------------------------------------------
-#  Panel Edit Modal — replaces the old /n typing mess
-# -------------------------------------------------------------------
 class PanelEditModal(discord.ui.Modal, title="Edit Ticket Panel"):
     def __init__(self, cog, config):
         super().__init__()
         self.cog = cog
 
-        # Existing values, or sensible defaults
         existing_title = config["title"] if config and config["title"] else ""
         existing_desc = config["description"] if config and config["description"] else ""
         existing_img = config["image_url"] if config and config["image_url"] else ""
@@ -270,9 +291,6 @@ class Ticket(commands.Cog):
         self.bot = bot
         self._claim_locks = {}
 
-    # ============================================================
-    #  Lazy table creation
-    # ============================================================
     async def _ensure_tables(self):
         async with aiosqlite.connect(DB_PATH) as db:
             await db.execute("""CREATE TABLE IF NOT EXISTS ticket_types (
@@ -298,9 +316,6 @@ class Ticket(commands.Cog):
                 pass
             await db.commit()
 
-    # ============================================================
-    #  DB helpers
-    # ============================================================
     async def get_ticket_types(self, guild_id: int):
         await self._ensure_tables()
         async with aiosqlite.connect(DB_PATH) as db:
@@ -382,9 +397,6 @@ class Ticket(commands.Cog):
             )
             await db.commit()
 
-    # ============================================================
-    #  PANEL CONFIG
-    # ============================================================
     async def get_panel_config(self, guild_id):
         await self._ensure_tables()
         async with aiosqlite.connect(DB_PATH) as db:
@@ -444,7 +456,7 @@ class Ticket(commands.Cog):
         embed = discord.Embed(
             title=f"{PANEL_EMOJIS['title']} {title}",
             description=description,
-            color=0x3B82F6
+            color=0x2B2D31
         )
 
         if image_url:
@@ -454,15 +466,17 @@ class Ticket(commands.Cog):
         view = discord.ui.View(timeout=None)
 
         if style == "buttons":
-            for t in types[:20]:
-                button = discord.ui.Button(
-                    label=t["name"][:80],
-                    style=discord.ButtonStyle.primary,
-                    custom_id=f"ticket_open_{t['name']}"
-                )
-                button.callback = self._make_open_callback(t["name"])
-                view.add_item(button)
+            # Single "Open Ticket" button (matches the image)
+            open_button = discord.ui.Button(
+                label="Open Ticket",
+                style=discord.ButtonStyle.blurple,
+                emoji=PANEL_EMOJIS["button"],
+                custom_id="ticket_open_main"
+            )
+            open_button.callback = self._make_open_ticket_callback(types)
+            view.add_item(open_button)
         else:
+            # Dropdown
             options = [
                 discord.SelectOption(
                     label=t["name"][:100],
@@ -482,9 +496,19 @@ class Ticket(commands.Cog):
 
         await interaction.response.send_message(embed=embed, view=view)
 
-    def _make_open_callback(self, ticket_type_name: str):
+    def _make_open_ticket_callback(self, types):
         async def callback(interaction: discord.Interaction):
-            await interaction.response.send_modal(TicketOpenModal(self, ticket_type_name))
+            if len(types) == 1:
+                # Only one type — open the modal directly
+                await interaction.response.send_modal(TicketOpenModal(self, types[0]["name"]))
+            else:
+                # Multiple types — show a picker
+                picker = TicketTypePickerView(self, types)
+                await interaction.response.send_message(
+                    "**Select a ticket type:**",
+                    view=picker,
+                    ephemeral=True
+                )
         return callback
 
     def _make_select_callback(self, select_menu):
@@ -493,7 +517,7 @@ class Ticket(commands.Cog):
             await interaction.response.send_modal(TicketOpenModal(self, selected))
         return callback
 
-    @panel_group.command(name="edit", description="Open a form to customise the panel (title, description, image, style)")
+    @panel_group.command(name="edit", description="Open a form to customise the panel")
     @admin_only()
     async def panel_edit(self, interaction: discord.Interaction):
         config = await self.get_panel_config(interaction.guild_id)
@@ -604,9 +628,6 @@ class Ticket(commands.Cog):
         )
         await self._log(interaction.guild, interaction.user, "open", ticket_channel, channel_name=channel_name)
 
-    # ============================================================
-    #  CLAIM
-    # ============================================================
     async def claim_ticket(self, interaction, view: TicketView = None):
         lock = self._claim_locks.get(interaction.channel.id)
         if lock is None:
@@ -654,9 +675,6 @@ class Ticket(commands.Cog):
 
         self._claim_locks.pop(interaction.channel.id, None)
 
-    # ============================================================
-    #  CLOSE
-    # ============================================================
     async def close_ticket_with_reason(self, interaction, reason):
         if not (interaction.channel.name.startswith("ticket-") or interaction.channel.name.startswith("claimed-")):
             return await interaction.response.send_message(embed=BotEmbed.error("Not a Ticket", ""), ephemeral=True)
@@ -701,9 +719,6 @@ class Ticket(commands.Cog):
         await asyncio.sleep(2)
         await interaction.channel.delete(reason="Ticket closed")
 
-    # ============================================================
-    #  BUTTON HANDLER HELPERS
-    # ============================================================
     async def add_user_modal(self, interaction):
         if not (interaction.channel.name.startswith("ticket-") or interaction.channel.name.startswith("claimed-")):
             return await interaction.response.send_message(embed=BotEmbed.error("Not a Ticket", ""), ephemeral=True)
