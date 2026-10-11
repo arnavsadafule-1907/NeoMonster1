@@ -39,7 +39,6 @@ class HelpView(View):
             (f"{self.emoji_antinuke} Antinuke Security", "Antinuke Security"),
             (f"{self.emoji_moderation} Moderation", "Moderation"),
             (f"{self.emoji_utility} Utility", "Utility"),
-            (f"{self.emoji_automod} Automod", "Automod"),
             (f"{self.emoji_welcoming} Welcoming", "Welcoming"),
             (f"{self.emoji_customroles} Customroles", "Customroles"),
             (f"{self.emoji_giveaway} Giveaway", "Giveaway"),
@@ -50,7 +49,6 @@ class HelpView(View):
             (f"{self.emoji_admin} Admin / Mod Setup", "Admin / Mod Setup"),
             (f"{self.emoji_ignore} Ignore Commands", "Ignore Commands"),
             ("🎟️ Tickets", "Tickets"),
-            ("📊 Polls", "Polls"),
             ("📋 Logging", "Logging"),
             ("📖 Setup Guide", "Setup Guide"),
             ("📈 Staff System", "Staff System"),
@@ -110,14 +108,6 @@ class HelpView(View):
                     "`/userinfo` — View user details",
                     "`/serverinfo` — Server information",
                     "`/ping` — Bot latency",
-                ]
-            },
-            "Automod": {
-                "description": "Spam detection, invite blocking, bad word filter. (admin.exe / nuke.exe)",
-                "commands": [
-                    "`/automod spam_on` — Enable spam detection",
-                    "`/automod invites_on` — Block invite links",
-                    "`/automod words_add` — Add filtered word",
                 ]
             },
             "Welcoming": {
@@ -198,7 +188,9 @@ class HelpView(View):
             "Tickets": {
                 "description": "Persistent ticket panel with custom types & welcome messages.",
                 "commands": [
-                    "`/ticketpanel` — Send the ticket panel dropdown (admin only)",
+                    "`/ticketpanel send` — Send the ticket panel (admin only)",
+                    "`/ticketpanel edit` — Customise panel title, description, image, style (dropdown/buttons)",
+                    "`/ticketpanel reset` — Reset panel to defaults (admin only)",
                     "`/tickettype add` — Add a custom ticket type (admin only)",
                     "`/tickettype remove` — Remove a ticket type (admin only)",
                     "`/ticket_add` — Add a user to the current ticket",
@@ -206,17 +198,13 @@ class HelpView(View):
                     "`/ticket_rename` — Rename the current ticket",
                     "`/ticket_close` — Close the current ticket (prompts for reason)",
                     "`/ticket_claim` — Claim the current ticket",
-                    "Use the dropdown on the panel to open a ticket.",
-                    "Inside a ticket: Claim, Close, Add User, Remove User, Rename buttons.",
+                    "",
+                    "**Panel styles:**",
+                    "• Dropdown menu — one menu, choose your type",
+                    "• Buttons — one button per ticket type",
+                    "Switch with `/ticketpanel edit style: ...`",
+                    "",
                     "Staff commands require TicketSupporter, Staff.exe, or higher.",
-                ]
-            },
-            "Polls": {
-                "description": "Create interactive polls with up to 10 options. Requires Staff.exe or higher.",
-                "commands": [
-                    "`/poll` — Create a poll (modal for options)",
-                    "`/setpolllog` — Set the channel for poll vote logs (admin only)",
-                    "Vote by clicking the buttons below the poll!",
                 ]
             },
             "Logging": {
@@ -224,7 +212,6 @@ class HelpView(View):
                 "commands": [
                     "`/setlog` — Set a log channel for any event type (Staff.exe+)",
                     "Event types: `message`, `voice`, `member`, `server`, `channel`, `role`, `emoji`, `webhook`, `moderation`",
-                    "`/messagelog` — Quick setup for message edit/delete logs (Staff.exe+)",
                     "`/stafflog` — View staff activity (moderation actions)",
                 ]
             },
@@ -243,10 +230,10 @@ class HelpView(View):
                     "3. Use `/assign` to give the role to a member.",
                     "",
                     "**🛡️ Who can use what?**",
-                    "• Anyone: `/ping`, `/help`, fun commands, open tickets, vote in polls.",
+                    "• Anyone: `/ping`, `/help`, fun commands, open tickets.",
                     "• TicketSupporter: Manage tickets (claim, close, add/remove users), use leave system.",
-                    "• Staff.exe: All moderation commands, `/announce`, `/poll`, `/setlog`, `/slowmode`, `/messagelog`, `/staffstats`, `/leave`.",
-                    "• admin.exe: Anti-nuke config, automod, welcoming, custom roles, voice commands, backup/restore.",
+                    "• Staff.exe: All moderation commands, `/announce`, `/setlog`, `/slowmode`, `/staffstats`, `/leave`.",
+                    "• admin.exe: Anti-nuke config, welcoming, custom roles, voice commands, backup/restore.",
                     "• nuke.exe: Giveaways, anti-nuke emergency, whitelist, owner-level bypass.",
                     "• Extra Owners: Have full owner-level access (bypass all role checks).",
                     "",
@@ -439,7 +426,7 @@ class HelpView(View):
                 name="Overview",
                 value=(
                     "**Prefix:** `/`\n"
-                    "**Total Commands:** `100+`\n"
+                    "**Total Commands:** `95+`\n"
                     "**Website:** [NeoMonster.bot](https://neomonster1.onrender.com)\n"
                     "**Support:** [Join Server](https://discord.gg/f8zTc4tmHx)"
                 ),
