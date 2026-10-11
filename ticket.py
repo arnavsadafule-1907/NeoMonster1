@@ -5,7 +5,6 @@ import aiosqlite
 import os
 import asyncio
 import io
-import json
 from datetime import datetime, timezone
 from formatter import BotEmbed
 from checks import admin_only, ticket_staff_only
@@ -13,7 +12,7 @@ from checks import admin_only, ticket_staff_only
 DB_PATH = os.getenv("DATABASE_PATH", "./data/security.db")
 
 # ============================================================
-#  PANEL EMOJIS — replace with animated ones if you want
+#  PANEL EMOJIS
 #  Animated: <a:name:id>    Static: <:name:id>    Unicode: 🎟️
 # ============================================================
 PANEL_EMOJIS = {
@@ -76,19 +75,19 @@ class TicketView(discord.ui.View):
     async def add_user_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not await self._check_staff_permission(interaction):
             return
-        await self.cog.add_user_modal(interaction)
+        await interaction.response.send_modal(AddUserModal(interaction.channel))
 
     @discord.ui.button(label="Remove User", style=discord.ButtonStyle.secondary, custom_id="ticket_remove_user")
     async def remove_user_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not await self._check_staff_permission(interaction):
             return
-        await self.cog.remove_user_modal(interaction)
+        await interaction.response.send_modal(RemoveUserModal(interaction.channel))
 
     @discord.ui.button(label="Rename", style=discord.ButtonStyle.secondary, custom_id="ticket_rename")
     async def rename_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not await self._check_staff_permission(interaction):
             return
-        await self.cog.rename_ticket_modal(interaction)
+        await interaction.response.send_modal(RenameTicketModal(interaction.channel))
 
 
 # -------------------------------------------------------------------
@@ -115,54 +114,73 @@ class TicketTypePickerView(discord.ui.View):
 
 
 # -------------------------------------------------------------------
-#  Modals
+#  Modals — ticket actions
 # -------------------------------------------------------------------
 class AddUserModal(discord.ui.Modal, title="Add User to Ticket"):
-    def __init__(self, cog, channel):
+    def __init__(self, channel):
         super().__init__()
-        self.cog = cog
         self.channel = channel
-        self.user_id = discord.ui.TextInput(label="User ID", placeholder="Enter the user ID to add", required=True)
+        self.user_id = discord.ui.TextInput(
+            label="User ID",
+            placeholder="Enter the user ID to add",
+            required=True
+        )
         self.add_item(self.user_id)
 
     async def on_submit(self, interaction: discord.Interaction):
         try:
-            user = await interaction.guild.fetch_member(int(self.user_id.value))
-        except:
-            return await interaction.response.send_message("Invalid user ID.", ephemeral=True)
-        await self.channel.set_permissions(user, read_messages=True, send_messages=True)
-        await interaction.response.send_message(f"Added {user.mention} to the ticket.", ephemeral=False)
+            user = await interaction.guild.fetch_member(int(self.user_id.value.strip()))
+        except Exception:
+            return await interaction.response.send_message("❌ Invalid user ID.", ephemeral=True)
+        try:
+            await self.channel.set_permissions(user, read_messages=True, send_messages=True)
+        except discord.Forbidden:
+            return await interaction.response.send_message("❌ I lack permission to edit this channel.", ephemeral=True)
+        await interaction.response.send_message(f"✅ Added {user.mention} to the ticket.", ephemeral=False)
 
 
 class RemoveUserModal(discord.ui.Modal, title="Remove User from Ticket"):
-    def __init__(self, cog, channel):
+    def __init__(self, channel):
         super().__init__()
-        self.cog = cog
         self.channel = channel
-        self.user_id = discord.ui.TextInput(label="User ID", placeholder="Enter the user ID to remove", required=True)
+        self.user_id = discord.ui.TextInput(
+            label="User ID",
+            placeholder="Enter the user ID to remove",
+            required=True
+        )
         self.add_item(self.user_id)
 
     async def on_submit(self, interaction: discord.Interaction):
         try:
-            user = await interaction.guild.fetch_member(int(self.user_id.value))
-        except:
-            return await interaction.response.send_message("Invalid user ID.", ephemeral=True)
-        await self.channel.set_permissions(user, overwrite=None)
-        await interaction.response.send_message(f"Removed {user.mention} from the ticket.", ephemeral=False)
+            user = await interaction.guild.fetch_member(int(self.user_id.value.strip()))
+        except Exception:
+            return await interaction.response.send_message("❌ Invalid user ID.", ephemeral=True)
+        try:
+            await self.channel.set_permissions(user, overwrite=None)
+        except discord.Forbidden:
+            return await interaction.response.send_message("❌ I lack permission to edit this channel.", ephemeral=True)
+        await interaction.response.send_message(f"✅ Removed {user.mention} from the ticket.", ephemeral=False)
 
 
 class RenameTicketModal(discord.ui.Modal, title="Rename Ticket"):
-    def __init__(self, cog, channel):
+    def __init__(self, channel):
         super().__init__()
-        self.cog = cog
         self.channel = channel
-        self.new_name = discord.ui.TextInput(label="New Name", placeholder="e.g., billing-issue", required=True)
+        self.new_name = discord.ui.TextInput(
+            label="New Name",
+            placeholder="e.g., billing-issue",
+            required=True,
+            max_length=90
+        )
         self.add_item(self.new_name)
 
     async def on_submit(self, interaction: discord.Interaction):
-        new_name = self.new_name.value.replace(" ", "-").lower()
-        await self.channel.edit(name=f"ticket-{new_name}")
-        await interaction.response.send_message(f"Ticket renamed to `{new_name}`", ephemeral=False)
+        new_name = self.new_name.value.strip().replace(" ", "-").lower()
+        try:
+            await self.channel.edit(name=f"ticket-{new_name}")
+        except discord.Forbidden:
+            return await interaction.response.send_message("❌ I lack permission to rename this channel.", ephemeral=True)
+        await interaction.response.send_message(f"✅ Ticket renamed to `{new_name}`", ephemeral=False)
 
 
 class CloseTicketModal(discord.ui.Modal, title="Close Ticket"):
@@ -214,6 +232,9 @@ class TicketOpenModal(discord.ui.Modal, title="Open Ticket"):
         )
 
 
+# ============================================================
+#  Panel Edit Modal — real text boxes, no \n needed
+# ============================================================
 class PanelEditModal(discord.ui.Modal, title="Edit Ticket Panel"):
     def __init__(self, cog, config):
         super().__init__()
@@ -253,7 +274,7 @@ class PanelEditModal(discord.ui.Modal, title="Edit Ticket Panel"):
         self.add_item(self.image_input)
 
         self.style_input = discord.ui.TextInput(
-            label="Style: 'dropdown' or 'buttons'",
+            label="Style: dropdown or buttons",
             placeholder="dropdown",
             default=existing_style,
             required=False,
@@ -283,6 +304,103 @@ class PanelEditModal(discord.ui.Modal, title="Edit Ticket Panel"):
         )
 
 
+# ============================================================
+#  Add Ticket Type Modal — fixed top-level class
+# ============================================================
+class AddTicketTypeModal(discord.ui.Modal, title="Add Ticket Type"):
+    name = discord.ui.TextInput(
+        label="Name",
+        placeholder="e.g., Support, Report, Reward Claim",
+        required=True,
+        max_length=100
+    )
+    category_id = discord.ui.TextInput(
+        label="Category ID",
+        placeholder="Right-click a category → Copy ID",
+        required=True,
+        max_length=30
+    )
+    support_role_id = discord.ui.TextInput(
+        label="Support Role ID (optional)",
+        placeholder="Leave as 0 if no specific role",
+        required=False,
+        default="0",
+        max_length=30
+    )
+    welcome_message = discord.ui.TextInput(
+        label="Welcome Message",
+        placeholder="{user} will be replaced with the member's mention.",
+        required=False,
+        style=discord.TextStyle.paragraph,
+        default="Welcome {user}! Support staff will assist you shortly.",
+        max_length=1000
+    )
+
+    def __init__(self, cog, guild, guild_id):
+        super().__init__()
+        self.cog = cog
+        self.guild = guild
+        self.guild_id = guild_id
+
+    async def on_submit(self, interaction: discord.Interaction):
+        # --- Parse category ID ---
+        try:
+            cat_id = int(self.category_id.value.strip())
+        except ValueError:
+            return await interaction.response.send_message(
+                "❌ **Category ID** must be a number. Right-click a category → Copy ID.",
+                ephemeral=True
+            )
+
+        # --- Parse support role ID ---
+        role_id = 0
+        raw_role = (self.support_role_id.value or "").strip()
+        if raw_role and raw_role != "0":
+            try:
+                role_id = int(raw_role)
+            except ValueError:
+                return await interaction.response.send_message(
+                    "❌ **Support Role ID** must be a number (or leave as 0).",
+                    ephemeral=True
+                )
+
+        # --- Validate the category exists ---
+        category = self.guild.get_channel(cat_id)
+        if not category or not isinstance(category, discord.CategoryChannel):
+            return await interaction.response.send_message(
+                "❌ That ID does not point to a valid **category** in this server.",
+                ephemeral=True
+            )
+
+        # --- Validate the role if provided ---
+        if role_id:
+            role = self.guild.get_role(role_id)
+            if not role:
+                return await interaction.response.send_message(
+                    "❌ That ID does not point to a valid **role** in this server.",
+                    ephemeral=True
+                )
+
+        name = self.name.value.strip()
+        welcome = self.welcome_message.value.strip() if self.welcome_message.value else None
+
+        await self.cog.add_ticket_type(
+            self.guild_id,
+            name,
+            cat_id,
+            role_id,
+            welcome
+        )
+
+        await interaction.response.send_message(
+            embed=BotEmbed.success(
+                "Ticket Type Added",
+                f"**{name}** tickets are now available.\nUse `/ticketpanel send` to refresh the panel."
+            ),
+            ephemeral=True
+        )
+
+
 # -------------------------------------------------------------------
 #  Ticket Cog
 # -------------------------------------------------------------------
@@ -305,14 +423,10 @@ class Ticket(commands.Cog):
                 user_id INTEGER, open_time TEXT, claimed_by INTEGER, ticket_type TEXT)""")
             await db.execute("""CREATE TABLE IF NOT EXISTS ticket_panel_config (
                 guild_id INTEGER PRIMARY KEY, title TEXT, description TEXT,
-                image_url TEXT, fields TEXT, panel_style TEXT DEFAULT 'dropdown')""")
-            try:
-                await db.execute("ALTER TABLE ticket_panel_config ADD COLUMN fields TEXT")
-            except:
-                pass
+                image_url TEXT, panel_style TEXT DEFAULT 'dropdown')""")
             try:
                 await db.execute("ALTER TABLE ticket_panel_config ADD COLUMN panel_style TEXT DEFAULT 'dropdown'")
-            except:
+            except Exception:
                 pass
             await db.commit()
 
@@ -466,7 +580,6 @@ class Ticket(commands.Cog):
         view = discord.ui.View(timeout=None)
 
         if style == "buttons":
-            # Single "Open Ticket" button (matches the image)
             open_button = discord.ui.Button(
                 label="Open Ticket",
                 style=discord.ButtonStyle.blurple,
@@ -476,7 +589,6 @@ class Ticket(commands.Cog):
             open_button.callback = self._make_open_ticket_callback(types)
             view.add_item(open_button)
         else:
-            # Dropdown
             options = [
                 discord.SelectOption(
                     label=t["name"][:100],
@@ -499,10 +611,8 @@ class Ticket(commands.Cog):
     def _make_open_ticket_callback(self, types):
         async def callback(interaction: discord.Interaction):
             if len(types) == 1:
-                # Only one type — open the modal directly
                 await interaction.response.send_modal(TicketOpenModal(self, types[0]["name"]))
             else:
-                # Multiple types — show a picker
                 picker = TicketTypePickerView(self, types)
                 await interaction.response.send_message(
                     "**Select a ticket type:**",
@@ -719,21 +829,6 @@ class Ticket(commands.Cog):
         await asyncio.sleep(2)
         await interaction.channel.delete(reason="Ticket closed")
 
-    async def add_user_modal(self, interaction):
-        if not (interaction.channel.name.startswith("ticket-") or interaction.channel.name.startswith("claimed-")):
-            return await interaction.response.send_message(embed=BotEmbed.error("Not a Ticket", ""), ephemeral=True)
-        await interaction.response.send_modal(AddUserModal(self, interaction.channel))
-
-    async def remove_user_modal(self, interaction):
-        if not (interaction.channel.name.startswith("ticket-") or interaction.channel.name.startswith("claimed-")):
-            return await interaction.response.send_message(embed=BotEmbed.error("Not a Ticket", ""), ephemeral=True)
-        await interaction.response.send_modal(RemoveUserModal(self, interaction.channel))
-
-    async def rename_ticket_modal(self, interaction):
-        if not (interaction.channel.name.startswith("ticket-") or interaction.channel.name.startswith("claimed-")):
-            return await interaction.response.send_message(embed=BotEmbed.error("Not a Ticket", ""), ephemeral=True)
-        await interaction.response.send_modal(RenameTicketModal(self, interaction.channel))
-
     # ============================================================
     #  STAFF SLASH COMMANDS
     # ============================================================
@@ -789,7 +884,7 @@ class Ticket(commands.Cog):
                 if msg.author == self.bot.user and msg.components:
                     await msg.edit(view=claimed_view)
                     break
-        except:
+        except Exception:
             pass
 
         await interaction.response.send_message(embed=BotEmbed.success("Claimed", f"Ticket claimed by {interaction.user.mention}."))
@@ -808,41 +903,10 @@ class Ticket(commands.Cog):
     @admin_only()
     async def ticket_type_manage(self, interaction: discord.Interaction, action: str):
         if action == "add":
-            await self._add_ticket_type_modal(interaction)
+            modal = AddTicketTypeModal(self, interaction.guild, interaction.guild_id)
+            await interaction.response.send_modal(modal)
         elif action == "remove":
             await self._remove_ticket_type_menu(interaction)
-
-    async def _add_ticket_type_modal(self, interaction):
-        class AddTypeModal(discord.ui.Modal, title="Add Ticket Type"):
-            name = discord.ui.TextInput(label="Name", placeholder="e.g., Support, Report, Reward Claim", required=True)
-            category_id = discord.ui.TextInput(label="Category ID", placeholder="Right-click a category and copy ID", required=True)
-            support_role_id = discord.ui.TextInput(label="Support Role ID", placeholder="Role ID that can manage tickets (optional)", required=False, default="0")
-            welcome_message = discord.ui.TextInput(
-                label="Welcome Message",
-                placeholder="{user} will be replaced. Include @here to ping staff.",
-                required=False,
-                style=discord.TextStyle.paragraph,
-                default="Welcome {user}! Support staff will assist you shortly."
-            )
-
-            async def on_submit(modal_interaction: discord.Interaction):
-                try:
-                    cat_id = int(self.category_id.value)
-                    role_id = int(self.support_role_id.value) if self.support_role_id.value else 0
-                except ValueError:
-                    return await modal_interaction.response.send_message("Invalid category or role ID.", ephemeral=True)
-                category = interaction.guild.get_channel(cat_id)
-                if not category or not isinstance(category, discord.CategoryChannel):
-                    return await modal_interaction.response.send_message("That ID is not a valid category.", ephemeral=True)
-                await self.cog.add_ticket_type(interaction.guild_id, self.name.value, cat_id, role_id, self.welcome_message.value or None)
-                await modal_interaction.response.send_message(
-                    embed=BotEmbed.success("Ticket Type Added", f"**{self.name.value}** tickets are now available."),
-                    ephemeral=True
-                )
-
-        modal = AddTypeModal()
-        modal.cog = self
-        await interaction.response.send_modal(modal)
 
     async def _remove_ticket_type_menu(self, interaction):
         types = await self.get_ticket_types(interaction.guild_id)
@@ -852,7 +916,10 @@ class Ticket(commands.Cog):
                 ephemeral=True
             )
 
-        options = [discord.SelectOption(label=t["name"], description=f"Remove {t['name']} tickets", emoji="🗑️") for t in types]
+        options = [
+            discord.SelectOption(label=t["name"], description=f"Remove {t['name']} tickets", emoji="🗑️")
+            for t in types
+        ]
         select_menu = discord.ui.Select(
             placeholder="Select a ticket type to remove...",
             options=options, custom_id="ticket_remove_select",
