@@ -1,4 +1,4 @@
-import discord
+\import discord
 from discord import app_commands
 from discord.ext import commands
 import aiosqlite
@@ -13,17 +13,11 @@ from checks import admin_only, ticket_staff_only
 DB_PATH = os.getenv("DATABASE_PATH", "./data/security.db")
 
 # ============================================================
-#  PANEL EMOJIS — replace with your own animated emoji IDs
-#  Animated emojis use the format: <a:name:id>
-#  Static custom emojis use:        <:name:id>
+#  PANEL EMOJIS
 # ============================================================
 PANEL_EMOJIS = {
-    "title":       "🎟️",                               # panel title emoji
-    "guidelines":  "📜",                               # guidelines field
-    "footer":      "🛡️",                               # footer
-    "bullet":      "•",                                # bullet point
-    # Add your animated emojis below, e.g.:
-    # "guidelines": "<a:ticket_glow:1234567890123456789>",
+    "title":  "🎟️",
+    "footer": "🛡️",
 }
 
 
@@ -96,7 +90,7 @@ class TicketView(discord.ui.View):
 
 
 # -------------------------------------------------------------------
-#  Modals
+#  Modals — ticket actions
 # -------------------------------------------------------------------
 class AddUserModal(discord.ui.Modal, title="Add User to Ticket"):
     def __init__(self, cog, channel):
@@ -196,6 +190,79 @@ class TicketOpenModal(discord.ui.Modal, title="Open Ticket"):
 
 
 # -------------------------------------------------------------------
+#  Panel Edit Modal — replaces the old /n typing mess
+# -------------------------------------------------------------------
+class PanelEditModal(discord.ui.Modal, title="Edit Ticket Panel"):
+    def __init__(self, cog, config):
+        super().__init__()
+        self.cog = cog
+
+        # Existing values, or sensible defaults
+        existing_title = config["title"] if config and config["title"] else ""
+        existing_desc = config["description"] if config and config["description"] else ""
+        existing_img = config["image_url"] if config and config["image_url"] else ""
+        existing_style = config["panel_style"] if config and config["panel_style"] else "dropdown"
+
+        self.title_input = discord.ui.TextInput(
+            label="Panel Title",
+            placeholder="e.g., Create A Wish",
+            default=existing_title,
+            required=False,
+            max_length=200
+        )
+        self.add_item(self.title_input)
+
+        self.description_input = discord.ui.TextInput(
+            label="Description / Guidelines",
+            placeholder="Type normally. Press Enter for a new line.",
+            default=existing_desc,
+            required=False,
+            style=discord.TextStyle.paragraph,
+            max_length=4000
+        )
+        self.add_item(self.description_input)
+
+        self.image_input = discord.ui.TextInput(
+            label="Image URL (optional)",
+            placeholder="https://example.com/banner.png",
+            default=existing_img,
+            required=False,
+            max_length=500
+        )
+        self.add_item(self.image_input)
+
+        self.style_input = discord.ui.TextInput(
+            label="Style: 'dropdown' or 'buttons'",
+            placeholder="dropdown",
+            default=existing_style,
+            required=False,
+            max_length=10
+        )
+        self.add_item(self.style_input)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        style = self.style_input.value.strip().lower()
+        if style not in ("dropdown", "buttons"):
+            style = "dropdown"
+
+        await self.cog.set_panel_config(
+            interaction.guild_id,
+            title=self.title_input.value.strip() or None,
+            description=self.description_input.value.strip() or None,
+            image_url=self.image_input.value.strip() or None,
+            panel_style=style
+        )
+
+        await interaction.response.send_message(
+            embed=BotEmbed.success(
+                "Panel Updated",
+                f"Style: **{style}**\nUse `/ticketpanel send` to post the updated panel."
+            ),
+            ephemeral=True
+        )
+
+
+# -------------------------------------------------------------------
 #  Ticket Cog
 # -------------------------------------------------------------------
 class Ticket(commands.Cog):
@@ -204,7 +271,7 @@ class Ticket(commands.Cog):
         self._claim_locks = {}
 
     # ============================================================
-    #  Lazy table creation — survives DB restore
+    #  Lazy table creation
     # ============================================================
     async def _ensure_tables(self):
         async with aiosqlite.connect(DB_PATH) as db:
@@ -326,9 +393,8 @@ class Ticket(commands.Cog):
             return await cursor.fetchone()
 
     async def set_panel_config(self, guild_id, title=None, description=None,
-                               image_url=None, fields=None, panel_style=None):
+                               image_url=None, panel_style=None):
         await self._ensure_tables()
-        fields_json = json.dumps(fields) if fields else None
 
         async with aiosqlite.connect(DB_PATH) as db:
             db.row_factory = aiosqlite.Row
@@ -339,17 +405,16 @@ class Ticket(commands.Cog):
                 new_title = title if title is not None else existing["title"]
                 new_desc = description if description is not None else existing["description"]
                 new_img = image_url if image_url is not None else existing["image_url"]
-                new_fields = fields_json if fields is not None else existing["fields"]
                 new_style = panel_style if panel_style is not None else (existing["panel_style"] or "dropdown")
 
                 await db.execute(
-                    "UPDATE ticket_panel_config SET title=?, description=?, image_url=?, fields=?, panel_style=? WHERE guild_id=?",
-                    (new_title, new_desc, new_img, new_fields, new_style, guild_id)
+                    "UPDATE ticket_panel_config SET title=?, description=?, image_url=?, panel_style=? WHERE guild_id=?",
+                    (new_title, new_desc, new_img, new_style, guild_id)
                 )
             else:
                 await db.execute(
-                    "INSERT INTO ticket_panel_config (guild_id, title, description, image_url, fields, panel_style) VALUES (?, ?, ?, ?, ?, ?)",
-                    (guild_id, title, description, image_url, fields_json, panel_style or "dropdown")
+                    "INSERT INTO ticket_panel_config (guild_id, title, description, image_url, panel_style) VALUES (?, ?, ?, ?, ?)",
+                    (guild_id, title, description, image_url, panel_style or "dropdown")
                 )
             await db.commit()
 
@@ -372,9 +437,8 @@ class Ticket(commands.Cog):
         config = await self.get_panel_config(interaction.guild_id)
         title = (config["title"] if config and config["title"] else "Create A Wish")
         description = (config["description"] if config and config["description"]
-                       else "Select the type of ticket you'd like to open below.\n\nOur staff team will assist you shortly.")
+                       else "Select the type of ticket you'd like to open below.")
         image_url = config["image_url"] if config and config["image_url"] else None
-        fields_json = config["fields"] if config and config["fields"] else None
         style = (config["panel_style"] if config and config["panel_style"] else "dropdown")
 
         embed = discord.Embed(
@@ -383,28 +447,14 @@ class Ticket(commands.Cog):
             color=0x3B82F6
         )
 
-        if fields_json:
-            try:
-                fields = json.loads(fields_json)
-                for field in fields:
-                    embed.add_field(
-                        name=field.get("name", ""),
-                        value=field.get("value", ""),
-                        inline=field.get("inline", False)
-                    )
-            except Exception:
-                pass
-
         if image_url:
             embed.set_image(url=image_url)
         embed.set_footer(text=f"{PANEL_EMOJIS['footer']} Powered by NeoMonster")
 
-        # ---- Build the view based on style ----
         view = discord.ui.View(timeout=None)
 
         if style == "buttons":
-            # One button per ticket type (max 5 per row × 5 rows = 25, but Discord limit is 25 total)
-            for idx, t in enumerate(types[:20]):
+            for t in types[:20]:
                 button = discord.ui.Button(
                     label=t["name"][:80],
                     style=discord.ButtonStyle.primary,
@@ -413,7 +463,6 @@ class Ticket(commands.Cog):
                 button.callback = self._make_open_callback(t["name"])
                 view.add_item(button)
         else:
-            # Dropdown
             options = [
                 discord.SelectOption(
                     label=t["name"][:100],
@@ -444,69 +493,11 @@ class Ticket(commands.Cog):
             await interaction.response.send_modal(TicketOpenModal(self, selected))
         return callback
 
-    @panel_group.command(name="edit", description="Customise the ticket panel appearance")
-    @app_commands.describe(
-        title="Panel title (e.g., 'Create A Wish')",
-        description="Main text shown above the fields",
-        image_url="Large image URL (banner at bottom)",
-        style="How users open tickets",
-        add_field="Add a field, format: `Name | Value` (use \\n inside value for line breaks)",
-        clear_fields="Remove all existing fields"
-    )
-    @app_commands.choices(style=[
-        app_commands.Choice(name="Dropdown menu", value="dropdown"),
-        app_commands.Choice(name="Buttons", value="buttons"),
-    ])
+    @panel_group.command(name="edit", description="Open a form to customise the panel (title, description, image, style)")
     @admin_only()
-    async def panel_edit(
-        self,
-        interaction: discord.Interaction,
-        title: str = None,
-        description: str = None,
-        image_url: str = None,
-        style: str = None,
-        add_field: str = None,
-        clear_fields: bool = False
-    ):
-        await self._ensure_tables()
-
-        # Load existing fields
+    async def panel_edit(self, interaction: discord.Interaction):
         config = await self.get_panel_config(interaction.guild_id)
-        existing_fields = []
-        if config and config["fields"]:
-            try:
-                existing_fields = json.loads(config["fields"])
-            except Exception:
-                existing_fields = []
-
-        # Handle field changes
-        if clear_fields:
-            existing_fields = []
-
-        if add_field:
-            text = add_field.replace("\\n", "\n")
-            if "|" in text:
-                name, value = text.split("|", 1)
-                name, value = name.strip(), value.strip()
-                if name and value:
-                    existing_fields.append({"name": name, "value": value, "inline": False})
-
-        await self.set_panel_config(
-            interaction.guild_id,
-            title=title,
-            description=description,
-            image_url=image_url,
-            fields=existing_fields if (add_field or clear_fields) else None,
-            panel_style=style
-        )
-
-        await interaction.response.send_message(
-            embed=BotEmbed.success(
-                "Panel Updated",
-                "Use `/ticketpanel send` to post the updated panel."
-            ),
-            ephemeral=True
-        )
+        await interaction.response.send_modal(PanelEditModal(self, config))
 
     @panel_group.command(name="reset", description="Reset the ticket panel to defaults")
     @admin_only()
