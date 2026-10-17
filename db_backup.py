@@ -28,8 +28,7 @@ class DBBackup(commands.Cog):
     @backup_loop.before_loop
     async def before_backup(self):
         await self.bot.wait_until_ready()
-        # Wait 30 seconds after startup to ensure everything is loaded,
-        # then do an immediate backup before starting the 6-hour timer.
+        # Wait 30 seconds, upload once, then let the 6-hour timer take over
         await asyncio.sleep(30)
         await self.upload_backup()
 
