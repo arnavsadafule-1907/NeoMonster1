@@ -46,6 +46,7 @@ class ServerLogger(commands.Cog):
         channel = self.bot.get_channel(channel_id)
         if channel is None:
             # Channel deleted, or bot no longer in that guild
+            print(f"⚠️ [Logger] Channel {channel_id} not found. Clearing {event_type} log for guild {guild_id}.")
             await self._clear_log_channel(guild_id, event_type)
             return
 
@@ -53,10 +54,11 @@ class ServerLogger(commands.Cog):
             await channel.send(embed=embed)
         except discord.Forbidden:
             # Bot lacks View Channel / Send Messages / Embed Links permission
+            print(f"⚠️ [Logger] Missing permissions to send in {channel_id}. Clearing {event_type} log for guild {guild_id}.")
             await self._clear_log_channel(guild_id, event_type)
-        except discord.HTTPException:
+        except discord.HTTPException as e:
             # Transient network error or rate limit — safe to ignore
-            pass
+            print(f"⚠️ [Logger] HTTP error sending {event_type} log: {e}")
 
     # ---------- Message Events ----------
     @commands.Cog.listener()
@@ -298,14 +300,35 @@ class ServerLogger(commands.Cog):
     @app_commands.choices(event_type=[app_commands.Choice(name=t, value=t) for t in LOG_TYPES])
     @staff_only()
     async def set_log_channel(self, interaction: discord.Interaction, event_type: str, channel: discord.TextChannel):
+        await interaction.response.defer(ephemeral=True)
+
+        # 1. Test if the bot has permissions in this channel
+        try:
+            test_embed = BotEmbed.info("Log Channel Connected", f"This channel is now set for **{event_type}** logs.")
+            await channel.send(embed=test_embed)
+        except discord.Forbidden:
+            return await interaction.followup.send(
+                embed=BotEmbed.error(
+                    "Permission Error", 
+                    f"I cannot send messages in {channel.mention}.\n"
+                    "Please give me **View Channel**, **Send Messages**, and **Embed Links** permissions there."
+                ),
+                ephemeral=True
+            )
+
+        # 2. Save to database
         async with aiosqlite.connect(DB_PATH) as db:
             await db.execute(
                 "INSERT OR REPLACE INTO log_channels (guild_id, event_type, channel_id) VALUES (?, ?, ?)",
                 (interaction.guild_id, event_type, channel.id)
             )
             await db.commit()
-        embed = BotEmbed.success("Log Channel Set", f"{event_type.capitalize()} logs will be sent to {channel.mention}")
-        await interaction.response.send_message(embed=embed, ephemeral=False)
+
+        embed = BotEmbed.success(
+            "Log Channel Set", 
+            f"{event_type.capitalize()} logs will now be sent to {channel.mention}."
+        )
+        await interaction.followup.send(embed=embed, ephemeral=True)
 
 
 async def setup(bot):
