@@ -10,7 +10,7 @@ logger = setup_logging()
 
 DATABASE_PATH = os.getenv("DATABASE_PATH", "./data/security.db")
 BACKUP_CHANNEL_ID = os.getenv("BACKUP_CHANNEL_ID")
-MAX_BACKUPS = 20  # Increased so we never lose history
+MAX_BACKUPS = 20 
 BACKUP_INTERVAL_HOURS = 6
 
 class DBBackup(commands.Cog):
@@ -28,16 +28,16 @@ class DBBackup(commands.Cog):
     @backup_loop.before_loop
     async def before_backup(self):
         await self.bot.wait_until_ready()
-        await asyncio.sleep(60) # Wait 1 minute after boot
-        await self.upload_backup()
+        # Wait 60 seconds after boot before the first backup to let things settle
+        await asyncio.sleep(60)
 
     async def upload_backup(self):
         if not BACKUP_CHANNEL_ID or not os.path.exists(DATABASE_PATH):
             return
 
-        # 🛑 SAFETY LOCK: Don't upload if the database is empty/blank (under 10KB)
-        if os.path.getsize(DATABASE_PATH) < 10000:
-            logger.warning("⚠️ Database is too small (empty). Skipping backup to prevent overwriting good files.")
+        # Safety lock: less than 4000 bytes means the database is totally empty
+        if os.path.getsize(DATABASE_PATH) < 4000:
+            logger.warning("⚠️ Database is too small (empty). Skipping backup.")
             return
 
         try:

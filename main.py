@@ -28,7 +28,6 @@ TEST_GUILD_ID = os.getenv("TEST_GUILD_ID")
 
 
 def restore_db_before_startup():
-    """Synchronously downloads the latest DB from Discord BEFORE the bot starts."""
     channel_id = os.getenv("BACKUP_CHANNEL_ID")
     db_path = os.getenv("DATABASE_PATH", "./data/security.db")
 
@@ -54,15 +53,19 @@ def restore_db_before_startup():
                         logger.info(f"Found backup: {att['filename']}. Downloading...")
                         file_resp = requests.get(att["url"], timeout=15)
                         
-                        # Only restore if the file is bigger than 10KB (not empty)
-                        if file_resp.status_code == 200 and len(file_resp.content) > 10000:
-                            os.makedirs(os.path.dirname(db_path), exist_ok=True)
-                            with open(db_path, "wb") as f:
-                                f.write(file_resp.content)
-                            logger.info(f"✅ Restored database from Discord ({len(file_resp.content)} bytes)")
-                            return
-                        else:
-                            logger.warning(f"⚠️ Skipped backup {att['filename']} because it is empty or failed.")
+                        # Check if file is bigger than 4000 bytes
+                        if file_resp.status_code == 200:
+                            file_size = len(file_resp.content)
+                            logger.info(f"Downloaded file size: {file_size} bytes")
+                            
+                            if file_size > 4000:
+                                os.makedirs(os.path.dirname(db_path), exist_ok=True)
+                                with open(db_path, "wb") as f:
+                                    f.write(file_resp.content)
+                                logger.info(f"✅ Restored database from Discord ({file_size} bytes)")
+                                return
+                            else:
+                                logger.warning(f"⚠️ Skipped backup {att['filename']} because it is too small ({file_size} bytes).")
                             
         logger.info("ℹ️ No valid previous backup found. Starting fresh.")
     except Exception as e:
@@ -81,7 +84,6 @@ class SecurityBot(commands.Bot):
         self.owner_ids = OWNER_IDS
 
     async def setup_hook(self):
-        # init_db will now run on the ALREADY RESTORED file
         try:
             await init_db()
             logger.info("Database ready")
@@ -142,10 +144,8 @@ class SecurityBot(commands.Bot):
 
 
 if __name__ == "__main__":
-    # 1. RESTORE DATABASE FIRST (Blocking)
     restore_db_before_startup()
 
-    # 2. START BOT
     bot = SecurityBot()
     app.config["bot"] = bot
 
