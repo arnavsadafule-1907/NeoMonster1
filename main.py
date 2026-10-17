@@ -1,7 +1,7 @@
 import os
 import asyncio
 import discord
-import aiohttp  # Added this
+import aiohttp
 from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
@@ -9,17 +9,13 @@ from logger import setup_logging
 from db import init_db
 from dashboard import app
 from threading import Thread
-from formatter import BotEmbed
 
 load_dotenv()
 logger = setup_logging()
 
 try:
     owner_ids_str = os.getenv("OWNER_IDS", "")
-    if owner_ids_str:
-        OWNER_IDS = set(int(x.strip()) for x in owner_ids_str.split(",") if x.strip())
-    else:
-        OWNER_IDS = set()
+    OWNER_IDS = set(int(x.strip()) for x in owner_ids_str.split(",") if x.strip()) if owner_ids_str else set()
 except ValueError:
     OWNER_IDS = set()
 
@@ -70,17 +66,19 @@ class SecurityBot(commands.Bot):
                                 async with session.get(att["url"]) as file_resp:
                                     if file_resp.status == 200:
                                         data = await file_resp.read()
-                                        os.makedirs(os.path.dirname(db_path), exist_ok=True)
-                                        with open(db_path, "wb") as f:
-                                            f.write(data)
-                                        logger.info(f"✅ Restored database from Discord ({len(data)} bytes)")
-                                        return
-                logger.info("ℹ️ No previous backup found. Starting fresh.")
+                                        # Ensure we don't download a 0-byte corrupted file
+                                        if len(data) > 100: 
+                                            os.makedirs(os.path.dirname(db_path), exist_ok=True)
+                                            with open(db_path, "wb") as f:
+                                                f.write(data)
+                                            logger.info(f"✅ Restored database from Discord ({len(data)} bytes)")
+                                            return
+                logger.info("ℹ️ No valid previous backup found. Starting fresh.")
             except Exception as e:
                 logger.error(f"❌ Error restoring backup: {e}")
 
     async def setup_hook(self):
-        # 1. RESTORE DB FIRST (Before anything else)
+        # 1. RESTORE DB FIRST
         await self._restore_db_from_discord()
 
         # 2. Initialize the restored DB

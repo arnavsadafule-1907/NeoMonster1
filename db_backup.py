@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands, tasks
 import os
 import shutil
-import aiohttp
+import asyncio
 from datetime import datetime
 from logger import setup_logging
 
@@ -28,11 +28,13 @@ class DBBackup(commands.Cog):
     @backup_loop.before_loop
     async def before_backup(self):
         await self.bot.wait_until_ready()
+        # Wait 30 seconds after startup to ensure everything is loaded,
+        # then do an immediate backup before starting the 6-hour timer.
+        await asyncio.sleep(30)
+        await self.upload_backup()
 
     async def upload_backup(self):
-        if not BACKUP_CHANNEL_ID:
-            return
-        if not os.path.exists(DATABASE_PATH):
+        if not BACKUP_CHANNEL_ID or not os.path.exists(DATABASE_PATH):
             return
 
         try:
