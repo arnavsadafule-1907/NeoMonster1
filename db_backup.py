@@ -10,7 +10,7 @@ logger = setup_logging()
 
 DATABASE_PATH = os.getenv("DATABASE_PATH", "./data/security.db")
 BACKUP_CHANNEL_ID = os.getenv("BACKUP_CHANNEL_ID")
-MAX_BACKUPS = 5
+MAX_BACKUPS = 20  # Increased so we never lose history
 BACKUP_INTERVAL_HOURS = 6
 
 class DBBackup(commands.Cog):
@@ -28,12 +28,16 @@ class DBBackup(commands.Cog):
     @backup_loop.before_loop
     async def before_backup(self):
         await self.bot.wait_until_ready()
-        # Wait 30 seconds, upload once, then let the 6-hour timer take over
-        await asyncio.sleep(30)
+        await asyncio.sleep(60) # Wait 1 minute after boot
         await self.upload_backup()
 
     async def upload_backup(self):
         if not BACKUP_CHANNEL_ID or not os.path.exists(DATABASE_PATH):
+            return
+
+        # 🛑 SAFETY LOCK: Don't upload if the database is empty/blank (under 10KB)
+        if os.path.getsize(DATABASE_PATH) < 10000:
+            logger.warning("⚠️ Database is too small (empty). Skipping backup to prevent overwriting good files.")
             return
 
         try:
@@ -59,9 +63,11 @@ class DBBackup(commands.Cog):
 
     async def _cleanup_old_backups(self, channel):
         backups = []
-        async for msg in channel.history(limit=50):
+        async for msg in channel.history(limit=100):
             if msg.attachments and any(a.filename.endswith(".db") for a in msg.attachments):
                 backups.append(msg)
+        
+        # Only delete if we have more than 20 backups
         for msg in backups[MAX_BACKUPS:]:
             try:
                 await msg.delete()

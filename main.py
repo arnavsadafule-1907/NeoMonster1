@@ -1,7 +1,7 @@
 import os
 import asyncio
 import discord
-import aiohttp
+import requests
 from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
@@ -13,18 +13,61 @@ from threading import Thread
 load_dotenv()
 logger = setup_logging()
 
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+if not BOT_TOKEN:
+    logger.critical("BOT_TOKEN not set.")
+    exit(1)
+
 try:
     owner_ids_str = os.getenv("OWNER_IDS", "")
     OWNER_IDS = set(int(x.strip()) for x in owner_ids_str.split(",") if x.strip()) if owner_ids_str else set()
 except ValueError:
     OWNER_IDS = set()
 
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-if not BOT_TOKEN:
-    logger.critical("BOT_TOKEN not set.")
-    exit(1)
-
 TEST_GUILD_ID = os.getenv("TEST_GUILD_ID")
+
+
+def restore_db_before_startup():
+    """Synchronously downloads the latest DB from Discord BEFORE the bot starts."""
+    channel_id = os.getenv("BACKUP_CHANNEL_ID")
+    db_path = os.getenv("DATABASE_PATH", "./data/security.db")
+
+    if not channel_id or channel_id == "0":
+        logger.warning("⚠️ BACKUP_CHANNEL_ID missing. Skipping DB restore.")
+        return
+
+    logger.info("⏳ Checking Discord for database backups...")
+    headers = {"Authorization": f"Bot {BOT_TOKEN}"}
+    url = f"https://discord.com/api/v10/channels/{channel_id}/messages?limit=10"
+
+    try:
+        resp = requests.get(url, headers=headers, timeout=10)
+        if resp.status_code != 200:
+            logger.error(f"❌ Failed to read backup channel (HTTP {resp.status_code})")
+            return
+
+        messages = resp.json()
+        for msg in messages:
+            if msg.get("attachments"):
+                for att in msg["attachments"]:
+                    if att["filename"].endswith(".db"):
+                        logger.info(f"Found backup: {att['filename']}. Downloading...")
+                        file_resp = requests.get(att["url"], timeout=15)
+                        
+                        # Only restore if the file is bigger than 10KB (not empty)
+                        if file_resp.status_code == 200 and len(file_resp.content) > 10000:
+                            os.makedirs(os.path.dirname(db_path), exist_ok=True)
+                            with open(db_path, "wb") as f:
+                                f.write(file_resp.content)
+                            logger.info(f"✅ Restored database from Discord ({len(file_resp.content)} bytes)")
+                            return
+                        else:
+                            logger.warning(f"⚠️ Skipped backup {att['filename']} because it is empty or failed.")
+                            
+        logger.info("ℹ️ No valid previous backup found. Starting fresh.")
+    except Exception as e:
+        logger.error(f"❌ Error restoring backup: {e}")
+
 
 class SecurityBot(commands.Bot):
     def __init__(self):
@@ -37,58 +80,14 @@ class SecurityBot(commands.Bot):
         super().__init__(command_prefix="/", intents=intents)
         self.owner_ids = OWNER_IDS
 
-    async def _restore_db_from_discord(self):
-        """Downloads the latest .db file from the backup channel BEFORE loading the DB."""
-        channel_id = os.getenv("BACKUP_CHANNEL_ID")
-        db_path = os.getenv("DATABASE_PATH", "./data/security.db")
-
-        if not channel_id:
-            logger.warning("⚠️ BACKUP_CHANNEL_ID missing. Skipping DB restore.")
-            return
-
-        logger.info("⏳ Checking Discord for database backups...")
-        
-        async with aiohttp.ClientSession() as session:
-            headers = {"Authorization": f"Bot {BOT_TOKEN}"}
-            url = f"https://discord.com/api/v10/channels/{channel_id}/messages?limit=10"
-            
-            try:
-                async with session.get(url, headers=headers) as resp:
-                    if resp.status != 200:
-                        logger.error(f"❌ Failed to read backup channel (HTTP {resp.status})")
-                        return
-                    messages = await resp.json()
-
-                for msg in messages:
-                    if msg.get("attachments"):
-                        for att in msg["attachments"]:
-                            if att["filename"].endswith(".db"):
-                                async with session.get(att["url"]) as file_resp:
-                                    if file_resp.status == 200:
-                                        data = await file_resp.read()
-                                        # Ensure we don't download a 0-byte corrupted file
-                                        if len(data) > 100: 
-                                            os.makedirs(os.path.dirname(db_path), exist_ok=True)
-                                            with open(db_path, "wb") as f:
-                                                f.write(data)
-                                            logger.info(f"✅ Restored database from Discord ({len(data)} bytes)")
-                                            return
-                logger.info("ℹ️ No valid previous backup found. Starting fresh.")
-            except Exception as e:
-                logger.error(f"❌ Error restoring backup: {e}")
-
     async def setup_hook(self):
-        # 1. RESTORE DB FIRST
-        await self._restore_db_from_discord()
-
-        # 2. Initialize the restored DB
+        # init_db will now run on the ALREADY RESTORED file
         try:
             await init_db()
             logger.info("Database ready")
         except Exception as e:
             logger.error(f"Database init failed: {e}")
 
-        # 3. Load cogs
         cogs = [
             "antinuke", "config", "recovery", "help",
             "moderation", "utility", "welcoming",
@@ -141,7 +140,12 @@ class SecurityBot(commands.Bot):
             type=discord.ActivityType.watching, name="NeoMonster / 24/7 Protection"
         ))
 
+
 if __name__ == "__main__":
+    # 1. RESTORE DATABASE FIRST (Blocking)
+    restore_db_before_startup()
+
+    # 2. START BOT
     bot = SecurityBot()
     app.config["bot"] = bot
 
