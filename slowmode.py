@@ -1,9 +1,9 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
+import asyncio
 from formatter import BotEmbed
 from checks import staff_only
-
 
 class Slowmode(commands.Cog):
     def __init__(self, bot):
@@ -12,6 +12,7 @@ class Slowmode(commands.Cog):
     @app_commands.command(name="slowmode", description="Set slowmode for all text channels")
     @app_commands.describe(seconds="Slowmode duration (0 to disable)", reason="Reason for slowmode")
     @staff_only()
+    @app_commands.checks.cooldown(1, 30.0) # 🛑 1 use per 30 seconds
     async def slowmode_all(self, interaction: discord.Interaction, seconds: int, reason: str = "No reason provided"):
         if seconds < 0 or seconds > 21600:
             embed = BotEmbed.error("Invalid Duration", "Slowmode must be between 0 and 21600 seconds.")
@@ -23,6 +24,7 @@ class Slowmode(commands.Cog):
             try:
                 await channel.edit(slowmode_delay=seconds, reason=reason)
                 count += 1
+                await asyncio.sleep(1.5) # 🛑 PREVENT RATE LIMIT
             except:
                 pass
 
@@ -31,7 +33,6 @@ class Slowmode(commands.Cog):
         else:
             embed = BotEmbed.success("Slowmode Enabled", f"Set {seconds}s slowmode in {count} channels.")
         await interaction.followup.send(embed=embed, ephemeral=False)
-
 
 async def setup(bot):
     await bot.add_cog(Slowmode(bot))

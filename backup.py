@@ -3,11 +3,12 @@ from discord import app_commands
 from discord.ext import commands
 import json
 import os
+import asyncio
 from datetime import datetime
 from formatter import BotEmbed
 from checks import admin_only
 
-BACKUP_DIR = "./data/backups"  # relative path (works on Railway)
+BACKUP_DIR = "./data/backups"
 
 class Backup(commands.Cog):
     def __init__(self, bot):
@@ -30,12 +31,12 @@ class Backup(commands.Cog):
             "channels": []
         }
 
-        # ---- Backup Roles (save ID for mapping) ----
+        # ---- Backup Roles ----
         for role in reversed(guild.roles):
             if role.is_default() or role.managed:
                 continue
             backup_data["roles"].append({
-                "id": role.id,                     # store old ID for mapping
+                "id": role.id,
                 "name": role.name,
                 "color": role.color.value,
                 "hoist": role.hoist,
@@ -47,22 +48,22 @@ class Backup(commands.Cog):
         # ---- Backup Categories ----
         for category in guild.categories:
             backup_data["categories"].append({
-                "id": category.id,                 # store old ID for mapping
+                "id": category.id,
                 "name": category.name,
                 "position": category.position,
                 "overwrites": self._serialise_overwrites(category)
             })
 
-        # ---- Backup Other Channels (text, voice, stage) ----
+        # ---- Backup Other Channels ----
         for channel in guild.channels:
             if isinstance(channel, discord.CategoryChannel):
                 continue
             backup_data["channels"].append({
-                "id": channel.id,                  # store old ID for mapping (optional)
+                "id": channel.id,
                 "name": channel.name,
                 "type": str(channel.type),
                 "position": channel.position,
-                "category_id": channel.category.id if channel.category else None,  # store old category ID
+                "category_id": channel.category.id if channel.category else None,
                 "overwrites": self._serialise_overwrites(channel)
             })
 
@@ -99,6 +100,7 @@ class Backup(commands.Cog):
         for channel in guild.channels:
             try:
                 await channel.delete()
+                await asyncio.sleep(2) # 🛑 PREVENT RATE LIMIT
             except Exception as e:
                 report.append(f"⚠️ Could not delete channel {channel.name}: {e}")
 
@@ -107,11 +109,12 @@ class Backup(commands.Cog):
                 continue
             try:
                 await role.delete()
+                await asyncio.sleep(2) # 🛑 PREVENT RATE LIMIT
             except Exception as e:
                 report.append(f"⚠️ Could not delete role {role.name}: {e}")
 
         # ---- Step 2: Create roles and build mapping (old_id -> new_role) ----
-        role_mapping = {}  # old_role_id -> new_role_object
+        role_mapping = {}
         sorted_roles = sorted(backup_data["roles"], key=lambda r: r["position"])
 
         for role_data in sorted_roles:
@@ -126,11 +129,12 @@ class Backup(commands.Cog):
                 )
                 role_mapping[role_data["id"]] = new_role
                 report.append(f"✅ Role created: {new_role.name}")
+                await asyncio.sleep(2) # 🛑 PREVENT RATE LIMIT
             except Exception as e:
                 report.append(f"❌ Failed to create role {role_data['name']}: {e}")
 
         # ---- Step 3: Create categories ----
-        category_mapping = {}  # old_category_id -> new_category_object
+        category_mapping = {}
         for cat_data in backup_data.get("categories", []):
             try:
                 new_cat = await guild.create_category(
@@ -141,13 +145,13 @@ class Backup(commands.Cog):
                 category_mapping[cat_data["id"]] = new_cat
                 await self._apply_overwrites(new_cat, cat_data["overwrites"], guild, role_mapping)
                 report.append(f"✅ Category created: {new_cat.name}")
+                await asyncio.sleep(2) # 🛑 PREVENT RATE LIMIT
             except Exception as e:
                 report.append(f"❌ Failed to create category {cat_data['name']}: {e}")
 
         # ---- Step 4: Create channels ----
         for ch_data in backup_data.get("channels", []):
             try:
-                # Find category object using old category_id mapping
                 cat_obj = None
                 if ch_data.get("category_id"):
                     cat_obj = category_mapping.get(ch_data["category_id"])
@@ -179,6 +183,7 @@ class Backup(commands.Cog):
 
                 await self._apply_overwrites(new_channel, ch_data["overwrites"], guild, role_mapping)
                 report.append(f"✅ Channel created: {new_channel.name}")
+                await asyncio.sleep(2) # 🛑 PREVENT RATE LIMIT
             except Exception as e:
                 report.append(f"❌ Failed to create channel {ch_data['name']}: {e}")
 
@@ -188,6 +193,7 @@ class Backup(commands.Cog):
             if new_role:
                 try:
                     await new_role.edit(position=role_data["position"], reason="Server restore")
+                    await asyncio.sleep(1) # 🛑 PREVENT RATE LIMIT
                 except Exception as e:
                     report.append(f"⚠️ Could not set position for {new_role.name}: {e}")
 
@@ -212,7 +218,7 @@ class Backup(commands.Cog):
             if isinstance(target, discord.Role):
                 overwrites.append({
                     "type": "role",
-                    "id": target.id,           # store ID for mapping
+                    "id": target.id,
                     "name": target.name,
                     "allow": overwrite.pair()[0].value,
                     "deny": overwrite.pair()[1].value
@@ -233,7 +239,6 @@ class Backup(commands.Cog):
                 if ow["type"] == "role":
                     role = role_mapping.get(ow["id"])
                     if not role:
-                        # fallback: try by name
                         role = discord.utils.get(guild.roles, name=ow.get("name"))
                     if role:
                         await channel.set_permissions(
@@ -243,6 +248,7 @@ class Backup(commands.Cog):
                                 deny=discord.Permissions(ow["deny"])
                             )
                         )
+                        await asyncio.sleep(0.5) # 🛑 PREVENT RATE LIMIT
                 elif ow["type"] == "member":
                     member = guild.get_member(ow["id"])
                     if member:
@@ -253,8 +259,9 @@ class Backup(commands.Cog):
                                 deny=discord.Permissions(ow["deny"])
                             )
                         )
+                        await asyncio.sleep(0.5) # 🛑 PREVENT RATE LIMIT
             except Exception:
-                pass  # we already report failures at the channel level
+                pass
 
 async def setup(bot):
     await bot.add_cog(Backup(bot))

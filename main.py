@@ -9,6 +9,7 @@ from logger import setup_logging
 from db import init_db
 from dashboard import app
 from threading import Thread
+from formatter import BotEmbed
 
 load_dotenv()
 logger = setup_logging()
@@ -28,48 +29,80 @@ TEST_GUILD_ID = os.getenv("TEST_GUILD_ID")
 
 
 def restore_db_before_startup():
+    print("==================================================")
+    print("🚀 STARTING DATABASE RESTORE PROCESS")
     channel_id = os.getenv("BACKUP_CHANNEL_ID")
     db_path = os.getenv("DATABASE_PATH", "./data/security.db")
+    
+    print(f"📂 Target DB Path: {db_path}")
+    print(f"📡 Backup Channel ID: {channel_id}")
 
     if not channel_id or channel_id == "0":
-        logger.warning("⚠️ BACKUP_CHANNEL_ID missing. Skipping DB restore.")
+        print("❌ ERROR: BACKUP_CHANNEL_ID is missing in Render Environment Variables!")
+        print("==================================================")
         return
 
-    logger.info("⏳ Checking Discord for database backups...")
     headers = {"Authorization": f"Bot {BOT_TOKEN}"}
-    url = f"https://discord.com/api/v10/channels/{channel_id}/messages?limit=10"
-
+    url = f"https://discord.com/api/v10/channels/{channel_id}/messages?limit=50"
+    
     try:
         resp = requests.get(url, headers=headers, timeout=10)
+        print(f"🌐 Discord API Status: {resp.status_code}")
+        
         if resp.status_code != 200:
-            logger.error(f"❌ Failed to read backup channel (HTTP {resp.status_code})")
+            print(f"❌ ERROR: Could not read channel. Reason: {resp.text}")
+            print("==================================================")
             return
 
         messages = resp.json()
+        print(f"📨 Found {len(messages)} messages in backup channel.")
+        
+        best_file_url = None
+        best_file_name = None
+        best_file_size = 0
+
         for msg in messages:
             if msg.get("attachments"):
                 for att in msg["attachments"]:
                     if att["filename"].endswith(".db"):
-                        logger.info(f"Found backup: {att['filename']}. Downloading...")
-                        file_resp = requests.get(att["url"], timeout=15)
-                        
-                        # Check if file is bigger than 4000 bytes
-                        if file_resp.status_code == 200:
-                            file_size = len(file_resp.content)
-                            logger.info(f"Downloaded file size: {file_size} bytes")
-                            
-                            if file_size > 4000:
-                                os.makedirs(os.path.dirname(db_path), exist_ok=True)
-                                with open(db_path, "wb") as f:
-                                    f.write(file_resp.content)
-                                logger.info(f"✅ Restored database from Discord ({file_size} bytes)")
-                                return
-                            else:
-                                logger.warning(f"⚠️ Skipped backup {att['filename']} because it is too small ({file_size} bytes).")
-                            
-        logger.info("ℹ️ No valid previous backup found. Starting fresh.")
+                        size = att.get("size", 0)
+                        if size > best_file_size:
+                            best_file_size = size
+                            best_file_url = att["url"]
+                            best_file_name = att["filename"]
+
+        if not best_file_url:
+            print("❌ ERROR: No .db files found in the last 50 messages!")
+            print("==================================================")
+            return
+
+        print(f"🏆 Best backup found: {best_file_name} ({best_file_size} bytes). Downloading...")
+        file_resp = requests.get(best_file_url, timeout=20)
+        
+        if file_resp.status_code == 200:
+            content = file_resp.content
+            print(f"📥 Downloaded size: {len(content)} bytes")
+            
+            if len(content) < 10000:
+                print("❌ ERROR: The backup file is too small (empty). It was overwritten by a previous bug.")
+                print("==================================================")
+                return
+            
+            if not content.startswith(b'SQLite format 3\x00'):
+                print("❌ ERROR: The downloaded file is corrupted (Not a valid SQLite DB).")
+                print("==================================================")
+                return
+
+            os.makedirs(os.path.dirname(db_path), exist_ok=True)
+            with open(db_path, "wb") as f:
+                f.write(content)
+            print(f"✅ SUCCESS: Restored database! ({len(content)} bytes)")
+        else:
+            print(f"❌ ERROR: Failed to download. HTTP {file_resp.status_code}")
+            
     except Exception as e:
-        logger.error(f"❌ Error restoring backup: {e}")
+        print(f"❌ FATAL ERROR: {e}")
+    print("==================================================")
 
 
 class SecurityBot(commands.Bot):
@@ -103,7 +136,7 @@ class SecurityBot(commands.Bot):
             "extraowner", "dmall", "staffstats", "leave", "giverole",
             "staffleaderboard", "ticketcleanup",
             "db_backup", "sticky", "serverstatus", "minecraft",
-            "tracking",
+            "tracking", "globalbackup",
         ]
         for cog in cogs:
             try:
@@ -141,6 +174,29 @@ class SecurityBot(commands.Bot):
         await self.change_presence(activity=discord.Activity(
             type=discord.ActivityType.watching, name="NeoMonster / 24/7 Protection"
         ))
+
+    async def on_app_command_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
+        # 🛑 RATE LIMIT / SPAM PROTECTION HANDLER
+        if isinstance(error, app_commands.CommandOnCooldown):
+            return await interaction.response.send_message(
+                f"⏳ **Slow down!** Try again in `{error.retry_after:.1f}s`.", 
+                ephemeral=True
+            )
+        elif isinstance(error, app_commands.MissingRole):
+            embed = BotEmbed.error("Insufficient Role", str(error))
+        elif isinstance(error, app_commands.MissingPermissions):
+            embed = BotEmbed.error("Missing Permissions", "You don't have the required Discord permissions.")
+        else:
+            logger.error(f"Command error: {error}")
+            embed = BotEmbed.error("Unexpected Error", "An unexpected error occurred.")
+
+        try:
+            if interaction.response.is_done():
+                await interaction.followup.send(embed=embed, ephemeral=False)
+            else:
+                await interaction.response.send_message(embed=embed, ephemeral=False)
+        except Exception as e:
+            logger.error(f"Failed to send error response: {e}")
 
 
 if __name__ == "__main__":
