@@ -126,17 +126,13 @@ class SecurityBot(commands.Bot):
         cogs = [
             "antinuke", "config", "recovery", "help",
             "moderation", "utility", "welcoming",
-            "customroles", "giveaway", "boycott", "automations",
-            "fun", "voice", "adminsetup", "ignore", "roleassign",
-            "report", "antispam", "botprofile",
-            "backup", "altdetector", "slowmode", "raidalert", "chatbot",
-            "massmention", "antivanity", "stafflog", "ownerrecovery", "polish",
-            "publicbot", "globalblacklist", "announce",
-            "ticket", "serverlogger", "botwhitelist", "sync",
-            "extraowner", "dmall", "staffstats", "leave", "giverole",
-            "staffleaderboard", "ticketcleanup",
-            "db_backup", "sticky", "serverstatus", "minecraft",
-            "tracking", "globalbackup",
+            "boycott", "automations", "voice", "adminsetup", "ignore", "roleassign",
+            "report", "antispam", "botprofile", "backup", "altdetector", "slowmode", 
+            "raidalert", "chatbot", "massmention", "antivanity", "stafflog", "ownerrecovery", 
+            "polish", "publicbot", "globalblacklist", "announce", "ticket", "serverlogger", 
+            "botwhitelist", "sync", "extraowner", "dmall", "staffstats", "leave", "giverole",
+            "staffleaderboard", "ticketcleanup", "db_backup", "sticky", "serverstatus", 
+            "minecraft", "tracking", "globalbackup", "serverwhitelist", # <-- ADD THIS NEW ONE
         ]
         for cog in cogs:
             try:
