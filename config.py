@@ -42,7 +42,7 @@ class Config(commands.GroupCog, name="antinuke"):
         embed.add_field(name="/antinuke quarantine-role", value="Set the quarantine role", inline=False)
         embed.add_field(name="/antinuke logchannel", value="Set the alert log channel", inline=False)
         embed.add_field(name="/antinuke emergency", value="Lockdown / kick nuker", inline=False)
-        embed.add_field(name="/antinuke whitelist", value="Manage immune users/roles", inline=False)
+        embed.add_field(name="/whitelist", value="Manage the strict server whitelist", inline=False)
         embed.set_footer(text="Use /help for the full bot command list")
         await interaction.response.send_message(embed=embed, ephemeral=False)
 
@@ -144,7 +144,7 @@ class Config(commands.GroupCog, name="antinuke"):
         await self.ensure_guild_entry(interaction.guild_id)
         new_state = True if state == "enable" else False
         async with aiosqlite.connect(self.db_path) as db:
-            db.row_factory = aiosqlite.Row                     # <-- FIX
+            db.row_factory = aiosqlite.Row
             cursor = await db.execute("SELECT modules FROM guild_settings WHERE guild_id = ?", (interaction.guild_id,))
             row = await cursor.fetchone()
             modules = json.loads(row["modules"])
@@ -164,7 +164,7 @@ class Config(commands.GroupCog, name="antinuke"):
             return await interaction.response.send_message(embed=BotEmbed.error("Invalid", "Count must be at least 1."), ephemeral=False)
         await self.ensure_guild_entry(interaction.guild_id)
         async with aiosqlite.connect(self.db_path) as db:
-            db.row_factory = aiosqlite.Row                     # <-- FIX
+            db.row_factory = aiosqlite.Row
             cursor = await db.execute("SELECT thresholds FROM guild_settings WHERE guild_id = ?", (interaction.guild_id,))
             row = await cursor.fetchone()
             thresholds = json.loads(row["thresholds"])
@@ -226,56 +226,6 @@ class Config(commands.GroupCog, name="antinuke"):
             await db.commit()
         embed = BotEmbed.success("Log Channel Set", f"Alerts will be sent to {channel.mention}.")
         await interaction.response.send_message(embed=embed, ephemeral=False)
-
-    # ---------- Whitelist group (nuke only) ----------
-    whitelist_group = app_commands.Group(name="whitelist", description="Manage anti‑nuke whitelist")
-
-    @whitelist_group.command(name="add", description="Add a user or role to the whitelist")
-    @app_commands.describe(user="User to whitelist", role="Role to whitelist")
-    @nuke_only()
-    async def whitelist_add(self, interaction: discord.Interaction, user: discord.User = None, role: discord.Role = None):
-        if not user and not role:
-            return await interaction.response.send_message(embed=BotEmbed.error("Missing Target", "Provide a user or role."), ephemeral=False)
-        async with aiosqlite.connect(self.db_path) as db:
-            try:
-                if user:
-                    await db.execute("INSERT INTO whitelist (guild_id, user_id) VALUES (?, ?)", (interaction.guild_id, user.id))
-                if role:
-                    await db.execute("INSERT INTO whitelist (guild_id, role_id) VALUES (?, ?)", (interaction.guild_id, role.id))
-                await db.commit()
-            except aiosqlite.IntegrityError:
-                return await interaction.response.send_message(embed=BotEmbed.warning("Already Whitelisted", "That user/role is already whitelisted."), ephemeral=False)
-        embed = BotEmbed.success("Whitelisted", f"Added to the whitelist.")
-        await interaction.response.send_message(embed=embed, ephemeral=False)
-
-    @whitelist_group.command(name="remove", description="Remove from whitelist")
-    @app_commands.describe(user="User to remove", role="Role to remove")
-    @nuke_only()
-    async def whitelist_remove(self, interaction: discord.Interaction, user: discord.User = None, role: discord.Role = None):
-        if not user and not role:
-            return await interaction.response.send_message(embed=BotEmbed.error("Missing Target", "Provide a user or role."), ephemeral=False)
-        async with aiosqlite.connect(self.db_path) as db:
-            if user:
-                await db.execute("DELETE FROM whitelist WHERE guild_id = ? AND user_id = ?", (interaction.guild_id, user.id))
-            if role:
-                await db.execute("DELETE FROM whitelist WHERE guild_id = ? AND role_id = ?", (interaction.guild_id, role.id))
-            await db.commit()
-        embed = BotEmbed.success("Removed", "Entry removed from whitelist.")
-        await interaction.response.send_message(embed=embed, ephemeral=False)
-
-    @whitelist_group.command(name="list", description="Show current whitelist")
-    @nuke_only()
-    async def whitelist_list(self, interaction: discord.Interaction):
-        async with aiosqlite.connect(self.db_path) as db:
-            db.row_factory = aiosqlite.Row                     # <-- already present, but safe
-            cursor = await db.execute("SELECT user_id, role_id FROM whitelist WHERE guild_id = ?", (interaction.guild_id,))
-            rows = await cursor.fetchall()
-        if not rows:
-            return await interaction.response.send_message(embed=BotEmbed.info("Whitelist", "The whitelist is empty."), ephemeral=False)
-        users = [f"<@{r['user_id']}>" for r in rows if r["user_id"]]
-        roles = [f"<@&{r['role_id']}>" for r in rows if r["role_id"]]
-        text = "**Users:** " + (", ".join(users) if users else "None") + "\n**Roles:** " + (", ".join(roles) if roles else "None")
-        await interaction.response.send_message(embed=BotEmbed.info("Whitelist", text), ephemeral=False)
 
     # ---------- Error handling for this cog ----------
     @commands.Cog.listener()
