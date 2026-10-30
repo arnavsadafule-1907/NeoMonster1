@@ -580,10 +580,13 @@ class Ticket(commands.Cog):
         view = discord.ui.View(timeout=None)
 
         if style == "buttons":
+            # FIX: Safely handle empty emoji to prevent crash
+            button_emoji = PANEL_EMOJIS["button"] if PANEL_EMOJIS["button"] else None
+            
             open_button = discord.ui.Button(
                 label="Open Ticket",
                 style=discord.ButtonStyle.blurple,
-                emoji=PANEL_EMOJIS["button"],
+                emoji=button_emoji,
                 custom_id="ticket_open_main"
             )
             open_button.callback = self._make_open_ticket_callback(types)
