@@ -16,9 +16,9 @@ DB_PATH = os.getenv("DATABASE_PATH", "./data/security.db")
 #  Animated: <a:name:id>    Static: <:name:id>    Unicode: 🎟️
 # ============================================================
 PANEL_EMOJIS = {
-    "title":  "🎟️",
+    "title":  "",
     "footer": "🛡️",
-    "button": "🎟️",
+    "button": "",
 }
 
 
