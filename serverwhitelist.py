@@ -14,7 +14,7 @@ WATCHED_ACTIONS = [
     "invite_create", "member_prune", "webhook_create"
 ]
 
-# The dropdown options you will see in Discord
+# The dropdown options
 ACTION_CHOICES = [
     app_commands.Choice(name="All Actions (Full Bypass)", value="all"),
     app_commands.Choice(name="Ban", value="ban"),
@@ -34,16 +34,46 @@ class ServerWhitelist(commands.Cog):
         self.bot = bot
 
     # ============================================================
-    #  LAZY TABLE CREATION
+    #  SMART MIGRATION & TABLE CREATION
     # ============================================================
     async def _ensure_tables(self):
         async with aiosqlite.connect(DB_PATH) as db:
-            await db.execute("""CREATE TABLE IF NOT EXISTS sw_users (
-                guild_id INTEGER, user_id INTEGER, category TEXT, PRIMARY KEY (guild_id, user_id, category))""")
-            await db.execute("""CREATE TABLE IF NOT EXISTS sw_roles (
-                guild_id INTEGER, role_id INTEGER, category TEXT, PRIMARY KEY (guild_id, role_id, category))""")
-            await db.execute("""CREATE TABLE IF NOT EXISTS sw_channels (
-                guild_id INTEGER, channel_id INTEGER, category TEXT, PRIMARY KEY (guild_id, channel_id, category))""")
+            # 1. Migrate sw_users
+            cursor = await db.execute("PRAGMA table_info(sw_users)")
+            cols = [row[1] for row in await cursor.fetchall()]
+            if cols and "category" not in cols:
+                await db.execute("ALTER TABLE sw_users RENAME TO old_sw_users")
+                await db.execute("CREATE TABLE sw_users (guild_id INTEGER, user_id INTEGER, category TEXT, PRIMARY KEY (guild_id, user_id, category))")
+                await db.execute("INSERT INTO sw_users (guild_id, user_id, category) SELECT guild_id, user_id, 'all' FROM old_sw_users")
+                await db.execute("DROP TABLE old_sw_users")
+            else:
+                await db.execute("""CREATE TABLE IF NOT EXISTS sw_users (
+                    guild_id INTEGER, user_id INTEGER, category TEXT, PRIMARY KEY (guild_id, user_id, category))""")
+
+            # 2. Migrate sw_roles
+            cursor = await db.execute("PRAGMA table_info(sw_roles)")
+            cols = [row[1] for row in await cursor.fetchall()]
+            if cols and "category" not in cols:
+                await db.execute("ALTER TABLE sw_roles RENAME TO old_sw_roles")
+                await db.execute("CREATE TABLE sw_roles (guild_id INTEGER, role_id INTEGER, category TEXT, PRIMARY KEY (guild_id, role_id, category))")
+                await db.execute("INSERT INTO sw_roles (guild_id, role_id, category) SELECT guild_id, role_id, 'all' FROM old_sw_roles")
+                await db.execute("DROP TABLE old_sw_roles")
+            else:
+                await db.execute("""CREATE TABLE IF NOT EXISTS sw_roles (
+                    guild_id INTEGER, role_id INTEGER, category TEXT, PRIMARY KEY (guild_id, role_id, category))""")
+
+            # 3. Migrate sw_channels
+            cursor = await db.execute("PRAGMA table_info(sw_channels)")
+            cols = [row[1] for row in await cursor.fetchall()]
+            if cols and "category" not in cols:
+                await db.execute("ALTER TABLE sw_channels RENAME TO old_sw_channels")
+                await db.execute("CREATE TABLE sw_channels (guild_id INTEGER, channel_id INTEGER, category TEXT, PRIMARY KEY (guild_id, channel_id, category))")
+                await db.execute("INSERT INTO sw_channels (guild_id, channel_id, category) SELECT guild_id, channel_id, 'all' FROM old_sw_channels")
+                await db.execute("DROP TABLE old_sw_channels")
+            else:
+                await db.execute("""CREATE TABLE IF NOT EXISTS sw_channels (
+                    guild_id INTEGER, channel_id INTEGER, category TEXT, PRIMARY KEY (guild_id, channel_id, category))""")
+            
             await db.commit()
 
     # ============================================================
