@@ -180,8 +180,11 @@ class GlobalBackup(commands.Cog):
 
         guild = interaction.guild
         
-        # Send status message that updates the user
-        status_msg = await interaction.followup.send("🔄 **Restoration Started...**\nThis will take several minutes to avoid Discord rate limits. Please wait.", ephemeral=True)
+        # Inform the user via ephemeral message
+        await interaction.followup.send(
+            "🔄 **Restoration Started...**\nBecause this deletes all channels, I will send the final report to your DMs. This will take several minutes.", 
+            ephemeral=True
+        )
         
         try:
             # --- STEP 1: DELETE EVERYTHING ---
@@ -262,10 +265,18 @@ class GlobalBackup(commands.Cog):
                 f"**Roles Restored:** {len(role_mapping)}\n"
                 f"**Channels Restored:** {len(backup_data['channels'])}"
             )
-            await status_msg.edit(content=None, embed=embed)
+            
+            # Send to DM to avoid the deleted channel error
+            try:
+                await interaction.user.send(embed=embed)
+            except:
+                pass
 
         except Exception as e:
-            await status_msg.edit(content=f"❌ **Restore Failed:** {e}")
+            try:
+                await interaction.user.send(f"❌ **Restore Failed:** {e}")
+            except:
+                pass
 
     # ---------- 4. DELETE BACKUP ----------
     @network_group.command(name="delete", description="Delete a global backup permanently")
