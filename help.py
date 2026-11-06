@@ -2,14 +2,22 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from discord.ui import View, Button, Select
+from importlib import import_module
 
 try:
-    from importlib import import_module
-
     get_emoji = import_module("utils.emoji_manager").get_emoji
-except ImportError:
-    def get_emoji(name: str):
-        return ""
+except (ImportError, AttributeError):
+    _EMOJI_FALLBACKS = {
+        "shield": "🛡️", "lock": "🔒", "firewall": "🔥", "warning": "⚠️",
+        "moderation": "🔨", "tools": "🛠️", "slowmode": "🐢", "wave": "👋",
+        "sparkles": "✨", "giveaway": "🎉", "ban": "🚫", "double_check": "✅",
+        "dice": "🎲", "microphone": "🎙️", "crown": "👑", "settings": "⚙️",
+        "ticket": "🎫", "logs": "📜", "guide": "📖", "staff": "👥",
+        "dm": "💬", "pin": "📌", "server": "🌐", "game": "🎮", "stats": "📊",
+    }
+
+    def get_emoji(name):
+        return _EMOJI_FALLBACKS.get(name, "")
 
 BLUE_MAIN = 0x3B82F6
 
@@ -77,7 +85,6 @@ class HelpView(View):
         ]
 
         self.module_data = {
-            # ---------- ANTINUKE (merged from 5 sub-categories) ----------
             "Antinuke Security": {
                 "description": "Anti-nuke, anti-spam, lockdown & raid protection. (admin.exe / nuke.exe)",
                 "commands": [
@@ -205,158 +212,96 @@ class HelpView(View):
                 "description": "Persistent ticket panel with custom types & welcome messages.",
                 "commands": [
                     "`/ticketpanel send` — Send the ticket panel (admin only)",
-                    "`/ticketpanel edit` — Customise panel title, description, image, style (dropdown/buttons)",
+                    "`/ticketpanel edit` — Customise panel title, description, image, style",
                     "`/ticketpanel reset` — Reset panel to defaults (admin only)",
                     "`/tickettype add` — Add a custom ticket type (admin only)",
                     "`/tickettype remove` — Remove a ticket type (admin only)",
                     "`/ticket_add` — Add a user to the current ticket",
                     "`/ticket_remove` — Remove a user from the current ticket",
                     "`/ticket_rename` — Rename the current ticket",
-                    "`/ticket_close` — Close the current ticket (prompts for reason)",
+                    "`/ticket_close` — Close the current ticket",
                     "`/ticket_claim` — Claim the current ticket",
-                    "",
-                    "**Panel styles:**",
-                    "• Dropdown menu — one menu, choose your type",
-                    "• Buttons — one button per ticket type",
-                    "Switch with `/ticketpanel edit style: ...`",
-                    "",
-                    "Staff commands require TicketSupporter, Staff.exe, or higher.",
                 ]
             },
             "Logging": {
                 "description": "Full server logging: messages, voice, members, channels, roles, etc.",
                 "commands": [
                     "`/setlog` — Set a log channel for any event type (Staff.exe+)",
-                    "Event types: `message`, `voice`, `member`, `server`, `channel`, `role`, `emoji`, `webhook`, `moderation`",
-                    "`/stafflog` — View staff activity (moderation actions)",
+                    "`/stafflog` — View staff activity",
                 ]
             },
             "Setup Guide": {
                 "description": "Everything you need to know to configure roles and permissions.",
                 "commands": [
                     "**🔰 Role Overview**",
-                    "• `nuke.exe` – Full server owner access. Use `/setup nuke.exe` to create.",
-                    "• `admin.exe` – Can manage anti-nuke, automod, and server settings. Use `/setup admin.exe`.",
-                    "• `Staff.exe` – Can moderate (ban, kick, mute), create polls, announce, and manage log channels. Use `/setup staff.exe`.",
-                    "• `TicketSupporter` – Can manage tickets (claim, close, add users). Use `/setup ticketsupporter`.",
+                    "• `nuke.exe` – Full server owner access.",
+                    "• `admin.exe` – Anti-nuke, automod, server settings.",
+                    "• `Staff.exe` – Moderation, polls, announce, logs.",
+                    "• `TicketSupporter` – Manage tickets.",
                     "",
                     "**⚡ How to create a role**",
-                    "1. Run `/setup <role>` (e.g., `/setup admin.exe`).",
-                    "2. The bot creates the role with the correct permissions.",
+                    "1. Run `/setup <role>`.",
+                    "2. The bot creates the role with correct permissions.",
                     "3. Use `/assign` to give the role to a member.",
-                    "",
-                    "**🛡️ Who can use what?**",
-                    "• Anyone: `/ping`, `/help`, fun commands, open tickets.",
-                    "• TicketSupporter: Manage tickets (claim, close, add/remove users), use leave system.",
-                    "• Staff.exe: All moderation commands, `/announce`, `/setlog`, `/slowmode`, `/staffstats`, `/leave`.",
-                    "• admin.exe: Anti-nuke config, welcoming, custom roles, voice commands, backup/restore.",
-                    "• nuke.exe: Giveaways, anti-nuke emergency, whitelist, owner-level bypass.",
-                    "• Extra Owners: Have full owner-level access (bypass all role checks).",
-                    "",
-                    "**👑 Owner Tools**",
-                    "• `/addowner @user` — Promote a member to extra owner (server owner / bot owner only).",
-                    "• `/removeowner @user` — Demote an extra owner.",
-                    "• `/listowners` — List all extra owners.",
-                    "• `/dmall` — Send an embed to every member via DM.",
-                    "",
-                    "**🔐 Bot Owner** (the person whose ID is in the `.env` file) can always use any command, even without a role.",
                 ]
             },
-            # ---------- STAFF SYSTEM (merged Stats + Leave) ----------
             "Staff System": {
                 "description": "Ticket statistics, leaderboard, leave system, and staff activity logs.",
                 "commands": [
                     "**📊 Staff Stats**",
-                    "`/staffstats @user` — Show tickets claimed, closed, total handled, leave days, and leave status.",
-                    "`/staffleaderboard` — View the staff leaderboard based on ticket activity.",
-                    "`/addstaffstats` — Add to a staff member's statistics (owner only).",
-                    "`/resetstaffstats` — Reset staff statistics (owner only).",
-                    "`/stafflog @user` — View a staff member's moderation log.",
+                    "`/staffstats @user` — Show tickets claimed, closed, leave days",
+                    "`/staffleaderboard` — View the staff leaderboard",
+                    "`/stafflog @user` — View a staff member's moderation log",
                     "",
                     "**🏖️ Leave System**",
-                    "`/leavepanel send` — Send the persistent leave panel (admin only).",
-                    "`/leavepanel edit` — Customise the leave panel embed (admin only).",
-                    "`/leavepanel reset` — Reset the leave panel to default (admin only).",
-                    "`/leavesetup @role` — Set the 'On Leave' role (admin only).",
-                    "`/leave` — Request leave or end leave early (TicketSupporter+).",
-                    "`/resetleavestats @user` — Reset leave days for a staff member (admin only).",
+                    "`/leavepanel send` — Send the persistent leave panel",
+                    "`/leavesetup @role` — Set the 'On Leave' role",
+                    "`/leave` — Request leave or end leave early",
                 ]
             },
             "Owner Tools": {
                 "description": "Commands for the server owner and extra owners.",
                 "commands": [
-                    "`/addowner @user` — Promote a user to extra owner.",
-                    "`/removeowner @user` — Demote an extra owner.",
-                    "`/listowners` — Show all extra owners.",
-                    "`/dmall` — Send an embed to every server member via DM.",
-                    "`/cleanuptickets` — Delete orphaned ticket channels (owner only).",
-                    "`/closealltickets` — Close ALL active tickets (owner only).",
-                    "`/sync` — Force sync all slash commands (bot owner only).",
+                    "`/addowner @user` — Promote a user to extra owner",
+                    "`/removeowner @user` — Demote an extra owner",
+                    "`/listowners` — Show all extra owners",
+                    "`/dmall` — Send an embed to every server member via DM",
+                    "`/cleanuptickets` — Delete orphaned ticket channels",
+                    "`/closealltickets` — Close ALL active tickets",
+                    "`/sync` — Force sync all slash commands",
                 ]
             },
             "DM Management": {
                 "description": "Send bulk DMs to your server members with full tracking and control.",
                 "commands": [
-                    "`/dmall` — Send an embed to every member in the server (server owner / extra owners only).",
-                    "`/dmstatus` — Show the status of the current or latest DM campaign.",
-                    "`/dmcancel` — Cancel the currently running DM campaign.",
-                    "",
-                    "**How it works:**",
-                    "• Every `/dmall` campaign is saved in the database.",
-                    "• Progress updates every 10 messages — safe from rate limits.",
-                    "• Campaigns can be cancelled mid-send with `/dmcancel`.",
+                    "`/dmall` — Send an embed to every member",
+                    "`/dmstatus` — Show the status of the current campaign",
+                    "`/dmcancel` — Cancel the currently running campaign",
                 ]
             },
             "Sticky Messages": {
                 "description": "Pin an auto-reposting message at the bottom of a channel.",
                 "commands": [
-                    "`/stick <content>` — Set a sticky message in the current channel (Staff.exe+).",
-                    "`/stickstop` — Disable the sticky message in this channel (keeps config).",
-                    "`/stickremove` — Remove the sticky message and delete it from the channel.",
-                    "`/sticklist` — List all sticky messages in this server.",
-                    "",
-                    "**How it works:**",
-                    "• Whenever a new message is sent, the bot deletes the old sticky and reposts it at the bottom.",
-                    "• Perfect for rules, links, or important info that must stay visible.",
-                    "• Bot messages do not trigger re-posts — no infinite loops.",
+                    "`/stick <content>` — Set a sticky message in the current channel",
+                    "`/stickstop` — Disable the sticky message",
+                    "`/stickremove` — Remove the sticky message",
+                    "`/sticklist` — List all sticky messages",
                 ]
             },
-            # ---------- SERVER STATUS (DISCORD) ----------
             "Server Status": {
                 "description": "Live Discord bot status and current server information.",
                 "commands": [
                     "`/serverstatus` — Show bot uptime, ping, memory, and Discord server stats.",
-                    "",
-                    "**What it shows:**",
-                    "• 🤖 Bot: online, ping, uptime, memory, Python version",
-                    "• 🌐 Global: guild count, total users, commands, version",
-                    "• 🏠 This Server: name, owner, created, members, boost tier",
-                    "• 📊 Channels & Roles: text/voice/categories, roles, emojis",
                 ]
             },
-            # ---------- MINECRAFT STATUS ----------
             "Minecraft Status": {
                 "description": "Check Minecraft server status — one-time or live.",
                 "commands": [
                     "`/mcstatus <address> [edition]` — One-time status snapshot.",
-                    "`/mclive <address> [edition]` — Start a live panel in this channel (updates every 60s).",
+                    "`/mclive <address> [edition]` — Start a live panel (updates every 60s).",
                     "`/mclive` — Stop the live panel in this channel.",
-                    "",
-                    "**What it shows:**",
-                    "• Online / Offline status",
-                    "• Player count (online / max)",
-                    "• Server version (e.g., Paper 1.21.1)",
-                    "• Latency (Java only)",
-                    "• MOTD",
-                    "• Sample of online players (Java only)",
-                    "",
-                    "**Examples:**",
-                    "• `/mcstatus play.hypixel.net`",
-                    "• `/mclive play.hypixel.net java`",
-                    "• `/mclive play.example.net bedrock`",
                 ]
             },
-            # ---------- STATS & TRACKING (invites + messages) ----------
             "Stats & Tracking": {
                 "description": "Track invites and messages with leaderboards and staff management.",
                 "commands": [
@@ -370,33 +315,52 @@ class HelpView(View):
                     "`/msgleaderboard` — Top message senders in this server.",
                     "",
                     "**🛠️ Staff**",
-                    "`/managetracking <invites|messages> <user> <stat> <add|remove> <count>` — Staff only.",
-                    "• Invite stats: `total`, `joins`, `leaves`, `fakes`, `rejoins`",
-                    "• Message stats: `daily`, `alltime`",
+                    "`/managetracking` — Adjust invite/message stats for a user.",
                 ]
             },
         }
 
         # ---------- Build dropdown options ----------
+        # ⚠️ Discord API REJECTS custom/application emojis in SelectOption.emoji
+        # Only unicode emojis and guild emojis are allowed here.
+        # Custom emojis still work in embeds, buttons, and page content.
+        _dropdown_unicode = {
+            "Antinuke Security": "🛡️",
+            "Moderation": "🔨",
+            "Utility": "🛠️",
+            "Welcoming": "👋",
+            "Customroles": "✨",
+            "Giveaway": "🎉",
+            "Boycott/VcBan": "🚫",
+            "Automations": "✅",
+            "Fun": "🎲",
+            "Voice": "🎙️",
+            "Admin / Mod Setup": "👑",
+            "Ignore Commands": "⚙️",
+            "Tickets": "🎫",
+            "Logging": "📜",
+            "Setup Guide": "📖",
+            "Staff System": "👥",
+            "Owner Tools": "👑",
+            "DM Management": "💬",
+            "Sticky Messages": "📌",
+            "Server Status": "🌐",
+            "Minecraft Status": "🎮",
+            "Stats & Tracking": "📊",
+        }
+
         self.dropdown_options = []
         for idx, (full, name) in enumerate(self.modules[1:]):
-            emoji_str = full.split()[0]
-            try:
-                parsed_emoji = discord.PartialEmoji.from_str(emoji_str)
-            except Exception:
-                parsed_emoji = None
-
             option_kwargs = {
                 "label": name,
                 "description": self.module_data[name]["description"][:100],
                 "value": str(idx + 1),
             }
-            if parsed_emoji is not None:
-                option_kwargs["emoji"] = parsed_emoji
-
+            unicode_emoji = _dropdown_unicode.get(name)
+            if unicode_emoji:
+                option_kwargs["emoji"] = unicode_emoji
             self.dropdown_options.append(discord.SelectOption(**option_kwargs))
 
-        # ---------- Safety check: Discord hard limit is 25 ----------
         if len(self.dropdown_options) > 25:
             self.dropdown_options = self.dropdown_options[:25]
 

@@ -11,10 +11,9 @@ from db import init_db
 from dashboard import app
 from threading import Thread
 from formatter import BotEmbed
-
 try:
     init_emojis = importlib.import_module("utils.emoji_manager").init_emojis
-except (ImportError, AttributeError):
+except ModuleNotFoundError:
     def init_emojis(bot):
         logger.warning("Emoji manager unavailable; continuing without custom emojis.")
 
@@ -102,12 +101,12 @@ class SecurityBot(commands.Bot):
             "antinuke", "config", "recovery", "help",
             "moderation", "utility", "welcoming",
             "boycott", "automations", "voice", "adminsetup", "ignore", "roleassign",
-            "report", "antispam", "botprofile", "backup", "altdetector", "slowmode", 
-            "raidalert", "chatbot", "massmention", "antivanity", "stafflog", "ownerrecovery", 
-            "polish", "publicbot", "globalblacklist", "announce", "ticket", "serverlogger", 
+            "report", "antispam", "botprofile", "backup", "altdetector", "slowmode",
+            "raidalert", "chatbot", "massmention", "antivanity", "stafflog", "ownerrecovery",
+            "polish", "publicbot", "globalblacklist", "announce", "ticket", "serverlogger",
             "botwhitelist", "sync", "extraowner", "dmall", "staffstats", "leave", "giverole",
-            "removerole", "staffleaderboard", "ticketcleanup", "db_backup", "sticky", "serverstatus", 
-            "minecraft", "tracking", "globalbackup", "serverwhitelist", "customroles", "fun", "giveaway"
+            "removerole", "staffleaderboard", "ticketcleanup", "db_backup", "sticky", "serverstatus",
+            "minecraft", "tracking", "globalbackup", "serverwhitelist", "giveaway", "mongo_backup"
         ]
         for cog in cogs:
             try:
@@ -149,7 +148,7 @@ class SecurityBot(commands.Bot):
     async def on_app_command_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
         if isinstance(error, app_commands.CommandOnCooldown):
             return await interaction.response.send_message(
-                f"⏳ **Slow down!** Try again in `{error.retry_after:.1f}s`.", 
+                f"⏳ **Slow down!** Try again in `{error.retry_after:.1f}s`.",
                 ephemeral=True
             )
         elif isinstance(error, app_commands.MissingRole):
@@ -186,3 +185,11 @@ if __name__ == "__main__":
         bot.run(BOT_TOKEN)
     except Exception as e:
         logger.critical(f"Bot crashed: {e}")
+    finally:
+        try:
+            mongo_module = importlib.import_module("utils.mongo")
+            close_mongo = getattr(mongo_module, "close_mongo", None)
+            if callable(close_mongo):
+                asyncio.run(close_mongo())
+        except Exception:
+            pass
