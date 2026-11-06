@@ -406,7 +406,8 @@ def debug():
     if 'user_id' not in session:
         return redirect(url_for('login'))
     bot = app.config.get("bot")
-    if not bot: return "Bot not initialized.", 500
+    if not bot or not bot.user:
+        return "Bot not initialized.", 503
 
     token = session.get('access_token')
     if token:
@@ -432,7 +433,8 @@ def debug():
 @app.route("/")
 def landing():
     bot = app.config.get("bot")
-    if not bot: return "Bot still starting up.", 503
+    if not bot or not bot.user:
+        return "Bot starting up...", 503
     guild_count = len(bot.guilds)
     bot_avatar = bot.user.display_avatar.url
     return render_template_string(LANDING_HTML, bot_avatar=bot_avatar, guild_count=guild_count)
@@ -468,7 +470,8 @@ def dashboard():
         return redirect(url_for('login'))
 
     bot = app.config.get("bot")
-    if not bot: return "Bot not initialized.", 500
+    if not bot or not bot.user:
+        return "Bot starting up...", 503
 
     if session.get('is_bot_owner'):
         bot_guilds = {g.id: g for g in bot.guilds}
@@ -477,11 +480,11 @@ def dashboard():
         bot_guilds = {g.id: g for g in bot.guilds if g.id in user_guild_ids}
 
     all_guilds = [{"id": g.id, "name": g.name, "member_count": g.member_count} for g in bot_guilds.values()]
-    
+
     guild_id = request.args.get("guild_id", type=int)
     if not guild_id and all_guilds:
         guild_id = all_guilds[0]["id"]
-    
+
     if guild_id and guild_id not in bot_guilds:
         guild_id = None
 
@@ -542,7 +545,8 @@ def view_logs():
 @app.route("/api/stats")
 def api_stats():
     bot = app.config.get("bot")
-    if not bot: return jsonify({"error": "Bot not initialized"}), 503
+    if not bot or not bot.user:
+        return jsonify({"error": "Bot starting up"}), 503
     return jsonify({
         "bot_name": str(bot.user), "bot_id": bot.user.id,
         "bot_avatar": str(bot.user.display_avatar.url),
@@ -562,9 +566,11 @@ def api_invite():
 @app.route("/api/guild/<int:guild_id>")
 def api_guild(guild_id):
     bot = app.config.get("bot")
-    if not bot: return jsonify({"error": "Bot not initialized"}), 503
+    if not bot:
+        return jsonify({"error": "Bot not initialized"}), 503
     guild = bot.get_guild(guild_id)
-    if not guild: return jsonify({"error": "Guild not found"}), 404
+    if not guild:
+        return jsonify({"error": "Guild not found"}), 404
     conn = get_db()
     try:
         cursor = conn.execute("SELECT antinuke_enabled FROM guild_settings WHERE guild_id = ?", (guild_id,))
@@ -578,12 +584,14 @@ def api_guild(guild_id):
 @app.route("/api/leaderboard")
 def api_leaderboard():
     bot = app.config.get("bot")
-    if not bot: return jsonify({"error": "Bot not initialized"}), 503
+    if not bot:
+        return jsonify({"error": "Bot not initialized"}), 503
     guilds = sorted(bot.guilds, key=lambda g: g.member_count or 0, reverse=True)[:10]
     return jsonify([{"name": g.name, "members": g.member_count or 0, "id": g.id} for g in guilds])
 
 @app.route("/api/guilds")
 def api_guilds():
     bot = app.config.get("bot")
-    if not bot: return jsonify({"error": "Bot not initialized"}), 503
+    if not bot:
+        return jsonify({"error": "Bot not initialized"}), 503
     return jsonify([{"name": g.name, "id": g.id, "member_count": g.member_count or 0} for g in bot.guilds])
