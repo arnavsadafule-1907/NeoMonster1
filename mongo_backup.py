@@ -11,7 +11,7 @@ from checks import owner_only
 from db import get_db_path
 from formatter import BotEmbed
 from logger import setup_logging
-from ultis.mongo import connect_mongo, get_db as get_mongo, is_connected
+from utils.mongo import connect_mongo, get_db as get_mongo, is_connected
 
 logger = setup_logging()
 
