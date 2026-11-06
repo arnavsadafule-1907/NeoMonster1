@@ -42,9 +42,13 @@ class RaidAlert(commands.Cog):
                 return
             webhook_url = row["webhook_url"]
         
-        async with aiohttp.ClientSession() as session:
-            webhook = discord.Webhook.from_url(webhook_url, session=session)
-            await webhook.send(embed=embed, username="NeoMonster Raid Alert")
+        timeout = aiohttp.ClientTimeout(total=10)
+        try:
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                webhook = discord.Webhook.from_url(webhook_url, session=session)
+                await webhook.send(embed=embed, username="NeoMonster Raid Alert")
+        except Exception:
+            pass
 
 
 async def setup(bot):

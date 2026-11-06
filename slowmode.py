@@ -25,7 +25,7 @@ class Slowmode(commands.Cog):
                 await channel.edit(slowmode_delay=seconds, reason=reason)
                 count += 1
                 await asyncio.sleep(1.5) # 🛑 PREVENT RATE LIMIT
-            except:
+            except Exception:
                 pass
 
         if seconds == 0:

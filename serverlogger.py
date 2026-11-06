@@ -5,7 +5,7 @@ import aiosqlite
 import os
 from datetime import datetime, timezone
 from formatter import BotEmbed
-from checks import staff_only
+from checks import admin_only
 
 DB_PATH = os.getenv("DATABASE_PATH", "./data/security.db")
 
@@ -45,20 +45,15 @@ class ServerLogger(commands.Cog):
 
         channel = self.bot.get_channel(channel_id)
         if channel is None:
-            # Channel deleted, or bot no longer in that guild
-            print(f"⚠️ [Logger] Channel {channel_id} not found. Clearing {event_type} log for guild {guild_id}.")
-            await self._clear_log_channel(guild_id, event_type)
-            return
+            try:
+                channel = await self.bot.fetch_channel(channel_id)
+            except (discord.NotFound, discord.Forbidden, discord.HTTPException):
+                return
 
         try:
             await channel.send(embed=embed)
-        except discord.Forbidden:
-            # Bot lacks View Channel / Send Messages / Embed Links permission
-            print(f"⚠️ [Logger] Missing permissions to send in {channel_id}. Clearing {event_type} log for guild {guild_id}.")
-            await self._clear_log_channel(guild_id, event_type)
-        except discord.HTTPException as e:
-            # Transient network error or rate limit — safe to ignore
-            print(f"⚠️ [Logger] HTTP error sending {event_type} log: {e}")
+        except (discord.Forbidden, discord.HTTPException):
+            pass
 
     # ---------- Message Events ----------
     @commands.Cog.listener()
@@ -298,7 +293,7 @@ class ServerLogger(commands.Cog):
     @app_commands.command(name="setlog", description="Set a log channel for a specific event type")
     @app_commands.describe(event_type="Type of events to log", channel="Channel to send logs to")
     @app_commands.choices(event_type=[app_commands.Choice(name=t, value=t) for t in LOG_TYPES])
-    @staff_only()
+    @admin_only()
     async def set_log_channel(self, interaction: discord.Interaction, event_type: str, channel: discord.TextChannel):
         await interaction.response.defer(ephemeral=True)
 

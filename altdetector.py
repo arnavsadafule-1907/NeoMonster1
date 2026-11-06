@@ -1,13 +1,14 @@
+from datetime import datetime, timedelta, timezone
+import os
+import aiosqlite
 import discord
 from discord import app_commands
 from discord.ext import commands
-import aiosqlite
-import os
-from datetime import datetime, timedelta, timezone
-from formatter import BotEmbed
 from checks import admin_only
+from formatter import BotEmbed
 
 DB_PATH = os.getenv("DATABASE_PATH", "./data/security.db")
+
 
 class AltDetector(commands.Cog):
     def __init__(self, bot):
@@ -31,6 +32,11 @@ class AltDetector(commands.Cog):
         account_age = datetime.now(timezone.utc) - member.created_at
         if account_age < timedelta(days=settings["min_days"]):
             channel = member.guild.get_channel(settings["log_channel_id"])
+            if channel is None:
+                try:
+                    channel = await member.guild.fetch_channel(settings["log_channel_id"])
+                except (discord.NotFound, discord.Forbidden, discord.HTTPException):
+                    channel = None
             if channel:
                 embed = discord.Embed(
                     title="⚠️ Suspicious Account Detected",
@@ -38,9 +44,12 @@ class AltDetector(commands.Cog):
                     color=discord.Color.orange()
                 )
                 embed.add_field(name="Account Created", value=member.created_at.strftime("%Y-%m-%d %H:%M UTC"))
-                embed.add_field(name="User ID", value=member.id)
+                embed.add_field(name="User ID", value=str(member.id))
                 embed.set_thumbnail(url=member.display_avatar.url)
-                await channel.send(embed=embed)
+                try:
+                    await channel.send(embed=embed)
+                except (discord.Forbidden, discord.HTTPException):
+                    pass
 
     @app_commands.command(name="altdetector", description="Configure alt account detection")
     @app_commands.describe(action="Setting to change", value="Value for settings")
@@ -51,7 +60,7 @@ class AltDetector(commands.Cog):
         app_commands.Choice(name="channel", value="channel"),
     ])
     @admin_only()
-    async def altdetector(self, interaction: discord.Interaction, action: str, value: str = None):
+    async def altdetector(self, interaction: discord.Interaction, action: str, value: str | None = None):
         guild_id = interaction.guild_id
         async with aiosqlite.connect(DB_PATH) as db:
             await db.execute("INSERT OR IGNORE INTO altdetector_settings (guild_id) VALUES (?)", (guild_id,))
@@ -68,23 +77,29 @@ class AltDetector(commands.Cog):
                 await db.commit()
             embed = BotEmbed.success("Alt Detector", "Disabled.")
         elif action == "min_days":
-            if not value or not value.isdigit():
-                embed = BotEmbed.error("Invalid", "Provide a number of days.")
+            if not value or not value.isdigit() or int(value) < 1:
+                embed = BotEmbed.error("Invalid", "Provide a positive number of days.")
                 return await interaction.response.send_message(embed=embed, ephemeral=False)
             async with aiosqlite.connect(DB_PATH) as db:
                 await db.execute("UPDATE altdetector_settings SET min_days = ? WHERE guild_id = ?", (int(value), guild_id))
                 await db.commit()
             embed = BotEmbed.success("Min Days Updated", f"Accounts newer than `{value}` days will be flagged.")
         elif action == "channel":
-            try:
-                channel = await commands.TextChannelConverter().convert(interaction, value)
-            except:
-                embed = BotEmbed.error("Invalid Channel", "Mention a valid text channel.")
+            clean_id = ''.join(filter(str.isdigit, value or ""))
+            channel = None
+            if clean_id and interaction.guild:
+                channel = interaction.guild.get_channel(int(clean_id))
+            if not channel and interaction.guild and value:
+                channel = discord.utils.get(interaction.guild.text_channels, name=value)
+            if not channel:
+                embed = BotEmbed.error("Invalid Channel", "Mention a valid text channel or provide channel ID.")
                 return await interaction.response.send_message(embed=embed, ephemeral=False)
             async with aiosqlite.connect(DB_PATH) as db:
                 await db.execute("UPDATE altdetector_settings SET log_channel_id = ? WHERE guild_id = ?", (channel.id, guild_id))
                 await db.commit()
             embed = BotEmbed.success("Log Channel Set", f"Alerts will be sent to {channel.mention}.")
+        else:
+            embed = BotEmbed.error("Invalid Action", "Choose a valid configuration action.")
         await interaction.response.send_message(embed=embed, ephemeral=False)
 
 

@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 import requests
 
 load_dotenv()
-DATABASE_PATH = os.getenv("DATABASE_PATH", "./data/security.db")
+from db import get_db_path, DATABASE_PATH
 DISCORD_CLIENT_ID = os.getenv("DISCORD_CLIENT_ID")
 DISCORD_CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET")
 FLASK_SECRET_KEY = os.getenv("FLASK_SECRET_KEY")
@@ -27,24 +27,28 @@ app.secret_key = FLASK_SECRET_KEY or secrets.token_hex(32)
 
 # ---------- Database helpers ----------
 def get_db():
-    return sqlite3.connect(DATABASE_PATH)
+    return sqlite3.connect(DATABASE_PATH, timeout=10.0)
 
 def get_antinuke_status(guild_id):
     conn = get_db()
-    cursor = conn.execute("SELECT antinuke_enabled FROM guild_settings WHERE guild_id = ?", (guild_id,))
-    row = cursor.fetchone()
-    conn.close()
-    return row[0] if row else 1
+    try:
+        cursor = conn.execute("SELECT antinuke_enabled FROM guild_settings WHERE guild_id = ?", (guild_id,))
+        row = cursor.fetchone()
+        return row[0] if row else 1
+    finally:
+        conn.close()
 
 def get_recent_logs(guild_id, limit=20):
     conn = get_db()
-    cursor = conn.execute(
-        "SELECT timestamp, user_id, event_type, punishment FROM antinuke_logs WHERE guild_id = ? ORDER BY id DESC LIMIT ?",
-        (guild_id, limit),
-    )
-    logs = cursor.fetchall()
-    conn.close()
-    return logs
+    try:
+        cursor = conn.execute(
+            "SELECT timestamp, user_id, event_type, punishment FROM antinuke_logs WHERE guild_id = ? ORDER BY id DESC LIMIT ?",
+            (guild_id, limit),
+        )
+        logs = cursor.fetchall()
+        return logs
+    finally:
+        conn.close()
 
 def format_time(ts):
     try:
@@ -54,8 +58,12 @@ def format_time(ts):
         return ts
 
 # ---------- Discord OAuth ----------
+DISCORD_REDIRECT_URI = os.getenv("DISCORD_REDIRECT_URI", "https://neomonster1.onrender.com/callback")
+
 def get_oauth_url():
-    return f"https://discord.com/api/oauth2/authorize?client_id={DISCORD_CLIENT_ID}&redirect_uri=https%3A%2F%2Fneomonster1.onrender.com%2Fcallback&response_type=code&scope=identify+guilds"
+    import urllib.parse
+    encoded_redirect = urllib.parse.quote(DISCORD_REDIRECT_URI, safe='')
+    return f"https://discord.com/api/oauth2/authorize?client_id={DISCORD_CLIENT_ID}&redirect_uri={encoded_redirect}&response_type=code&scope=identify+guilds"
 
 def exchange_code(code):
     data = {
@@ -63,22 +71,22 @@ def exchange_code(code):
         'client_secret': DISCORD_CLIENT_SECRET,
         'grant_type': 'authorization_code',
         'code': code,
-        'redirect_uri': 'https://neomonster1.onrender.com/callback'
+        'redirect_uri': DISCORD_REDIRECT_URI
     }
     headers = {'Content-Type': 'application/x-www-form-urlencoded'}
-    r = requests.post('https://discord.com/api/oauth2/token', data=data, headers=headers)
+    r = requests.post('https://discord.com/api/oauth2/token', data=data, headers=headers, timeout=10)
     r.raise_for_status()
     return r.json()
 
 def get_user_info(token):
     headers = {'Authorization': f'Bearer {token}'}
-    r = requests.get('https://discord.com/api/users/@me', headers=headers)
+    r = requests.get('https://discord.com/api/users/@me', headers=headers, timeout=10)
     r.raise_for_status()
     return r.json()
 
 def get_user_guilds(token):
     headers = {'Authorization': f'Bearer {token}'}
-    r = requests.get('https://discord.com/api/users/@me/guilds', headers=headers)
+    r = requests.get('https://discord.com/api/users/@me/guilds', headers=headers, timeout=10)
     r.raise_for_status()
     guilds = r.json()
     user_guilds = []
@@ -510,9 +518,15 @@ def toggle():
     current = get_antinuke_status(guild_id)
     new_val = 0 if current else 1
     conn = get_db()
-    conn.execute("UPDATE guild_settings SET antinuke_enabled = ? WHERE guild_id = ?", (new_val, guild_id))
-    conn.commit()
-    conn.close()
+    try:
+        conn.execute(
+            "INSERT INTO guild_settings (guild_id, antinuke_enabled) VALUES (?, ?) "
+            "ON CONFLICT(guild_id) DO UPDATE SET antinuke_enabled = ?",
+            (guild_id, new_val, new_val)
+        )
+        conn.commit()
+    finally:
+        conn.close()
     return redirect(url_for('dashboard', guild_id=guild_id))
 
 @app.route("/logs")
@@ -533,15 +547,17 @@ def api_stats():
         "bot_name": str(bot.user), "bot_id": bot.user.id,
         "bot_avatar": str(bot.user.display_avatar.url),
         "guild_count": len(bot.guilds),
-        "user_count": sum(g.member_count for g in bot.guilds),
+        "user_count": sum((g.member_count or 0) for g in bot.guilds),
         "latency_ms": round(bot.latency * 1000, 2),
         "commands": 100, "version": "2.0.0",
-        "invite_url": "https://discord.com/oauth2/authorize?client_id=1528368412093579376&permissions=1100473370870&integration_type=0&scope=bot+applications.commands"
+        "invite_url": f"https://discord.com/oauth2/authorize?client_id={bot.user.id}&permissions=1100473370870&integration_type=0&scope=bot+applications.commands"
     })
 
 @app.route("/api/invite")
 def api_invite():
-    return jsonify({"invite_url": "https://discord.com/oauth2/authorize?client_id=1528368412093579376&permissions=1100473370870&integration_type=0&scope=bot+applications.commands"})
+    bot = app.config.get("bot")
+    bot_id = bot.user.id if bot and bot.user else (DISCORD_CLIENT_ID or 1528368412093579376)
+    return jsonify({"invite_url": f"https://discord.com/oauth2/authorize?client_id={bot_id}&permissions=1100473370870&integration_type=0&scope=bot+applications.commands"})
 
 @app.route("/api/guild/<int:guild_id>")
 def api_guild(guild_id):
@@ -550,22 +566,24 @@ def api_guild(guild_id):
     guild = bot.get_guild(guild_id)
     if not guild: return jsonify({"error": "Guild not found"}), 404
     conn = get_db()
-    cursor = conn.execute("SELECT antinuke_enabled FROM guild_settings WHERE guild_id = ?", (guild_id,))
-    row = cursor.fetchone()
-    antinuke = bool(row[0]) if row else False
-    conn.close()
-    return jsonify({"name": guild.name, "id": guild.id, "member_count": guild.member_count,
+    try:
+        cursor = conn.execute("SELECT antinuke_enabled FROM guild_settings WHERE guild_id = ?", (guild_id,))
+        row = cursor.fetchone()
+        antinuke = bool(row[0]) if row else False
+    finally:
+        conn.close()
+    return jsonify({"name": guild.name, "id": guild.id, "member_count": guild.member_count or 0,
                     "owner_id": guild.owner_id, "antinuke_enabled": antinuke})
 
 @app.route("/api/leaderboard")
 def api_leaderboard():
     bot = app.config.get("bot")
     if not bot: return jsonify({"error": "Bot not initialized"}), 503
-    guilds = sorted(bot.guilds, key=lambda g: g.member_count, reverse=True)[:10]
-    return jsonify([{"name": g.name, "members": g.member_count, "id": g.id} for g in guilds])
+    guilds = sorted(bot.guilds, key=lambda g: g.member_count or 0, reverse=True)[:10]
+    return jsonify([{"name": g.name, "members": g.member_count or 0, "id": g.id} for g in guilds])
 
 @app.route("/api/guilds")
 def api_guilds():
     bot = app.config.get("bot")
     if not bot: return jsonify({"error": "Bot not initialized"}), 503
-    return jsonify([{"name": g.name, "id": g.id, "member_count": g.member_count} for g in bot.guilds])
+    return jsonify([{"name": g.name, "id": g.id, "member_count": g.member_count or 0} for g in bot.guilds])

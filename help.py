@@ -3,6 +3,14 @@ from discord import app_commands
 from discord.ext import commands
 from discord.ui import View, Button, Select
 
+try:
+    from importlib import import_module
+
+    get_emoji = import_module("utils.emoji_manager").get_emoji
+except ImportError:
+    def get_emoji(name: str):
+        return ""
+
 BLUE_MAIN = 0x3B82F6
 
 
@@ -13,25 +21,33 @@ class HelpView(View):
         self.current_page = 0
         self.message = None
 
-        # ---------- YOUR CUSTOM EMOJI CODES ----------
-        self.emoji_antinuke    = "<:sheild:1532827229149724835>"
-        self.emoji_betray      = "<:lock:1532827337832398969>"
-        self.emoji_limit       = "<:Limit:1532827385441943552>"
-        self.emoji_auto_emerg  = "<:sword:1532827462998687815>"
-        self.emoji_emergency   = "<:sword2:1532827540081741964>"
-        self.emoji_moderation  = "<:hammer_wrench:1532828069113626755>"
-        self.emoji_utility     = "<:wrenchs:1532827639696461935>"
-        self.emoji_automod     = "<:admin_modsetup:1532828408692740156>"
-        self.emoji_welcoming   = "<:welcome:1532827778217672785>"
-        self.emoji_customroles = "<:start2:1532827987802722395>"
-        self.emoji_giveaway    = "<:party:1532827934698508519>"
-        self.emoji_boycott     = "<:star:1532827870337175746>"
-        self.emoji_automations = "<:double_check:1532828586317316226>"
-        self.emoji_fun         = "<:fun:1532828529035710674>"
-        self.emoji_voice       = "<:microphone:1532828487579336714>"
-        self.emoji_admin       = "⚙️"
-        self.emoji_ignore      = "⚙️"
-        # ------------------------------------------------------------------------
+        self.emoji_antinuke    = get_emoji("shield")
+        self.emoji_betray      = get_emoji("lock")
+        self.emoji_limit       = get_emoji("firewall")
+        self.emoji_auto_emerg  = get_emoji("shield")
+        self.emoji_emergency   = get_emoji("warning")
+        self.emoji_moderation  = get_emoji("moderation")
+        self.emoji_utility     = get_emoji("tools")
+        self.emoji_automod     = get_emoji("slowmode")
+        self.emoji_welcoming   = get_emoji("wave")
+        self.emoji_customroles = get_emoji("sparkles")
+        self.emoji_giveaway    = get_emoji("giveaway")
+        self.emoji_boycott     = get_emoji("ban")
+        self.emoji_automations = get_emoji("double_check")
+        self.emoji_fun         = get_emoji("dice")
+        self.emoji_voice       = get_emoji("microphone")
+        self.emoji_admin       = get_emoji("crown")
+        self.emoji_ignore      = get_emoji("settings")
+        self.emoji_tickets     = get_emoji("ticket")
+        self.emoji_logging     = get_emoji("logs")
+        self.emoji_guide       = get_emoji("guide")
+        self.emoji_staff       = get_emoji("staff")
+        self.emoji_owner       = get_emoji("crown")
+        self.emoji_dm          = get_emoji("dm")
+        self.emoji_sticky      = get_emoji("pin")
+        self.emoji_server      = get_emoji("server")
+        self.emoji_mc          = get_emoji("game")
+        self.emoji_stats       = get_emoji("stats")
 
         # ✅ KEEP THIS UNDER 25 (Discord Select menu hard limit)
         self.modules = [
@@ -48,16 +64,16 @@ class HelpView(View):
             (f"{self.emoji_voice} Voice", "Voice"),
             (f"{self.emoji_admin} Admin / Mod Setup", "Admin / Mod Setup"),
             (f"{self.emoji_ignore} Ignore Commands", "Ignore Commands"),
-            ("🎟️ Tickets", "Tickets"),
-            ("📋 Logging", "Logging"),
-            ("📖 Setup Guide", "Setup Guide"),
-            ("📈 Staff System", "Staff System"),
-            ("👑 Owner Tools", "Owner Tools"),
-            ("📨 DM Management", "DM Management"),
-            ("📌 Sticky Messages", "Sticky Messages"),
-            ("📡 Server Status", "Server Status"),
-            ("⛏️ Minecraft Status", "Minecraft Status"),
-            ("📊 Stats & Tracking", "Stats & Tracking"),
+            (f"{self.emoji_tickets} Tickets", "Tickets"),
+            (f"{self.emoji_logging} Logging", "Logging"),
+            (f"{self.emoji_guide} Setup Guide", "Setup Guide"),
+            (f"{self.emoji_staff} Staff System", "Staff System"),
+            (f"{self.emoji_owner} Owner Tools", "Owner Tools"),
+            (f"{self.emoji_dm} DM Management", "DM Management"),
+            (f"{self.emoji_sticky} Sticky Messages", "Sticky Messages"),
+            (f"{self.emoji_server} Server Status", "Server Status"),
+            (f"{self.emoji_mc} Minecraft Status", "Minecraft Status"),
+            (f"{self.emoji_stats} Stats & Tracking", "Stats & Tracking"),
         ]
 
         self.module_data = {

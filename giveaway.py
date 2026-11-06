@@ -2,61 +2,91 @@ import discord
 from discord import app_commands
 from discord.ext import commands, tasks
 import aiosqlite
-import asyncio
 import json
 import random
 from datetime import datetime, timezone
 import os
+import asyncio
 from checks import nuke_only
 from formatter import BotEmbed
+from db import get_db_path, DATABASE_PATH
 
 class GiveawayView(discord.ui.View):
-    def __init__(self, db_path, giveaway_id, role_req=None):
+    _locks = {}
+    _global_lock = asyncio.Lock()
+
+    def __init__(self, db_path=None, giveaway_id=None, role_req=None):
         super().__init__(timeout=None)
-        self.db_path = db_path
+        self.db_path = db_path or get_db_path()
         self.giveaway_id = giveaway_id
         self.role_req = role_req
 
-    @discord.ui.button(label="Join Giveaway", style=discord.ButtonStyle.green, custom_id="join_giveaway")
+    @classmethod
+    async def _get_lock(cls, key: int) -> asyncio.Lock:
+        async with cls._global_lock:
+            if key not in cls._locks:
+                cls._locks[key] = asyncio.Lock()
+            return cls._locks[key]
+
+    @discord.ui.button(label="Join Giveaway", style=discord.ButtonStyle.green, custom_id="join_giveaway", emoji="🎉")
     async def join_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if self.role_req and self.role_req != 0:
-            role = interaction.guild.get_role(self.role_req)
-            if role and role not in interaction.user.roles:
-                embed = BotEmbed.error("Role Required", f"You need the {role.mention} role to enter.")
-                await interaction.response.send_message(embed=embed, ephemeral=False)
-                return
-        async with aiosqlite.connect(self.db_path) as db:
-            db.row_factory = aiosqlite.Row
-            cursor = await db.execute("SELECT entries, ended FROM giveaways WHERE id = ?", (self.giveaway_id,))
-            row = await cursor.fetchone()
-            if not row or row["ended"] == 1:
-                embed = BotEmbed.error("Ended", "This giveaway has ended.")
-                await interaction.response.send_message(embed=embed, ephemeral=False)
-                return
-            entries = json.loads(row["entries"])
-            if interaction.user.id in entries:
-                entries.remove(interaction.user.id)
-                await db.execute("UPDATE giveaways SET entries = ? WHERE id = ?", (json.dumps(entries), self.giveaway_id))
-                await db.commit()
-                await interaction.response.send_message(embed=BotEmbed.info("Left Giveaway", "You have left the giveaway."), ephemeral=False)
-            else:
-                entries.append(interaction.user.id)
-                await db.execute("UPDATE giveaways SET entries = ? WHERE id = ?", (json.dumps(entries), self.giveaway_id))
-                await db.commit()
-                await interaction.response.send_message(embed=BotEmbed.success("Entered Giveaway", "You have entered the giveaway!"), ephemeral=False)
-            msg = interaction.message
-            if msg:
-                embed = msg.embeds[0]
-                for i, field in enumerate(embed.fields):
-                    if field.name == "Entries":
-                        embed.set_field_at(i, name="Entries", value=str(len(entries)), inline=True)
-                        break
-                await msg.edit(embed=embed)
+        if not interaction.guild:
+            return
+        lock_key = self.giveaway_id or (interaction.message.id if interaction.message else interaction.user.id)
+        lock = await self._get_lock(lock_key)
+        async with lock:
+            async with aiosqlite.connect(self.db_path, timeout=10.0) as db:
+                db.row_factory = aiosqlite.Row
+                if self.giveaway_id:
+                    cursor = await db.execute("SELECT id, entries, ended, role_req FROM giveaways WHERE id = ?", (self.giveaway_id,))
+                else:
+                    cursor = await db.execute("SELECT id, entries, ended, role_req FROM giveaways WHERE message_id = ?", (interaction.message.id,))
+                row = await cursor.fetchone()
+                if not row or row["ended"] == 1:
+                    embed = BotEmbed.error("Ended", "This giveaway has ended.")
+                    return await interaction.response.send_message(embed=embed, ephemeral=True)
+
+                role_req_id = row["role_req"] if row["role_req"] else self.role_req
+                if role_req_id and role_req_id != 0:
+                    role = interaction.guild.get_role(role_req_id)
+                    user_roles = getattr(interaction.user, "roles", [])
+                    if role and role not in user_roles:
+                        embed = BotEmbed.error("Role Required", f"You need the {role.mention} role to enter.")
+                        return await interaction.response.send_message(embed=embed, ephemeral=True)
+
+                gw_id = row["id"]
+                try:
+                    entries = json.loads(row["entries"])
+                except Exception:
+                    entries = []
+
+                if interaction.user.id in entries:
+                    entries.remove(interaction.user.id)
+                    await db.execute("UPDATE giveaways SET entries = ? WHERE id = ?", (json.dumps(entries), gw_id))
+                    await db.commit()
+                    await interaction.response.send_message(embed=BotEmbed.info("Left Giveaway", "You have left the giveaway."), ephemeral=True)
+                else:
+                    entries.append(interaction.user.id)
+                    await db.execute("UPDATE giveaways SET entries = ? WHERE id = ?", (json.dumps(entries), gw_id))
+                    await db.commit()
+                    await interaction.response.send_message(embed=BotEmbed.success("Entered Giveaway", "You have entered the giveaway!"), ephemeral=True)
+
+                msg = interaction.message
+                if msg and msg.embeds:
+                    embed = msg.embeds[0]
+                    for i, field in enumerate(embed.fields):
+                        if field.name == "Entries":
+                            embed.set_field_at(i, name="Entries", value=str(len(entries)), inline=True)
+                            break
+                    try:
+                        await msg.edit(embed=embed)
+                    except Exception:
+                        pass
 
 class Giveaway(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.db_path = os.getenv("DATABASE_PATH", "./data/security.db")
+        self.db_path = get_db_path()
         self.check_giveaways.start()
 
     def cog_unload(self):
@@ -88,23 +118,35 @@ class Giveaway(commands.Cog):
             await db.execute("UPDATE giveaways SET ended = 1 WHERE id = ?", (gw_id,))
             await db.commit()
             return
-        entries = json.loads(giveaway_row["entries"])
+        except Exception:
+            return
+
+        try:
+            entries = json.loads(giveaway_row["entries"])
+        except Exception:
+            entries = []
+
         winners = []
         if entries:
             num_winners = min(giveaway_row["winners"], len(entries))
             winners = random.sample(entries, num_winners)
         await db.execute("UPDATE giveaways SET ended = 1, entries = ? WHERE id = ?", (json.dumps(winners), gw_id))
         await db.commit()
-        embed = message.embeds[0]
-        if winners:
-            mentions = ", ".join(f"<@{uid}>" for uid in winners)
-            embed.add_field(name="Winners", value=mentions, inline=False)
-            embed.colour = discord.Color.gold()
-        else:
-            embed.add_field(name="Winners", value="No valid entries.", inline=False)
-            embed.colour = discord.Color.red()
-        embed.set_footer(text="Giveaway Ended")
-        await message.edit(embed=embed, view=None)
+        if message.embeds:
+            embed = message.embeds[0]
+            if winners:
+                mentions = ", ".join(f"<@{uid}>" for uid in winners)
+                embed.add_field(name="Winners", value=mentions, inline=False)
+                embed.colour = discord.Color.gold()
+            else:
+                embed.add_field(name="Winners", value="No valid entries.", inline=False)
+                embed.colour = discord.Color.red()
+            embed.set_footer(text="Giveaway Ended")
+            try:
+                await message.edit(embed=embed, view=None)
+            except Exception:
+                pass
+
         if winners:
             await channel.send(embed=BotEmbed.success("Giveaway Winners", f"🎉 Congratulations {', '.join(f'<@{uid}>' for uid in winners)}! You won **{giveaway_row['prize']}**!"))
         else:
@@ -118,7 +160,7 @@ class Giveaway(commands.Cog):
         seconds = self.parse_duration(duration)
         if seconds is None:
             embed = BotEmbed.error("Invalid Duration", "Use format like `10m`, `2h`, `1d`.")
-            return await interaction.response.send_message(embed=embed, ephemeral=False)
+            return await interaction.response.send_message(embed=embed, ephemeral=True)
         target_channel = channel or interaction.channel
         ends_at = datetime.now(timezone.utc).timestamp() + seconds
         ends_at_iso = datetime.fromtimestamp(ends_at, tz=timezone.utc).isoformat()
@@ -144,20 +186,26 @@ class Giveaway(commands.Cog):
             await db.commit()
         view.giveaway_id = gw_id
         await msg.edit(view=view)
-        await interaction.followup.send(embed=BotEmbed.success("Giveaway Started", f"Giveaway created in {target_channel.mention}."), ephemeral=False)
+        await interaction.followup.send(embed=BotEmbed.success("Giveaway Started", f"Giveaway created in {target_channel.mention}."), ephemeral=True)
 
     @app_commands.command(name="gend", description="End a giveaway early")
     @app_commands.describe(message_id="ID of the giveaway message")
     @nuke_only()
     @app_commands.checks.has_permissions(manage_guild=True)
     async def gend(self, interaction: discord.Interaction, message_id: str):
+        try:
+            msg_id_int = int(message_id.strip())
+        except ValueError:
+            embed = BotEmbed.error("Invalid Input", "Message ID must be a valid number.")
+            return await interaction.response.send_message(embed=embed, ephemeral=True)
+
         async with aiosqlite.connect(self.db_path) as db:
             db.row_factory = aiosqlite.Row
-            cursor = await db.execute("SELECT * FROM giveaways WHERE message_id = ? AND guild_id = ? AND ended = 0", (int(message_id), interaction.guild_id))
+            cursor = await db.execute("SELECT * FROM giveaways WHERE message_id = ? AND guild_id = ? AND ended = 0", (msg_id_int, interaction.guild_id))
             gw = await cursor.fetchone()
             if not gw:
                 embed = BotEmbed.error("Not Found", "Active giveaway with that message ID not found.")
-                return await interaction.response.send_message(embed=embed, ephemeral=False)
+                return await interaction.response.send_message(embed=embed, ephemeral=True)
             await self.end_giveaway(db, gw)
             await interaction.response.send_message(embed=BotEmbed.success("Giveaway Ended", "Giveaway ended early."), ephemeral=False)
 
@@ -166,38 +214,50 @@ class Giveaway(commands.Cog):
     @nuke_only()
     @app_commands.checks.has_permissions(manage_guild=True)
     async def greroll(self, interaction: discord.Interaction, message_id: str):
+        try:
+            msg_id_int = int(message_id.strip())
+        except ValueError:
+            embed = BotEmbed.error("Invalid Input", "Message ID must be a valid number.")
+            return await interaction.response.send_message(embed=embed, ephemeral=True)
+
         async with aiosqlite.connect(self.db_path) as db:
             db.row_factory = aiosqlite.Row
-            cursor = await db.execute("SELECT * FROM giveaways WHERE message_id = ? AND guild_id = ? AND ended = 1", (int(message_id), interaction.guild_id))
+            cursor = await db.execute("SELECT * FROM giveaways WHERE message_id = ? AND guild_id = ? AND ended = 1", (msg_id_int, interaction.guild_id))
             gw = await cursor.fetchone()
             if not gw:
                 embed = BotEmbed.error("Not Found", "Ended giveaway not found.")
-                return await interaction.response.send_message(embed=embed, ephemeral=False)
-            entries = json.loads(gw["entries"])
+                return await interaction.response.send_message(embed=embed, ephemeral=True)
+            try:
+                entries = json.loads(gw["entries"])
+            except Exception:
+                entries = []
             if not entries:
                 embed = BotEmbed.error("No Entries", "No entries to reroll.")
-                return await interaction.response.send_message(embed=embed, ephemeral=False)
+                return await interaction.response.send_message(embed=embed, ephemeral=True)
             num_winners = min(gw["winners"], len(entries))
             new_winners = random.sample(entries, num_winners)
             channel = self.bot.get_channel(gw["channel_id"])
             if channel:
                 try:
-                    msg = await channel.fetch_message(int(message_id))
-                    embed = msg.embeds[0]
-                    for i, field in enumerate(embed.fields):
-                        if field.name == "Winners":
-                            embed.remove_field(i)
-                            break
-                    mentions = ", ".join(f"<@{uid}>" for uid in new_winners)
-                    embed.add_field(name="Winners (Rerolled)", value=mentions, inline=False)
-                    await msg.edit(embed=embed)
-                except:
+                    msg = await channel.fetch_message(msg_id_int)
+                    if msg.embeds:
+                        embed = msg.embeds[0]
+                        for i, field in enumerate(embed.fields):
+                            if field.name.startswith("Winners"):
+                                embed.remove_field(i)
+                                break
+                        mentions = ", ".join(f"<@{uid}>" for uid in new_winners)
+                        embed.add_field(name="Winners (Rerolled)", value=mentions, inline=False)
+                        await msg.edit(embed=embed)
+                except Exception:
                     pass
             await interaction.response.send_message(embed=BotEmbed.success("Rerolled", f"New winners: {', '.join(f'<@{uid}>' for uid in new_winners)}"), ephemeral=False)
 
     @staticmethod
     def parse_duration(dur_str):
-        dur_str = dur_str.lower()
+        dur_str = dur_str.lower().strip()
+        if not dur_str:
+            return None
         multipliers = {'s': 1, 'm': 60, 'h': 3600, 'd': 86400}
         if dur_str[-1] in multipliers:
             try:
@@ -229,3 +289,4 @@ async def setup(bot):
         ''')
         await db.commit()
     await bot.add_cog(Giveaway(bot))
+    bot.add_view(GiveawayView())

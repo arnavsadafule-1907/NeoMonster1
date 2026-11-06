@@ -5,30 +5,33 @@ import aiosqlite
 import os
 from datetime import date, datetime
 from formatter import BotEmbed
-from checks import ticket_staff_only, admin_only
+from checks import ticket_staff_only, admin_only, is_extra_owner
 
 DB_PATH = os.getenv("DATABASE_PATH", "./data/security.db")
 
-# ---------- Persistent Leave Panel View ----------
 class LeavePanelView(discord.ui.View):
-    def __init__(self, cog):
+    def __init__(self, cog=None):
         super().__init__(timeout=None)
         self.cog = cog
 
+    def _get_cog(self, interaction: discord.Interaction):
+        return self.cog or interaction.client.get_cog("Leave")
+
     @discord.ui.button(label="Request Leave", style=discord.ButtonStyle.primary, custom_id="leave_take")
     async def take_leave_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if not await self.cog._check_staff(interaction):
+        cog = self._get_cog(interaction)
+        if not cog or not await cog._check_staff(interaction):
             return
-        await interaction.response.send_modal(LeaveModal(self.cog))
+        await interaction.response.send_modal(LeaveModal(cog))
 
     @discord.ui.button(label="End Leave", style=discord.ButtonStyle.success, custom_id="leave_return")
     async def return_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if not await self.cog._check_staff(interaction):
+        cog = self._get_cog(interaction)
+        if not cog or not await cog._check_staff(interaction):
             return
-        await self.cog.end_leave_early(interaction)
+        await cog.end_leave_early(interaction)
 
 
-# ---------- Modal for Requesting Leave ----------
 class LeaveModal(discord.ui.Modal, title="Request Leave"):
     def __init__(self, cog):
         super().__init__()
@@ -60,7 +63,6 @@ class LeaveModal(discord.ui.Modal, title="Request Leave"):
         await self.cog.start_leave(interaction, self.start_date.value, self.end_date.value, self.reason.value)
 
 
-# ---------- Leave Cog ----------
 class Leave(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -69,16 +71,17 @@ class Leave(commands.Cog):
     def cog_unload(self):
         self.check_leaves.cancel()
 
-    # ================================================================
-    #  Helpers
-    # ================================================================
     async def _check_staff(self, interaction: discord.Interaction) -> bool:
+        if not interaction.guild:
+            return False
         allowed_roles = ["TicketSupporter", "Staff.exe", "admin.exe", "nuke.exe"]
         for role_name in allowed_roles:
             role = discord.utils.get(interaction.guild.roles, name=role_name)
-            if role and role in interaction.user.roles:
+            if role and role in getattr(interaction.user, "roles", []):
                 return True
         if interaction.user.id == interaction.guild.owner_id or interaction.user.id in interaction.client.owner_ids:
+            return True
+        if await is_extra_owner(interaction.guild.id, interaction.user.id):
             return True
         await interaction.response.send_message(
             embed=BotEmbed.error("Permission Denied", "You do not have permission to manage leaves."),
@@ -113,7 +116,6 @@ class Leave(commands.Cog):
                     image_url TEXT
                 )
             """)
-            # Upsert
             await db.execute(
                 "INSERT INTO leave_panel_config (guild_id, title, description, image_url) VALUES (?, ?, ?, ?) "
                 "ON CONFLICT(guild_id) DO UPDATE SET title = ?, description = ?, image_url = ?",
@@ -121,9 +123,6 @@ class Leave(commands.Cog):
             )
             await db.commit()
 
-    # ================================================================
-    #  LEAVE PANEL GROUP (send / edit / reset)
-    # ================================================================
     leavepanel_group = app_commands.Group(name="leavepanel", description="Manage the staff leave panel")
 
     @leavepanel_group.command(name="send", description="Display the staff leave management panel")
@@ -178,9 +177,6 @@ class Leave(commands.Cog):
         embed = BotEmbed.success("Panel Reset", "The leave panel has been restored to default.")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    # ================================================================
-    #  /leavesetup (admin only)
-    # ================================================================
     @app_commands.command(name="leavesetup", description="Configure the role assigned to staff on leave")
     @app_commands.describe(role="The role to be given during leave (should have no extra permissions)")
     @admin_only()
@@ -189,9 +185,6 @@ class Leave(commands.Cog):
         embed = BotEmbed.success("Leave Role Configured", f"The {role.mention} role will now be assigned to staff on leave.")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    # ================================================================
-    #  /leave slash command
-    # ================================================================
     @app_commands.command(name="leave", description="Manage your leave status")
     @app_commands.describe(action="Request or end a leave", start_date="Start date (YYYY-MM-DD)", end_date="End date (YYYY-MM-DD)", reason="Reason for leave")
     @app_commands.choices(action=[
@@ -293,19 +286,16 @@ class Leave(commands.Cog):
         if days > 0:
             async with aiosqlite.connect(DB_PATH) as db:
                 await db.execute("UPDATE leaves SET active=0 WHERE id=?", (leave_row["id"],))
-                await db.commit()
-
-            async with aiosqlite.connect(DB_PATH) as db:
                 await db.execute(
                     "INSERT INTO staff_stats (guild_id, user_id, tickets_claimed, tickets_closed, leave_days) VALUES (?,?,0,0,?) "
                     "ON CONFLICT(guild_id, user_id) DO UPDATE SET leave_days = leave_days + ?",
                     (guild.id, member.id, days, days)
                 )
                 await db.commit()
-
-        async with aiosqlite.connect(DB_PATH) as db:
-            await db.execute("UPDATE leaves SET active=0 WHERE id=?", (leave_row["id"],))
-            await db.commit()
+        else:
+            async with aiosqlite.connect(DB_PATH) as db:
+                await db.execute("UPDATE leaves SET active=0 WHERE id=?", (leave_row["id"],))
+                await db.commit()
 
         role_id = await self.get_leave_role(guild.id)
         if role_id:
@@ -328,7 +318,6 @@ class Leave(commands.Cog):
         except discord.Forbidden:
             pass
 
-    # ---------- Reset leave stats ----------
     @app_commands.command(name="resetleavestats", description="Reset the leave days of a staff member (admin only)")
     @app_commands.describe(member="The staff member whose leave days should be reset")
     @admin_only()
@@ -364,22 +353,15 @@ class Leave(commands.Cog):
     async def before_check_leaves(self):
         await self.bot.wait_until_ready()
 
-    # ================================================================
-    #  🆕 AUTO-REPLY + STAFF DM NOTIFICATION ON PING
-    # ================================================================
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
-        # Ignore bots and DMs
         if message.author.bot or not message.guild:
             return
 
-        # Check each mention in the message
         for user in message.mentions:
-            # Skip if the user is the message author (self‑ping)
             if user.id == message.author.id:
                 continue
 
-            # Check if this user has an active leave
             async with aiosqlite.connect(DB_PATH) as db:
                 db.row_factory = aiosqlite.Row
                 cursor = await db.execute(
@@ -392,7 +374,6 @@ class Leave(commands.Cog):
                 end_date = date.fromisoformat(leave["end_date"])
                 reason = leave["reason"] or "Not specified"
 
-                # ---- 1. Reply to the pinger ----
                 embed_reply = discord.Embed(
                     title="📅 Staff on Leave",
                     description=(
@@ -409,7 +390,6 @@ class Leave(commands.Cog):
                 except discord.Forbidden:
                     pass
 
-                # ---- 2. DM the staff member who was pinged ----
                 try:
                     dm_embed = discord.Embed(
                         title="🔔 You were pinged while on leave",
@@ -431,13 +411,10 @@ class Leave(commands.Cog):
                     dm_embed.set_footer(text=f"Server: {message.guild.name}")
 
                     await user.send(embed=dm_embed)
-                except discord.Forbidden:
-                    # Staff has DMs disabled – we can't notify them
-                    pass
                 except Exception:
                     pass
 
-                break  # Only reply once per message
+                break
 
 
 async def setup(bot):
@@ -469,7 +446,9 @@ async def setup(bot):
         """)
         try:
             await db.execute("ALTER TABLE staff_stats ADD COLUMN leave_days INTEGER DEFAULT 0")
-        except:
+        except Exception:
             pass
         await db.commit()
-    await bot.add_cog(Leave(bot))
+    cog = Leave(bot)
+    await bot.add_cog(cog)
+    bot.add_view(LeavePanelView(cog))

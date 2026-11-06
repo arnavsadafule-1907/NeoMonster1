@@ -9,12 +9,11 @@ app = Flask(__name__)
 SECRET = os.getenv("MC_WEBHOOK_SECRET")
 DISCORD_WEBHOOK_URL = os.getenv("DISCORD_MC_WEBHOOK_URL")
 
-if not SECRET or not DISCORD_WEBHOOK_URL:
-    print("❌ Missing environment variables. Exiting.")
-    sys.exit(1)
-
 @app.route("/mcchat", methods=["POST"])
 def mc_chat():
+    if not SECRET or not DISCORD_WEBHOOK_URL:
+        return jsonify({"error": "Service not configured"}), 503
+
     data = request.get_json()
     if not data or data.get("secret") != SECRET:
         return jsonify({"error": "Invalid"}), 403
@@ -26,7 +25,6 @@ def mc_chat():
     if not player or not message:
         return jsonify({"error": "Missing fields"}), 400
 
-    # Professional embed
     embed = {
         "embeds": [{
             "title": f"💬 {server} Chat",
@@ -45,7 +43,7 @@ def mc_chat():
     }
 
     try:
-        requests.post(DISCORD_WEBHOOK_URL, json=embed)
+        requests.post(DISCORD_WEBHOOK_URL, json=embed, timeout=10)
         return jsonify({"status": "ok"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -55,5 +53,8 @@ def health():
     return "Minecraft chat bridge is running."
 
 if __name__ == "__main__":
+    if not SECRET or not DISCORD_WEBHOOK_URL:
+        print("❌ Missing environment variables. Exiting.")
+        sys.exit(1)
     port = int(os.getenv("PORT", 5002))
     app.run(host="0.0.0.0", port=port)

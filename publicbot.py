@@ -2,18 +2,15 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from formatter import BotEmbed
-import aiosqlite
 import os
 from datetime import datetime, timezone
 
 DB_PATH = os.getenv("DATABASE_PATH", "./data/security.db")
 
-
 class PublicBot(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    # ========== SERVER JOIN/LEAVE LOGS ==========
     @commands.Cog.listener()
     async def on_guild_join(self, guild):
         log_channel_id = await self.get_join_log_channel()
@@ -27,24 +24,13 @@ class PublicBot(commands.Cog):
                     timestamp=datetime.now(timezone.utc)
                 )
                 embed.add_field(name="Owner", value=f"{guild.owner} ({guild.owner_id})")
-                embed.add_field(name="Members", value=guild.member_count)
-                embed.add_field(name="Server ID", value=guild.id)
+                embed.add_field(name="Members", value=str(guild.member_count or 0))
+                embed.add_field(name="Server ID", value=str(guild.id))
                 embed.set_thumbnail(url=guild.icon.url if guild.icon else None)
-                await channel.send(embed=embed)
-
-        try:
-            embed = BotEmbed.info(
-                "🛡️ NeoMonster – Thank You for Choosing Us!",
-                "Your server is now protected.\n\n"
-                "**Quick Start:**\n"
-                "• `/antinuke logchannel #logs` – Set security alerts\n"
-                "• `/antinuke whitelist add @you` – Protect yourself\n"
-                "• `/help` – See all commands\n\n"
-                "**Need help?** Join our support server: https://discord.gg/f8zTc4tmHx"
-            )
-            await guild.owner.send(embed=embed)
-        except:
-            pass
+                try:
+                    await channel.send(embed=embed)
+                except Exception:
+                    pass
 
     @commands.Cog.listener()
     async def on_guild_remove(self, guild):
@@ -59,16 +45,19 @@ class PublicBot(commands.Cog):
                     timestamp=datetime.now(timezone.utc)
                 )
                 embed.add_field(name="Owner", value=f"{guild.owner} ({guild.owner_id})")
-                embed.add_field(name="Members", value=guild.member_count)
-                embed.add_field(name="Server ID", value=guild.id)
-                await channel.send(embed=embed)
+                embed.add_field(name="Members", value=str(guild.member_count or 0))
+                embed.add_field(name="Server ID", value=str(guild.id))
+                try:
+                    await channel.send(embed=embed)
+                except Exception:
+                    pass
 
     async def get_join_log_channel(self):
-        """Return your private log channel ID (hardcoded)."""
-        # 🔁 REPLACE THIS WITH YOUR REAL CHANNEL ID
-        return 123456789012345678
+        ch_id = os.getenv("JOIN_LOG_CHANNEL_ID")
+        if ch_id and ch_id.strip().isdigit():
+            return int(ch_id.strip())
+        return None
 
-    # ========== SUPPORT COMMAND ==========
     @app_commands.command(name="support", description="Get support for NeoMonster")
     async def support(self, interaction: discord.Interaction):
         embed = BotEmbed.info(
@@ -82,17 +71,16 @@ class PublicBot(commands.Cog):
         )
         await interaction.response.send_message(embed=embed)
 
-    # ========== INVITE COMMAND ==========
     @app_commands.command(name="invite", description="Get the invite link for NeoMonster")
     async def invite(self, interaction: discord.Interaction):
-        invite_url = "https://discord.com/oauth2/authorize?client_id=1528368412093579376&permissions=1100473370870&integration_type=0&scope=bot+applications.commands"
+        bot_id = self.bot.user.id if self.bot.user else "1528368412093579376"
+        invite_url = f"https://discord.com/oauth2/authorize?client_id={bot_id}&permissions=1100473370870&integration_type=0&scope=bot+applications.commands"
         embed = BotEmbed.info(
             "🔗 Invite NeoMonster",
             f"**[Click here to invite me to your server]({invite_url})**\n\n"
             "Share this link with other server owners to help them stay protected!"
         )
         await interaction.response.send_message(embed=embed)
-
 
 async def setup(bot):
     await bot.add_cog(PublicBot(bot))

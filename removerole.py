@@ -4,6 +4,7 @@ from discord.ext import commands
 from checks import admin_only
 from formatter import BotEmbed
 
+
 class RemoveRole(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -14,8 +15,11 @@ class RemoveRole(commands.Cog):
         role="The role to remove",
         reason="Reason for the removal (optional)"
     )
-    @admin_only()   # same permission set
-    async def removerole(self, interaction: discord.Interaction, user: discord.Member, role: discord.Role, reason: str = None):
+    @admin_only()
+    async def removerole(self, interaction: discord.Interaction, user: discord.Member, role: discord.Role, reason: str | None = None):
+        if interaction.guild is None:
+            return
+
         if role.is_default():
             embed = BotEmbed.error("Invalid Role", "The @everyone role cannot be removed manually.")
             return await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -23,6 +27,11 @@ class RemoveRole(commands.Cog):
         if role >= interaction.guild.me.top_role:
             embed = BotEmbed.error("Role Too High", "I cannot remove this role because it is above my highest role.")
             return await interaction.response.send_message(embed=embed, ephemeral=True)
+
+        if isinstance(interaction.user, discord.Member):
+            if role >= interaction.user.top_role and interaction.user != interaction.guild.owner and interaction.user.id not in interaction.client.owner_ids:
+                embed = BotEmbed.error("Role Too High", "You cannot remove a role equal to or higher than your own highest role.")
+                return await interaction.response.send_message(embed=embed, ephemeral=True)
 
         if role not in user.roles:
             embed = BotEmbed.warning("Not Assigned", f"{user.mention} does not have the {role.mention} role.")
@@ -38,6 +47,7 @@ class RemoveRole(commands.Cog):
         except Exception as e:
             embed = BotEmbed.error("Unexpected Error", f"An unexpected error occurred: {e}")
             await interaction.response.send_message(embed=embed, ephemeral=True)
+
 
 async def setup(bot):
     await bot.add_cog(RemoveRole(bot))

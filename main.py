@@ -1,5 +1,6 @@
 import os
 import asyncio
+import importlib
 import discord
 import requests
 from discord import app_commands
@@ -10,6 +11,12 @@ from db import init_db
 from dashboard import app
 from threading import Thread
 from formatter import BotEmbed
+
+try:
+    init_emojis = importlib.import_module("utils.emoji_manager").init_emojis
+except (ImportError, AttributeError):
+    def init_emojis(bot):
+        logger.warning("Emoji manager unavailable; continuing without custom emojis.")
 
 load_dotenv()
 logger = setup_logging()
@@ -29,36 +36,22 @@ TEST_GUILD_ID = os.getenv("TEST_GUILD_ID")
 
 
 def restore_db_before_startup():
-    print("==================================================")
-    print("🚀 STARTING DATABASE RESTORE PROCESS")
     channel_id = os.getenv("BACKUP_CHANNEL_ID")
     db_path = os.getenv("DATABASE_PATH", "./data/security.db")
-    
-    print(f"📂 Target DB Path: {db_path}")
-    print(f"📡 Backup Channel ID: {channel_id}")
 
     if not channel_id or channel_id == "0":
-        print("❌ ERROR: BACKUP_CHANNEL_ID is missing in Render Environment Variables!")
-        print("==================================================")
         return
 
     headers = {"Authorization": f"Bot {BOT_TOKEN}"}
     url = f"https://discord.com/api/v10/channels/{channel_id}/messages?limit=50"
-    
+
     try:
         resp = requests.get(url, headers=headers, timeout=10)
-        print(f"🌐 Discord API Status: {resp.status_code}")
-        
         if resp.status_code != 200:
-            print(f"❌ ERROR: Could not read channel. Reason: {resp.text}")
-            print("==================================================")
             return
 
         messages = resp.json()
-        print(f"📨 Found {len(messages)} messages in backup channel.")
-        
         best_file_url = None
-        best_file_name = None
         best_file_size = 0
 
         for msg in messages:
@@ -69,40 +62,21 @@ def restore_db_before_startup():
                         if size > best_file_size:
                             best_file_size = size
                             best_file_url = att["url"]
-                            best_file_name = att["filename"]
 
         if not best_file_url:
-            print("❌ ERROR: No .db files found in the last 50 messages!")
-            print("==================================================")
             return
 
-        print(f"🏆 Best backup found: {best_file_name} ({best_file_size} bytes). Downloading...")
         file_resp = requests.get(best_file_url, timeout=20)
-        
         if file_resp.status_code == 200:
             content = file_resp.content
-            print(f"📥 Downloaded size: {len(content)} bytes")
-            
-            if len(content) < 10000:
-                print("❌ ERROR: The backup file is too small (empty). It was overwritten by a previous bug.")
-                print("==================================================")
-                return
-            
-            if not content.startswith(b'SQLite format 3\x00'):
-                print("❌ ERROR: The downloaded file is corrupted (Not a valid SQLite DB).")
-                print("==================================================")
+            if len(content) < 10000 or not content.startswith(b'SQLite format 3\x00'):
                 return
 
             os.makedirs(os.path.dirname(db_path), exist_ok=True)
             with open(db_path, "wb") as f:
                 f.write(content)
-            print(f"✅ SUCCESS: Restored database! ({len(content)} bytes)")
-        else:
-            print(f"❌ ERROR: Failed to download. HTTP {file_resp.status_code}")
-            
     except Exception as e:
-        print(f"❌ FATAL ERROR: {e}")
-    print("==================================================")
+        logger.error(f"Database restore failed: {e}")
 
 
 class SecurityBot(commands.Bot):
@@ -117,6 +91,7 @@ class SecurityBot(commands.Bot):
         self.owner_ids = OWNER_IDS
 
     async def setup_hook(self):
+        init_emojis(self)
         try:
             await init_db()
             logger.info("Database ready")
@@ -131,8 +106,8 @@ class SecurityBot(commands.Bot):
             "raidalert", "chatbot", "massmention", "antivanity", "stafflog", "ownerrecovery", 
             "polish", "publicbot", "globalblacklist", "announce", "ticket", "serverlogger", 
             "botwhitelist", "sync", "extraowner", "dmall", "staffstats", "leave", "giverole",
-            "staffleaderboard", "ticketcleanup", "db_backup", "sticky", "serverstatus", 
-            "minecraft", "tracking", "globalbackup", "serverwhitelist", # <-- ADD THIS NEW ONE
+            "removerole", "staffleaderboard", "ticketcleanup", "db_backup", "sticky", "serverstatus", 
+            "minecraft", "tracking", "globalbackup", "serverwhitelist", "customroles", "fun", "giveaway"
         ]
         for cog in cogs:
             try:
@@ -172,7 +147,6 @@ class SecurityBot(commands.Bot):
         ))
 
     async def on_app_command_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
-        # 🛑 RATE LIMIT / SPAM PROTECTION HANDLER
         if isinstance(error, app_commands.CommandOnCooldown):
             return await interaction.response.send_message(
                 f"⏳ **Slow down!** Try again in `{error.retry_after:.1f}s`.", 
@@ -182,15 +156,17 @@ class SecurityBot(commands.Bot):
             embed = BotEmbed.error("Insufficient Role", str(error))
         elif isinstance(error, app_commands.MissingPermissions):
             embed = BotEmbed.error("Missing Permissions", "You don't have the required Discord permissions.")
+        elif isinstance(error, app_commands.CheckFailure):
+            embed = BotEmbed.error("Access Denied", "You do not have permission to execute this command.")
         else:
             logger.error(f"Command error: {error}")
             embed = BotEmbed.error("Unexpected Error", "An unexpected error occurred.")
 
         try:
             if interaction.response.is_done():
-                await interaction.followup.send(embed=embed, ephemeral=False)
+                await interaction.followup.send(embed=embed, ephemeral=True)
             else:
-                await interaction.response.send_message(embed=embed, ephemeral=False)
+                await interaction.response.send_message(embed=embed, ephemeral=True)
         except Exception as e:
             logger.error(f"Failed to send error response: {e}")
 

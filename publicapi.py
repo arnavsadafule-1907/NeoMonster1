@@ -1,10 +1,11 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify
 import os
 from dotenv import load_dotenv
 import sqlite3
 
 load_dotenv()
-DATABASE_PATH = os.getenv("DATABASE_PATH", "./data/security.db")
+from db import get_db_path
+DATABASE_PATH = get_db_path()
 
 api_app = Flask(__name__)
 
@@ -14,12 +15,16 @@ def api_stats():
     if not bot:
         return jsonify({"error": "Bot not initialized"}), 503
 
+    bot_avatar = str(bot.user.display_avatar.url) if bot.user else None
+    bot_name = str(bot.user) if bot.user else "NeoMonster"
+    bot_id = bot.user.id if bot.user else None
+
     return jsonify({
-        "bot_name": str(bot.user),
-        "bot_id": bot.user.id,
-        "bot_avatar": str(bot.user.display_avatar.url),
+        "bot_name": bot_name,
+        "bot_id": bot_id,
+        "bot_avatar": bot_avatar,
         "guild_count": len(bot.guilds),
-        "user_count": sum(g.member_count for g in bot.guilds),
+        "user_count": sum((g.member_count or 0) for g in bot.guilds),
         "uptime": "Online",
         "latency_ms": round(bot.latency * 1000, 2),
         "commands": 100,
@@ -43,16 +48,19 @@ def api_guild(guild_id):
     if not guild:
         return jsonify({"error": "Guild not found"}), 404
 
-    conn = sqlite3.connect(DATABASE_PATH)
-    cursor = conn.execute("SELECT antinuke_enabled FROM guild_settings WHERE guild_id = ?", (guild_id,))
-    row = cursor.fetchone()
-    antinuke = bool(row[0]) if row else False
-    conn.close()
+    antinuke = False
+    with sqlite3.connect(DATABASE_PATH, timeout=10.0) as conn:
+        try:
+            cursor = conn.execute("SELECT antinuke_enabled FROM guild_settings WHERE guild_id = ?", (guild_id,))
+            row = cursor.fetchone()
+            antinuke = bool(row[0]) if row else False
+        finally:
+            conn.close()
 
     return jsonify({
         "name": guild.name,
         "id": guild.id,
-        "member_count": guild.member_count,
+        "member_count": guild.member_count or 0,
         "owner_id": guild.owner_id,
         "icon_url": str(guild.icon.url) if guild.icon else None,
         "antinuke_enabled": antinuke
@@ -63,10 +71,10 @@ def api_leaderboard():
     bot = api_app.config.get("bot")
     if not bot:
         return jsonify({"error": "Bot not initialized"}), 503
-    guilds = sorted(bot.guilds, key=lambda g: g.member_count, reverse=True)[:10]
+    guilds = sorted(bot.guilds, key=lambda g: (g.member_count or 0), reverse=True)[:10]
     return jsonify([{
         "name": g.name,
-        "members": g.member_count,
+        "members": g.member_count or 0,
         "id": g.id,
         "icon_url": str(g.icon.url) if g.icon else None
     } for g in guilds])
@@ -79,7 +87,7 @@ def api_guilds():
     return jsonify([{
         "name": g.name,
         "id": g.id,
-        "member_count": g.member_count
+        "member_count": g.member_count or 0
     } for g in bot.guilds])
 
 def start_api(bot):

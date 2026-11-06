@@ -70,8 +70,9 @@ class AdminSetup(commands.Cog):
                 reason="Setup via NeoMonster"
             )
             try:
-                await role.edit(position=interaction.guild.me.top_role.position - 1)
-            except:
+                if role < interaction.guild.me.top_role:
+                    await role.edit(position=max(1, interaction.guild.me.top_role.position - 1))
+            except Exception:
                 pass
 
             await interaction.followup.send(

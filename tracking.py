@@ -467,10 +467,16 @@ class Tracking(commands.Cog):
                     "INSERT OR IGNORE INTO invite_stats (guild_id, user_id) VALUES (?, ?)",
                     (interaction.guild_id, user.id)
                 )
-                await db.execute(
-                    f"UPDATE invite_stats SET {stat} = {stat} + ? WHERE guild_id = ? AND user_id = ?",
-                    (delta, interaction.guild_id, user.id)
-                )
+                if stat == "total":
+                    await db.execute("UPDATE invite_stats SET total = total + ? WHERE guild_id = ? AND user_id = ?", (delta, interaction.guild_id, user.id))
+                elif stat == "joins":
+                    await db.execute("UPDATE invite_stats SET joins = joins + ? WHERE guild_id = ? AND user_id = ?", (delta, interaction.guild_id, user.id))
+                elif stat == "leaves":
+                    await db.execute("UPDATE invite_stats SET leaves = leaves + ? WHERE guild_id = ? AND user_id = ?", (delta, interaction.guild_id, user.id))
+                elif stat == "fakes":
+                    await db.execute("UPDATE invite_stats SET fakes = fakes + ? WHERE guild_id = ? AND user_id = ?", (delta, interaction.guild_id, user.id))
+                elif stat == "rejoins":
+                    await db.execute("UPDATE invite_stats SET rejoins = rejoins + ? WHERE guild_id = ? AND user_id = ?", (delta, interaction.guild_id, user.id))
                 await db.commit()
         else:
             async with aiosqlite.connect(DB_PATH) as db:
@@ -479,10 +485,10 @@ class Tracking(commands.Cog):
                     "VALUES (?, ?, 0, 0, ?)",
                     (interaction.guild_id, user.id, today)
                 )
-                await db.execute(
-                    f"UPDATE message_stats SET {stat} = MAX(0, {stat} + ?) WHERE guild_id = ? AND user_id = ?",
-                    (delta, interaction.guild_id, user.id)
-                )
+                if stat == "all_time":
+                    await db.execute("UPDATE message_stats SET all_time = MAX(0, all_time + ?) WHERE guild_id = ? AND user_id = ?", (delta, interaction.guild_id, user.id))
+                elif stat == "daily":
+                    await db.execute("UPDATE message_stats SET daily = MAX(0, daily + ?) WHERE guild_id = ? AND user_id = ?", (delta, interaction.guild_id, user.id))
                 await db.commit()
 
         label = "invite" if system == "invites" else "message"

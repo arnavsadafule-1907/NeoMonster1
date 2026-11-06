@@ -6,7 +6,7 @@ import os
 import asyncio
 from datetime import datetime
 from formatter import BotEmbed
-from checks import admin_only
+from checks import admin_only, owner_only
 
 BACKUP_DIR = "./data/backups"
 
@@ -76,7 +76,7 @@ class Backup(commands.Cog):
 
     @app_commands.command(name="restore", description="Restore server from the latest backup (DESTRUCTIVE)")
     @app_commands.describe(confirm="Type 'CONFIRM' to proceed")
-    @admin_only()
+    @owner_only()
     async def restore_backup(self, interaction: discord.Interaction, confirm: str):
         if confirm != "CONFIRM":
             embed = BotEmbed.error("Confirmation Required", "Type `CONFIRM` to proceed with restoration.")

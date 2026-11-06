@@ -7,8 +7,13 @@ import os
 import logging
 from checks import admin_only, nuke_only
 from formatter import BotEmbed
+from db import get_db_path
 
 logger = logging.getLogger("discord.cogs.config")
+
+
+def get_emoji(name: str) -> str:
+    return {"shield": "🛡️", "tick": "✅", "cross": "❌"}.get(name, "")
 
 EVENT_TYPES = [
     "channel_create", "channel_delete",
@@ -22,17 +27,16 @@ PUNISHMENT_OPTIONS = ["none", "strip", "kick", "ban"]
 class Config(commands.GroupCog, name="antinuke"):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        self.db_path = os.getenv("DATABASE_PATH", "./data/security.db")
+        self.db_path = get_db_path()
 
     async def ensure_guild_entry(self, guild_id: int):
         async with aiosqlite.connect(self.db_path) as db:
             await db.execute("INSERT OR IGNORE INTO guild_settings (guild_id) VALUES (?)", (guild_id,))
             await db.commit()
 
-    # ---------- Help (open to everyone) ----------
     @app_commands.command(name="help", description="Show the anti‑nuke help menu")
     async def help_command(self, interaction: discord.Interaction):
-        embed = discord.Embed(title="🛡️ NeoMonster Anti‑Nuke Help", color=0x3B82F6)
+        embed = discord.Embed(title=f"{get_emoji('shield')} NeoMonster Anti‑Nuke Help", color=0x3B82F6)
         embed.add_field(name="/antinuke settings", value="View current configuration", inline=False)
         embed.add_field(name="/antinuke toggle", value="Enable/disable the system", inline=False)
         embed.add_field(name="/antinuke module", value="Turn detection modules on/off", inline=False)
@@ -46,7 +50,6 @@ class Config(commands.GroupCog, name="antinuke"):
         embed.set_footer(text="Use /help for the full bot command list")
         await interaction.response.send_message(embed=embed, ephemeral=False)
 
-    # ---------- Toggle (nuke only) ----------
     @app_commands.command(name="toggle", description="Enable or disable the entire anti‑nuke system")
     @app_commands.describe(state="On or Off")
     @app_commands.choices(state=[app_commands.Choice(name="on", value="on"), app_commands.Choice(name="off", value="off")])
@@ -60,7 +63,6 @@ class Config(commands.GroupCog, name="antinuke"):
         embed = BotEmbed.success("Anti‑Nuke", f"System {'enabled' if enabled else 'disabled'}.")
         await interaction.response.send_message(embed=embed, ephemeral=False)
 
-    # ---------- Emergency (nuke only) ----------
     @app_commands.command(name="emergency", description="Emergency lockdown / unlock / kick nuker")
     @app_commands.describe(action="Action to perform", user="User to kick (only for kick_nuker)")
     @app_commands.choices(action=[
@@ -81,7 +83,7 @@ class Config(commands.GroupCog, name="antinuke"):
                     try:
                         await channel.set_permissions(everyone, send_messages=False, connect=False)
                         count += 1
-                    except:
+                    except Exception:
                         pass
             embed = BotEmbed.success("Lockdown", f"Locked {count} channels.")
         elif action == "unlock":
@@ -92,7 +94,7 @@ class Config(commands.GroupCog, name="antinuke"):
                     try:
                         await channel.set_permissions(everyone, send_messages=True, connect=True)
                         count += 1
-                    except:
+                    except Exception:
                         pass
             embed = BotEmbed.success("Unlocked", f"Unlocked {count} channels.")
         elif action == "kick_nuker":
@@ -106,7 +108,6 @@ class Config(commands.GroupCog, name="antinuke"):
                 embed = BotEmbed.error("Error", str(e))
         await interaction.followup.send(embed=embed, ephemeral=False)
 
-    # ---------- Settings (admin only) ----------
     @app_commands.command(name="settings", description="View current anti‑nuke configuration")
     @admin_only()
     async def settings(self, interaction: discord.Interaction):
@@ -123,18 +124,17 @@ class Config(commands.GroupCog, name="antinuke"):
             log_channel = f"<#{row['log_channel_id']}>" if row["log_channel_id"] else "Not set"
             enabled = "Enabled" if row["antinuke_enabled"] else "Disabled"
 
-        embed = BotEmbed.info("🛡️ Anti‑Nuke Configuration")
+        embed = BotEmbed.info(f"{get_emoji('shield')} Anti-Nuke Configuration")
         embed.add_field(name="System Status", value=enabled, inline=False)
         embed.add_field(name="Punishment", value=punishment, inline=True)
         embed.add_field(name="Quarantine Role", value=quarantine_role, inline=True)
         embed.add_field(name="Log Channel", value=log_channel, inline=True)
-        modules_text = "\n".join([f"{k}: {'✅' if v else '❌'}" for k, v in modules.items()])
+        modules_text = "\n".join([f"{k}: {get_emoji('tick') if v else get_emoji('cross')}" for k, v in modules.items()])
         embed.add_field(name="Modules", value=modules_text, inline=False)
         thresh_text = "\n".join([f"{k}: {v} per {time_window}s" for k, v in thresholds.items()])
         embed.add_field(name="Thresholds", value=thresh_text, inline=False)
         await interaction.response.send_message(embed=embed, ephemeral=False)
 
-    # ---------- Module (admin only) ----------
     @app_commands.command(name="module", description="Enable/disable a detection module")
     @app_commands.describe(module="The event type", state="Enable or disable")
     @app_commands.choices(module=[app_commands.Choice(name=e, value=e) for e in EVENT_TYPES])
@@ -154,7 +154,6 @@ class Config(commands.GroupCog, name="antinuke"):
         embed = BotEmbed.success("Module Updated", f"`{module}` {'enabled' if new_state else 'disabled'}.")
         await interaction.response.send_message(embed=embed, ephemeral=False)
 
-    # ---------- Threshold (admin only) ----------
     @app_commands.command(name="threshold", description="Set action threshold for an event")
     @app_commands.describe(module="Event type", count="Max allowed actions")
     @app_commands.choices(module=[app_commands.Choice(name=e, value=e) for e in EVENT_TYPES])
@@ -174,7 +173,6 @@ class Config(commands.GroupCog, name="antinuke"):
         embed = BotEmbed.success("Threshold Updated", f"`{module}` threshold set to **{count}**.")
         await interaction.response.send_message(embed=embed, ephemeral=False)
 
-    # ---------- Time Window (admin only) ----------
     @app_commands.command(name="timewindow", description="Set the detection time window (seconds)")
     @app_commands.describe(seconds="Seconds (5–60)")
     @admin_only()
@@ -188,7 +186,6 @@ class Config(commands.GroupCog, name="antinuke"):
         embed = BotEmbed.success("Time Window Updated", f"Window set to **{seconds}s**.")
         await interaction.response.send_message(embed=embed, ephemeral=False)
 
-    # ---------- Punishment (admin only) ----------
     @app_commands.command(name="punishment", description="Set punishment mode for offenders")
     @app_commands.describe(mode="Punishment type")
     @app_commands.choices(mode=[app_commands.Choice(name=m, value=m) for m in PUNISHMENT_OPTIONS])
@@ -201,7 +198,6 @@ class Config(commands.GroupCog, name="antinuke"):
         embed = BotEmbed.success("Punishment Updated", f"Mode set to **{mode}**.")
         await interaction.response.send_message(embed=embed, ephemeral=False)
 
-    # ---------- Quarantine Role (admin only) ----------
     @app_commands.command(name="quarantine-role", description="Set the role given to stripped offenders")
     @app_commands.describe(role="Quarantine role (should have no permissions)")
     @admin_only()
@@ -215,7 +211,6 @@ class Config(commands.GroupCog, name="antinuke"):
         embed = BotEmbed.success("Quarantine Role Set", f"Offenders will get {role.mention}.")
         await interaction.response.send_message(embed=embed, ephemeral=False)
 
-    # ---------- Log Channel (admin only) ----------
     @app_commands.command(name="logchannel", description="Set the anti‑nuke alert channel")
     @app_commands.describe(channel="Text channel for logs")
     @admin_only()
@@ -227,7 +222,6 @@ class Config(commands.GroupCog, name="antinuke"):
         embed = BotEmbed.success("Log Channel Set", f"Alerts will be sent to {channel.mention}.")
         await interaction.response.send_message(embed=embed, ephemeral=False)
 
-    # ---------- Error handling for this cog ----------
     @commands.Cog.listener()
     async def on_app_command_error(self, interaction: discord.Interaction, error):
         if isinstance(error, app_commands.MissingPermissions):

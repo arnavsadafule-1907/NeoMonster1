@@ -1,0 +1,403 @@
+# ==============================================================================
+# NEOMONSTER ALL-IN-ONE DISCORD SECURITY BOT - CENTRAL EMOJI REGISTRY
+# Application ID: 1528368412093579376
+# Total Verified Application Emojis: 192 (181 Static, 11 Animated) across 8 Pages
+# Format: key = <:ACTUAL_NAME:ACTUAL_ID> -> "unicode_fallback"
+# Animated: key = <a:ACTUAL_NAME:ACTUAL_ID> -> "unicode_fallback"
+# ==============================================================================
+
+[SECURITY]
+shield = <:828044shield:1568213109997441126> -> "🛡️"
+lock = <:6031modshield:1568209072740769894> -> "🔒"
+unlock = <:8719blurpleundeafened:1568212927880888370> -> "🔓"
+protection = <:1047blueguard:1568209054008868914> -> "🛡️"
+guard = <:1047blueguard:1568209054008868914> -> "🛡️"
+modshield = <:6031modshield:1568209072740769894> -> "🛡️"
+lite_modshield = <:8726litebluemodshield:1568209085461958777> -> "🛡️"
+firewall = <:828044fire:1568213108336361482> -> "🔥"
+key = <:400377tools:1568213093907959909> -> "🔑"
+secure = <:828044shield:1568213109997441126> -> "🛡️"
+swords = <:5186swords:1568209070890950818> -> "⚔️"
+
+[MODERATION]
+ban = <:6533vslmodhammer:1568209076498997298> -> "🚫"
+kick = <:22168donotbullyids:1568212970205483049> -> "👢"
+mute = <:9848blurplemuted:1568212751913058344> -> "🔇"
+unmute = <:9017blurpleunmuted:1568212938316054528> -> "🔊"
+deafened = <:9669blurpledeafened:1568212740710080512> -> "🔕"
+undeafened = <:8719blurpleundeafened:1568212927880888370> -> "🔔"
+timeout = <:3152slowdownids:1568212815876194364> -> "⏱️"
+warn = <:2867blueerror:1568209064977109093> -> "⚠️"
+warning = <:2867blueerror:1568209064977109093> -> "⚠️"
+clear = <:312424paint:1568213090175291553> -> "🧹"
+moderator = <:8417shinybluemoderator:1568208734940045394> -> "🛡️"
+mod_badge = <:6160bluemodbadge:1568209074452041748> -> "🔰"
+certified_mod = <:2231certifiedmodlight:1568209061361619034> -> "🎖️"
+head_moderator = <:10551headmoderator:1568212944221765712> -> "🛡️"
+trial_moderator = <:30221trialmoderator:1568212979655245844> -> "🔰"
+moderation = <:6533vslmodhammer:1568209076498997298> -> "🔨"
+hammer = <:6533vslmodhammer:1568209076498997298> -> "🔨"
+
+[ANTI-RAID & ANTI-NUKE]
+anti_raid = <:36356raidalertids:1568212987188219914> -> "🛡️"
+anti_nuke = <:828044shield:1568213109997441126> -> "🔐"
+raid_alert = <:36356raidalertids:1568212987188219914> -> "🚨"
+siren = <:36356raidalertids:1568212987188219914> -> "🚨"
+bot_detection = <:158897bot:1568213086790492160> -> "🤖"
+iamabot = <:60414iamabotids:1568213031635255377> -> "🤖"
+attack_warning = <:36356raidalertids:1568212987188219914> -> "🚨"
+suspicious_activity = <:31140joobithousandyardstareblue:1568212981450408026> -> "👁️"
+protection_enabled = <:828044shield:1568213109997441126> -> "🛡️"
+emergency = <:5186swords:1568209070890950818> -> "⚔️"
+
+[VERIFICATION]
+verified = <:4447shinyblueverified:1568208721476063242> -> "✅"
+verified_blue = <:7789blueverified:1568209080252899459> -> "☑️"
+verified_badge = <:2572verifiedbadge:1568209063387336734> -> "🎖️"
+unverified = <:9659unverified:1568212738755403866> -> "✖️"
+verified_anim_blue = <a:3891discordverifypastelblue:1568212843986288670> -> "☑️"
+verified_anim_white = <a:6832disocrdverifywhite:1568212892602470480> -> "☑️"
+verified_anim_green = <a:7131discordverifygreen:1568212900995141642> -> "☑️"
+verified_anim_pink = <a:2599discordverifypink:1568212805826519161> -> "☑️"
+verified_anim_purple = <a:8111discordverifypurple:1568212917369839616> -> "☑️"
+verified_anim_peach = <a:7312peachverify:1568212907903160392> -> "☑️"
+verified_anim_orange = <a:7485_verifiedorange:1568212911346683924> -> "☑️"
+verified_anim_red = <a:5470redverifiedcheck:1568212868799660172> -> "☑️"
+captcha = <:9733bluedot:1568209097550204988> -> "🔹"
+pending = <:4994shinybluedot:1568208725087359156> -> "⏳"
+approved = <:9808lightbluecheck:1568209119393873971> -> "✅"
+rejected = <:2867blueerror:1568209064977109093> -> "❌"
+verification = <:4447shinyblueverified:1568208721476063242> -> "☑️"
+
+[LOGGING]
+audit_logs = <:22273tgnewsemoji007:1568209122019639346> -> "📜"
+message_deleted = <:2867blueerror:1568209064977109093> -> "🗑️"
+message_edited = <:400377tools:1568213093907959909> -> "✏️"
+member_joined = <:52018getonlineids:1568213015323738124> -> "📥"
+member_left = <:86241blueguydisappear:1568213078372520017> -> "📤"
+role_updated = <:1520blurplesettings:1568212784578306108> -> "🏷️"
+channel_updated = <:3527blurplevoicechannel:1568212819453804554> -> "📁"
+voice_activity = <:3527blurplevoicechannel:1568212819453804554> -> "🎙️"
+server_logs = <:22273tgnewsemoji007:1568209122019639346> -> "📑"
+
+[SERVER MANAGEMENT]
+server = <:3970discord:1568212845772935268> -> "🌐"
+settings = <:1520blurplesettings:1568212784578306108> -> "⚙️"
+configuration = <:1520blurplesettings:1568212784578306108> -> "⚙️"
+admin = <:9358shinyblueowner:1568208738723168377> -> "👑"
+owner = <:9358shinyblueowner:1568208738723168377> -> "👑"
+crown = <:158897crown:1568213088602300466> -> "👑"
+staff = <:8417shinybluemoderator:1568208734940045394> -> "👥"
+developer = <:44646developer:1568212995215982702> -> "💻"
+roles = <:7789blueverified:1568209080252899459> -> "🏷️"
+channels = <:3527blurplevoicechannel:1568212819453804554> -> "📁"
+announcement = <:22273tgnewsemoji007:1568209122019639346> -> "📢"
+rules = <:3149blurplerules:1568212813565137046> -> "📜"
+
+[TICKETS & SUPPORT]
+ticket = <:828044ticket:1568213112207970374> -> "🎫"
+support = <:4017onaboutids:1568212847702450176> -> "💬"
+open_ticket = <:828044ticket:1568213112207970374> -> "📩"
+close_ticket = <:6031modshield:1568209072740769894> -> "🔒"
+claim_ticket = <:8417shinybluemoderator:1568208734940045394> -> "📌"
+resolved = <:9808lightbluecheck:1568209119393873971> -> "✅"
+pending_ticket = <:4994shinybluedot:1568208725087359156> -> "⏳"
+add_user = <:52018getonlineids:1568213015323738124> -> "➕"
+remove_user = <:86241blueguydisappear:1568213078372520017> -> "➖"
+rename_ticket = <:400377tools:1568213093907959909> -> "✏️"
+pencil = <:400377tools:1568213093907959909> -> "✏️"
+
+[STATUS & NOTIFICATIONS]
+success = <:9808lightbluecheck:1568209119393873971> -> "✅"
+tick = <:9808lightbluecheck:1568209119393873971> -> "✅"
+error = <:2867blueerror:1568209064977109093> -> "❌"
+cross = <:2867blueerror:1568209064977109093> -> "❌"
+warning = <:2867blueerror:1568209064977109093> -> "⚠️"
+info = <:7018_info:1568212897786495026> -> "ℹ️"
+information = <:7018_info:1568212897786495026> -> "ℹ️"
+loading = <a:3891discordverifypastelblue:1568212843986288670> -> "🔄"
+online = <:52018getonlineids:1568213015323738124> -> "🟢"
+offline = <:86241blueguydisappear:1568213078372520017> -> "🔴"
+enabled = <:9808lightbluecheck:1568209119393873971> -> "✅"
+disabled = <:2867blueerror:1568209064977109093> -> "❌"
+double_check = <:9808lightbluecheck:1568209119393873971> -> "✅"
+
+[NAVIGATION]
+home = <:3970discord:1568212845772935268> -> "🏠"
+search = <:5864blurplesearch:1568212874248065164> -> "🔍"
+menu = <:1520blurplesettings:1568212784578306108> -> "📋"
+back = <:4994shinybluedot:1568208725087359156> -> "◀️"
+next = <:4994shinybluedot:1568208725087359156> -> "▶️"
+refresh = <a:3891discordverifypastelblue:1568212843986288670> -> "🔄"
+
+[STATISTICS]
+members = <:19999member:1568212966288007199> -> "👥"
+users = <:19999member:1568212966288007199> -> "👥"
+bots = <:158897bot:1568213086790492160> -> "🤖"
+graphs = <:918267trophy:1568212770581643304> -> "📊"
+analytics = <:918267trophy:1568212770581643304> -> "📈"
+stats = <:918267trophy:1568212770581643304> -> "📊"
+growth = <:574809rocket:1568213098849112135> -> "🚀"
+rocket = <:574809rocket:1568213098849112135> -> "🚀"
+activity = <:5186shinybluesparkles:1568208726987382906> -> "⚡"
+statistics = <:918267trophy:1568212770581643304> -> "📊"
+
+[AUTOMOD]
+spam_detection = <:3152slowdownids:1568212815876194364> -> "🛑"
+slowmode = <:3152slowdownids:1568212815876194364> -> "⏱️"
+links = <:6877shinybluelink:1568208731123097741> -> "🔗"
+link = <:6877shinybluelink:1568208731123097741> -> "🔗"
+bad_words = <:22168donotbullyids:1568212970205483049> -> "🚫"
+suspicious_messages = <:31140joobithousandyardstareblue:1568212981450408026> -> "⚠️"
+filtered_messages = <:2867blueerror:1568209064977109093> -> "⛔"
+blocked_content = <:2867blueerror:1568209064977109093> -> "🚫"
+
+[CONFIGURATION]
+setup = <:400377tools:1568213093907959909> -> "🛠️"
+save = <:9808lightbluecheck:1568209119393873971> -> "💾"
+reset = <:86241blueguydisappear:1568213078372520017> -> "🔄"
+edit = <:400377tools:1568213093907959909> -> "✏️"
+delete = <:2867blueerror:1568209064977109093> -> "🗑️"
+enable = <:9808lightbluecheck:1568209119393873971> -> "✅"
+disable = <:2867blueerror:1568209064977109093> -> "❌"
+dashboard = <:1520blurplesettings:1568212784578306108> -> "🎛️"
+
+[BRANDING & REWARDS]
+mascot = <:vectrbotttt:1530269137660674079> -> "🤖"
+booster = <:2374booster:1568212800927563876> -> "💎"
+booster_shiny = <:4636shinybluebooster:1568208723178950747> -> "💎"
+early_supporter = <:3121discordearlysupporter:1568212811178311781> -> "⭐"
+hypesquad = <:3809discordhypesquad:1568212826517016616> -> "⚡"
+github = <:394661github:1568213091949355039> -> "🐙"
+sparkles = <:5186shinybluesparkles:1568208726987382906> -> "✨"
+trophy = <:918267trophy:1568212770581643304> -> "🏆"
+bug_hunter = <:3052shinybluebughunter:1568208719689416765> -> "🐛"
+partner = <:5974shinybluepartner:1568208729076138044> -> "🤝"
+giveaway = <:1531vslgiveaway:1568209055879667765> -> "🎉"
+party = <:1531vslgiveaway:1568209055879667765> -> "🎉"
+dice = <:5186shinybluesparkles:1568208726987382906> -> "🎲"
+wave = <:45318salute:1568212996855955486> -> "👋"
+wrench = <:400377tools:1568213093907959909> -> "🔧"
+gear = <:1520blurplesettings:1568212784578306108> -> "⚙️"
+microphone = <:3527blurplevoicechannel:1568212819453804554> -> "🎙️"
+
+# ==============================================================================
+# ALL 192 EMOJIS ORGANIZED BY DISCORD DEVELOPER PORTAL PAGE (PAGES 1 TO 8)
+# ==============================================================================
+
+[PAGE_1]
+828044ticket = <:828044ticket:1568213112207970374>
+828044shield = <:828044shield:1568213109997441126>
+828044fire = <:828044fire:1568213108336361482>
+745701youtube = <:745701youtube:1568213106134351902>
+702380developer = <:702380developer:1568213104624402573>
+592053verified = <:592053verified:1568213102804078652>
+592053event = <:592053event:1568213100816109658>
+574809rocket = <:574809rocket:1568213098849112135>
+494279apoiador = <:494279apoiador:1568213096349175828>
+400377tools = <:400377tools:1568213093907959909>
+394661github = <:394661github:1568213091949355039>
+312424paint = <:312424paint:1568213090175291553>
+158897crown = <:158897crown:1568213088602300466>
+158897bot = <:158897bot:1568213086790492160>
+91118admin = <:91118admin:1568213084336562316>
+90709foundbugids = <:90709foundbugids:1568213082113843291>
+89171bluemoji94 = <:89171bluemoji94:1568213080360353872>
+86241blueguydisappear = <:86241blueguydisappear:1568213078372520017>
+85844doublethumbsup = <:85844doublethumbsup:1568213076287946822>
+83380blusigma = <:83380blusigma:1568213074316632175>
+82970donotreplyids = <:82970donotreplyids:1568213072135331911>
+82891yousoldids = <:82891yousoldids:1568213070033977395>
+82471trialmoderator = <:82471trialmoderator:1568213066703704134>
+82174moderator = <:82174moderator:1568213063029628988>
+81807bluemoji85 = <:81807bluemoji85:1568213060999577711>
+
+[PAGE_2]
+78599management = <:78599management:1568213058382340126>
+77889blueguysillyhappy = <:77889blueguysillyhappy:1568213056167870514>
+77602trialmoderator = <:77602trialmoderator:1568213053743435896>
+77597tester = <:77597tester:1568213051847475302>
+76316party = <:76316party:1568213049725157466>
+71208nacutecat = <:71208nacutecat:1568213046093029396>
+70038namedaltop = <:70038namedaltop:1568213044121571408>
+67594bluemoji46 = <:67594bluemoji46:1568213042339123250>
+67541administrator = <:67541administrator:1568213040300560494>
+66717love = <:66717love:1568213038362918953>
+66430moderator = <:66430moderator:1568213036228149338>
+61327gyattjoobi = <:61327gyattjoobi:1568213034202308720>
+60414iamabotids = <:60414iamabotids:1568213031635255377>
+59567bluemoji25 = <:59567bluemoji25:1568213029794087023>
+58119joobimewingblue = <:58119joobimewingblue:1568213027583430807>
+56001pleasereplyids = <:56001pleasereplyids:1568213025725485106>
+54982joobicatblue = <:54982joobicatblue:1568213023519277127>
+54451joobitrollfaceblue = <:54451joobitrollfaceblue:1568213021665398875>
+54041pleaseapplyids = <:54041pleaseapplyids:1568213020146929775>
+53825trialmoderator = <:53825trialmoderator:1568213017336873031>
+52018getonlineids = <:52018getonlineids:1568213015323738124>
+49690joobiblueguyok = <:49690joobiblueguyok:1568213013868191754>
+49690joobiblueguylmao = <:49690joobiblueguylmao:1568213012018499684>
+49197bluemoji50 = <:49197bluemoji50:1568213010277990460>
+48746discorddev = <:48746discorddev:1568213008230908016>
+
+[PAGE_3]
+48593noojoobi = <:48593noojoobi:1568213006247272591>
+47931blueguycatface = <:47931blueguycatface:1568213004351442965>
+47546bluemoji79 = <:47546bluemoji79:1568213002216411156>
+46910nacrownowner = <:46910nacrownowner:1568213000341426247>
+46440marrymeids = <:46440marrymeids:1568212998491873341>
+45318salute = <:45318salute:1568212996855955486>
+44646developer = <:44646developer:1568212995215982702>
+39664happy = <:39664happy:1568212993559367782>
+39178natrophytop = <:39178natrophytop:1568212991688712242>
+36548namoonlight = <:36548namoonlight:1568212989834829897>
+36356raidalertids = <:36356raidalertids:1568212987188219914>
+32012smilesjoobi = <:32012smilesjoobi:1568212985464492042>
+31967goodideaids = <:31967goodideaids:1568212983354630315>
+31140joobithousandyardstareblue = <:31140joobithousandyardstareblue:1568212981450408026>
+30221trialmoderator = <:30221trialmoderator:1568212979655245844>
+29960bluemoji27 = <:29960bluemoji27:1568212977834786898>
+26164crying = <:26164crying:1568212976094281789>
+24879bluemoji52 = <:24879bluemoji52:1568212973564985374>
+22168donotbullyids = <:22168donotbullyids:1568212970205483049>
+19999moderator = <:19999moderator:1568212968137560095>
+19999member = <:19999member:1568212966288007199>
+16375headmoderator = <:16375headmoderator:1568212963335348306>
+16218suport = <:16218suport:1568212961120755742>
+16218booster = <:16218booster:1568212959220736080>
+14911creator = <:14911creator:1568212957140090993>
+
+[PAGE_4]
+14324bluemoji29 = <:14324bluemoji29:1568212955546394775>
+13374wadminids = <:13374wadminids:1568212953835110481>
+13135napainter = <:13135napainter:1568212949900984321>
+13135namegaphone = <:13135namegaphone:1568212948151832627>
+12720headmoderator = <:12720headmoderator:1568212946205548617>
+10551headmoderator = <:10551headmoderator:1568212944221765712>
+9098blurpleannouncements = <:9098blurpleannouncements:1568212939406573660>
+9017blurpleunmuted = <:9017blurpleunmuted:1568212938316054528>
+8965moderator = <:8965moderator:1568212934952230982>
+8729moderator = <:8729moderator:1568212932226064444>
+8719blurpleundeafened = <:8719blurpleundeafened:1568212927880888370>
+8569booster = <:8569booster:1568212924835569675>
+8530owner = <:8530owner:1568212923204116560>
+8484joobinerd = <:8484joobinerd:1568212921031335936>
+8111discordverifypurple = <a:8111discordverifypurple:1568212917369839616>
+7485_verifiedorange = <a:7485_verifiedorange:1568212911346683924>
+7404mod1 = <:7404mod1:1568212909585072158>
+7312peachverify = <a:7312peachverify:1568212907903160392>
+7235bot = <:7235bot:1568212904195399690>
+7131discordverifygreen = <a:7131discordverifygreen:1568212900995141642>
+7018_info = <:7018_info:1568212897786495026>
+6911party = <:6911party:1568212895991472138>
+6832disocrdverifywhite = <a:6832disocrdverifywhite:1568212892602470480>
+6722verified = <:6722verified:1568212889951535154>
+6606verified = <a:6606verified:1568212887749533718>
+
+[PAGE_5]
+6055blurpleinvite = <:6055blurpleinvite:1568212880606892133>
+5946discordbalance = <:5946discordbalance:1568212876118990940>
+5864blurplesearch = <:5864blurplesearch:1568212874248065164>
+5574discordverifylightpink = <a:5574discordverifylightpink:1568212872536915968>
+5508discordstagechannel = <:5508discordstagechannel:1568212870703882270>
+5470redverifiedcheck = <a:5470redverifiedcheck:1568212868799660172>
+4658tmoderator = <:4658tmoderator:1568212857164923033>
+4298eventer = <:4298eventer:1568212850252447784>
+4017onaboutids = <:4017onaboutids:1568212847702450176>
+3970discord = <:3970discord:1568212845772935268>
+3891discordverifypastelblue = <a:3891discordverifypastelblue:1568212843986288670>
+3809discordhypesquad = <:3809discordhypesquad:1568212826517016616>
+3764nawriter = <:3764nawriter:1568212824604282880>
+3764nacandycane = <:3764nacandycane:1568212822935216238>
+3736prmanager = <:3736prmanager:1568212821102039130>
+3527blurplevoicechannel = <:3527blurplevoicechannel:1568212819453804554>
+3219mod2 = <:3219mod2:1568212817860100176>
+3152slowdownids = <:3152slowdownids:1568212815876194364>
+3149blurplerules = <:3149blurplerules:1568212813565137046>
+3121discordearlysupporter = <:3121discordearlysupporter:1568212811178311781>
+2599discordverifypink = <a:2599discordverifypink:1568212805826519161>
+2374booster = <:2374booster:1568212800927563876>
+2177owner = <:2177owner:1568212797333053501>
+2145bluemoji73 = <:2145bluemoji73:1568212795575504916>
+2052booster = <:2052booster:1568212793893855262>
+
+[PAGE_6]
+1668eventer = <:1668eventer:1568212789972181023>
+1520blurplesettings = <:1520blurplesettings:1568212784578306108>
+1350discordbrillance = <:1350discordbrillance:1568212782921556008>
+1247discordbravery = <:1247discordbravery:1568212780975394887>
+1005admin = <:1005admin:1568212777728868483>
+985872star = <:985872star:1568212776030048266>
+985872heart = <:985872heart:1568212774457446430>
+950972embaixador = <:950972embaixador:1568212772515348611>
+918267trophy = <:918267trophy:1568212770581643304>
+918267partner = <:918267partner:1568212768795009045>
+99923moderator = <:99923moderator:1568212766584606770>
+97957errnojoobi = <:97957errnojoobi:1568212764835451061>
+97020owner = <:97020owner:1568212763119976548>
+95886bluemoji77 = <:95886bluemoji77:1568212761232539739>
+93084booosters = <:93084booosters:1568212757747343460>
+91974bot = <:91974bot:1568212755889258537>
+91525commandupdateids = <:91525commandupdateids:1568212754089902110>
+9848blurplemuted = <:9848blurplemuted:1568212751913058344>
+9669blurpledeafened = <:9669blurpledeafened:1568212740710080512>
+9659unverified = <:9659unverified:1568212738755403866>
+9582dsicordveriyblack = <a:9582dsicordveriyblack:1568212736935206942>
+9279administrator = <:9279administrator:1568212728961835159>
+9192verifybadge = <:9192verifybadge:1568212726864416849>
+94979discordrules = <:94979discordrules:1568209129640820770>
+82597bluestaff = <:82597bluestaff:1568209127929548800>
+
+[PAGE_7]
+82361developer = <:82361developer:1568209125979193385>
+73575ownercrownlightblue = <:73575ownercrownlightblue:1568209124158742528>
+22273tgnewsemoji007 = <:22273tgnewsemoji007:1568209122019639346>
+9808lightbluecheck = <:9808lightbluecheck:1568209119393873971>
+9799blueverified = <:9799blueverified:1568209117586399283>
+9796verified = <:9796verified:1568209115761868874>
+9736rolemod = <:9736rolemod:1568209099630452787>
+9733bluedot = <:9733bluedot:1568209097550204988>
+9732memberblue = <:9732memberblue:1568209095616630904>
+9435bluestar = <:9435bluestar:1568209093708095559>
+9101bluestaffbadge = <:9101bluestaffbadge:1568209091225067520>
+8965vslticket = <:8965vslticket:1568209088830242911>
+8726litebluemodshield = <:8726litebluemodshield:1568209085461958777>
+8580adminbadgedarkblue = <:8580adminbadgedarkblue:1568209083453149256>
+8107adminbadgeblue = <:8107adminbadgeblue:1568209081498345473>
+7789blueverified = <:7789blueverified:1568209080252899459>
+7212roleadmin = <:7212roleadmin:1568209078222852198>
+6533vslmodhammer = <:6533vslmodhammer:1568209076498997298>
+6160bluemodbadge = <:6160bluemodbadge:1568209074452041748>
+6031modshield = <:6031modshield:1568209072740769894>
+5186swords = <:5186swords:1568209070890950818>
+5172stafflightblue = <:5172stafflightblue:1568209069422936127>
+4861gift = <:4861gift:1568209066822733834>
+2867blueerror = <:2867blueerror:1568209064977109093>
+2572verifiedbadge = <:2572verifiedbadge:1568209063387336734>
+
+[PAGE_8]
+2231certifiedmodlight = <:2231certifiedmodlight:1568209061361619034>
+1869admin = <:1869admin:1568209059486769172>
+1626coownerhax55ffff = <:1626coownerhax55ffff:1568209057536548985>
+1531vslgiveaway = <:1531vslgiveaway:1568209055879667765>
+1047blueguard = <:1047blueguard:1568209054008868914>
+9358shinyblueowner = <:9358shinyblueowner:1568208738723168377>
+9111shinyblueearlydev = <:9111shinyblueearlydev:1568208736722616320>
+8417shinybluemoderator = <:8417shinybluemoderator:1568208734940045394>
+8098shinybluestaff = <:8098shinybluestaff:1568208732851150929>
+6877shinybluelink = <:6877shinybluelink:1568208731123097741>
+5974shinybluepartner = <:5974shinybluepartner:1568208729076138044>
+5186shinybluesparkles = <:5186shinybluesparkles:1568208726987382906>
+4994shinybluedot = <:4994shinybluedot:1568208725087359156>
+4636shinybluebooster = <:4636shinybluebooster:1568208723178950747>
+4447shinyblueverified = <:4447shinyblueverified:1568208721476063242>
+3052shinybluebughunter = <:3052shinybluebughunter:1568208719689416765>
+vectrbotttt = <:vectrbotttt:1530269137660674079>
+
+# ==============================================================================
+# UNMATCHED EMOJIS REPORT
+# All 191 images from combined_discord_emoji_pack.zip matched 1-to-1.
+# Exactly 1 application emoji was pre-existing (vectrbotttt mascot on Page 8).
+# Total unmatched emojis: 0
+# ==============================================================================
+[UNMATCHED_EMOJIS]
+# None - 100% matched across application library.

@@ -6,19 +6,32 @@ import os
 import asyncio
 import requests
 import io
+import importlib
 from datetime import datetime
 from formatter import BotEmbed
 
-# 🛑 HARDCODED AUTHORIZED ID (Only ff5star can use this)
-AUTHORIZED_ID = 912925691639635978
+
+def get_emoji(name: str):
+    for module_name in ("utils.emoji_manager", "src.utils.emoji_manager", "NeoMonster.utils.emoji_manager"):
+        try:
+            return importlib.import_module(module_name).get_emoji(name)
+        except Exception:
+            continue
+    return None
+
+AUTHORIZED_ID = int(os.getenv("GLOBAL_BACKUP_OWNER_ID", "912925691639635978"))
 
 
 def is_authorized():
-    """Custom check to ensure ONLY ff5star can use these commands."""
     async def predicate(interaction: discord.Interaction):
-        if interaction.user.id != AUTHORIZED_ID:
+        authorized_ids = set(interaction.client.owner_ids)
+        if AUTHORIZED_ID:
+            authorized_ids.add(AUTHORIZED_ID)
+        if interaction.user.id not in authorized_ids:
+            cross_icon = get_emoji("cross")
+            prefix = f"{cross_icon} " if cross_icon else ""
             await interaction.response.send_message(
-                "❌ **Access Denied.** This command is strictly for the bot owner (ff5star).",
+                f"{prefix}**Access Denied.** This command is strictly for the bot owner.",
                 ephemeral=True
             )
             return False
@@ -124,7 +137,7 @@ class GlobalBackup(commands.Cog):
             return await interaction.followup.send("❌ Could not find the backup channel.", ephemeral=True)
 
         await vault_channel.send(
-            content=f"🌐 **GLOBAL BACKUP** - `{name}`\n*Created by ff5star on {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC*",
+            content=f"🌐 **GLOBAL BACKUP** - `{name}`\n*Created by {interaction.user.name} on {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC*",
             file=file
         )
 

@@ -1,20 +1,20 @@
+from datetime import timedelta
+import os
+import aiosqlite
 import discord
 from discord import app_commands
 from discord.ext import commands
-import aiosqlite
-import os
-from datetime import timedelta
-from checks import staff_only
+from checks import admin_only, staff_only
 from formatter import BotEmbed
+from db import get_db_path
 
-DB_PATH = os.getenv("DATABASE_PATH", "./data/security.db")
+DB_PATH = get_db_path()
 
 
 class Moderation(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    # ---------- Log channel helpers ----------
     async def get_mod_log_channel(self, guild_id: int) -> int | None:
         async with aiosqlite.connect(DB_PATH) as db:
             cursor = await db.execute(
@@ -31,7 +31,6 @@ class Moderation(commands.Cog):
             )
             await db.commit()
 
-    # ---------- Internal log method ----------
     async def _log(self, guild, moderator, action, target, reason=None, duration=None):
         channel_id = await self.get_mod_log_channel(guild.id)
         if not channel_id:
@@ -55,17 +54,34 @@ class Moderation(commands.Cog):
 
         try:
             await channel.send(embed=embed)
-        except:
+        except (discord.Forbidden, discord.HTTPException):
             pass
 
-    # ---------- BAN ----------
+    @app_commands.command(name="modlog", description="Set the moderation log channel")
+    @app_commands.describe(channel="Channel for moderation logs")
+    @admin_only()
+    async def modlog(self, interaction: discord.Interaction, channel: discord.TextChannel):
+        await self.set_mod_log_channel(interaction.guild_id, channel.id)
+        embed = BotEmbed.success("Mod Log Channel Set", f"Moderation logs will be sent to {channel.mention}.")
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
     @app_commands.command(name="ban", description="Ban a member")
     @app_commands.describe(member="Member to ban", reason="Reason for ban")
     @staff_only()
     async def ban(self, interaction: discord.Interaction, member: discord.Member, reason: str = "No reason provided"):
-        if member.top_role >= interaction.user.top_role and interaction.user != interaction.guild.owner:
-            embed = BotEmbed.error("Permission Denied", "You cannot ban this member.")
-            return await interaction.response.send_message(embed=embed, ephemeral=False)
+        if member.id == interaction.guild.owner_id:
+            embed = BotEmbed.error("Permission Denied", "You cannot ban the server owner.")
+            return await interaction.response.send_message(embed=embed, ephemeral=True)
+        if member.id == self.bot.user.id:
+            embed = BotEmbed.error("Permission Denied", "I cannot ban myself.")
+            return await interaction.response.send_message(embed=embed, ephemeral=True)
+        if member.top_role >= interaction.guild.me.top_role:
+            embed = BotEmbed.error("Role Too High", "I cannot ban this member because their role is higher than or equal to mine.")
+            return await interaction.response.send_message(embed=embed, ephemeral=True)
+        if isinstance(interaction.user, discord.Member):
+            if member.top_role >= interaction.user.top_role and interaction.user != interaction.guild.owner and interaction.user.id not in interaction.client.owner_ids:
+                embed = BotEmbed.error("Permission Denied", "You cannot ban this member.")
+                return await interaction.response.send_message(embed=embed, ephemeral=True)
         try:
             await member.ban(reason=reason)
             embed = BotEmbed.success("Member Banned", f"{member.mention} has been banned.\n**Reason:** {reason}")
@@ -74,11 +90,23 @@ class Moderation(commands.Cog):
             embed = BotEmbed.error("Missing Permissions", "I don't have permission to ban this member.")
         await interaction.response.send_message(embed=embed)
 
-    # ---------- KICK ----------
     @app_commands.command(name="kick", description="Kick a member")
     @app_commands.describe(member="Member to kick", reason="Reason for kick")
     @staff_only()
     async def kick(self, interaction: discord.Interaction, member: discord.Member, reason: str = "No reason provided"):
+        if member.id == interaction.guild.owner_id:
+            embed = BotEmbed.error("Permission Denied", "You cannot kick the server owner.")
+            return await interaction.response.send_message(embed=embed, ephemeral=True)
+        if member.id == self.bot.user.id:
+            embed = BotEmbed.error("Permission Denied", "I cannot kick myself.")
+            return await interaction.response.send_message(embed=embed, ephemeral=True)
+        if member.top_role >= interaction.guild.me.top_role:
+            embed = BotEmbed.error("Role Too High", "I cannot kick this member because their role is higher than or equal to mine.")
+            return await interaction.response.send_message(embed=embed, ephemeral=True)
+        if isinstance(interaction.user, discord.Member):
+            if member.top_role >= interaction.user.top_role and interaction.user != interaction.guild.owner and interaction.user.id not in interaction.client.owner_ids:
+                embed = BotEmbed.error("Permission Denied", "You cannot kick this member.")
+                return await interaction.response.send_message(embed=embed, ephemeral=True)
         try:
             await member.kick(reason=reason)
             embed = BotEmbed.success("Member Kicked", f"{member.mention} has been kicked.\n**Reason:** {reason}")
@@ -87,11 +115,23 @@ class Moderation(commands.Cog):
             embed = BotEmbed.error("Missing Permissions", "I don't have permission to kick this member.")
         await interaction.response.send_message(embed=embed)
 
-    # ---------- MUTE ----------
     @app_commands.command(name="mute", description="Timeout a member")
     @app_commands.describe(member="Member to mute", duration="Duration in minutes", reason="Reason")
     @staff_only()
     async def mute(self, interaction: discord.Interaction, member: discord.Member, duration: int, reason: str = "No reason provided"):
+        if member.id == interaction.guild.owner_id:
+            embed = BotEmbed.error("Permission Denied", "You cannot mute the server owner.")
+            return await interaction.response.send_message(embed=embed, ephemeral=True)
+        if member.id == self.bot.user.id:
+            embed = BotEmbed.error("Permission Denied", "I cannot mute myself.")
+            return await interaction.response.send_message(embed=embed, ephemeral=True)
+        if member.top_role >= interaction.guild.me.top_role:
+            embed = BotEmbed.error("Role Too High", "I cannot mute this member because their role is higher than or equal to mine.")
+            return await interaction.response.send_message(embed=embed, ephemeral=True)
+        if isinstance(interaction.user, discord.Member):
+            if member.top_role >= interaction.user.top_role and interaction.user != interaction.guild.owner and interaction.user.id not in interaction.client.owner_ids:
+                embed = BotEmbed.error("Permission Denied", "You cannot mute this member.")
+                return await interaction.response.send_message(embed=embed, ephemeral=True)
         if member.is_timed_out():
             embed = BotEmbed.warning("Already Muted", f"{member.mention} is already muted.")
             return await interaction.response.send_message(embed=embed, ephemeral=False)
@@ -104,7 +144,6 @@ class Moderation(commands.Cog):
             embed = BotEmbed.error("Permission Denied", "I cannot mute this member.")
         await interaction.response.send_message(embed=embed)
 
-    # ---------- UNMUTE ----------
     @app_commands.command(name="unmute", description="Remove a timeout from a member")
     @app_commands.describe(member="Member to unmute")
     @staff_only()
@@ -120,20 +159,18 @@ class Moderation(commands.Cog):
             embed = BotEmbed.error("Permission Denied", "I cannot unmute this member.")
         await interaction.response.send_message(embed=embed)
 
-    # ---------- WARN ----------
     @app_commands.command(name="warn", description="Warn a member (log only)")
     @app_commands.describe(member="Member to warn", reason="Reason for warning")
     @staff_only()
     async def warn(self, interaction: discord.Interaction, member: discord.Member, reason: str = "No reason provided"):
         try:
             await member.send(embed=BotEmbed.warning("You were warned", f"**Server:** {interaction.guild.name}\n**Reason:** {reason}"))
-        except:
+        except (discord.Forbidden, discord.HTTPException):
             pass
         embed = BotEmbed.success("Warning Issued", f"{member.mention} has been warned.\n**Reason:** {reason}")
         await interaction.response.send_message(embed=embed)
         await self._log(interaction.guild, interaction.user, "Warn", member, reason)
 
-    # ---------- PURGE ----------
     @app_commands.command(name="purge", description="Delete a number of messages")
     @app_commands.describe(amount="Number of messages to delete (max 100)")
     @staff_only()
@@ -150,7 +187,6 @@ class Moderation(commands.Cog):
             embed = BotEmbed.error("Missing Permissions", "I need the **Manage Messages** permission to purge.")
         await interaction.followup.send(embed=embed, ephemeral=False)
 
-    # ---------- Auto-unmute logging ----------
     @commands.Cog.listener()
     async def on_member_update(self, before: discord.Member, after: discord.Member):
         if before.is_timed_out() and not after.is_timed_out():
@@ -160,9 +196,9 @@ class Moderation(commands.Cog):
                     if entry.target.id == after.id and entry.changes.before.timeout and entry.changes.after.timeout is None:
                         moderator = entry.user
                         reason = entry.reason or "Timeout expired"
-                        await self._log(guild, moderator, "Auto‑Unmute", after, reason)
+                        await self._log(guild, moderator, "Auto-Unmute", after, reason)
                         break
-            except:
+            except (discord.Forbidden, discord.HTTPException):
                 pass
 
 
@@ -171,6 +207,6 @@ async def setup(bot):
         try:
             await db.execute("ALTER TABLE guild_settings ADD COLUMN mod_log_channel_id INTEGER DEFAULT 0")
             await db.commit()
-        except:
+        except Exception:
             pass
     await bot.add_cog(Moderation(bot))

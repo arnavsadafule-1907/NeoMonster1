@@ -1,4 +1,5 @@
 import discord
+import importlib
 from discord import app_commands
 from discord.ext import commands
 import aiosqlite
@@ -9,16 +10,29 @@ from datetime import datetime, timezone
 from formatter import BotEmbed
 from checks import admin_only, ticket_staff_only
 
-DB_PATH = os.getenv("DATABASE_PATH", "./data/security.db")
+try:
+    get_emoji = importlib.import_module("utils.emoji_manager").get_emoji
+except (ImportError, AttributeError):
+    _DEFAULT_EMOJIS = {
+        "ticket": "🎫",
+        "shield": "🛡️",
+        "claim_ticket": "✋",
+        "close_ticket": "🔒",
+        "add_user": "➕",
+        "remove_user": "➖",
+        "rename_ticket": "✏️",
+    }
 
-# ============================================================
-#  PANEL EMOJIS
-#  Animated: <a:name:id>    Static: <:name:id>    Unicode: 🎟️
-# ============================================================
+    def get_emoji(name: str):
+        return _DEFAULT_EMOJIS.get(name, "🎟️")
+
+from db import get_db_path, DATABASE_PATH
+DB_PATH = get_db_path()
+
 PANEL_EMOJIS = {
-    "title":  "",
-    "footer": "🛡️",
-    "button": "",
+    "title":  get_emoji("ticket"),
+    "footer": get_emoji("shield"),
+    "button": get_emoji("ticket"),
 }
 
 
@@ -26,7 +40,7 @@ PANEL_EMOJIS = {
 #  Ticket View — buttons inside the ticket channel
 # -------------------------------------------------------------------
 class TicketView(discord.ui.View):
-    def __init__(self, cog, ticket_type_name: str, claimed_by: int = None):
+    def __init__(self, cog=None, ticket_type_name: str = "", claimed_by: int | None = None):
         super().__init__(timeout=None)
         self.cog = cog
         self.ticket_type_name = ticket_type_name
@@ -37,7 +51,12 @@ class TicketView(discord.ui.View):
             self.claim_button.label = "Claimed"
             self.claim_button.style = discord.ButtonStyle.success
 
+    def _get_cog(self, interaction: discord.Interaction):
+        return self.cog or interaction.client.get_cog("Ticket")
+
     async def _check_staff_permission(self, interaction: discord.Interaction) -> bool:
+        if interaction.guild is None:
+            return False
         if interaction.user.id in interaction.client.owner_ids:
             return True
         if interaction.user.id == interaction.guild.owner_id:
@@ -53,7 +72,7 @@ class TicketView(discord.ui.View):
         )
         return False
 
-    @discord.ui.button(label="Claim", style=discord.ButtonStyle.primary, custom_id="ticket_claim")
+    @discord.ui.button(label="Claim", style=discord.ButtonStyle.primary, custom_id="ticket_claim", emoji=get_emoji("claim_ticket"))
     async def claim_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not await self._check_staff_permission(interaction):
             return
@@ -63,27 +82,31 @@ class TicketView(discord.ui.View):
                 ephemeral=True
             )
             return
-        await self.cog.claim_ticket(interaction, self)
+        cog = self._get_cog(interaction)
+        if cog:
+            await cog.claim_ticket(interaction, self)
 
-    @discord.ui.button(label="Close", style=discord.ButtonStyle.danger, custom_id="ticket_close")
+    @discord.ui.button(label="Close", style=discord.ButtonStyle.danger, custom_id="ticket_close", emoji=get_emoji("close_ticket"))
     async def close_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not await self._check_staff_permission(interaction):
             return
-        await interaction.response.send_modal(CloseTicketModal(self.cog, interaction.channel))
+        cog = self._get_cog(interaction)
+        if cog:
+            await interaction.response.send_modal(CloseTicketModal(cog, interaction.channel))
 
-    @discord.ui.button(label="Add User", style=discord.ButtonStyle.success, custom_id="ticket_add_user")
+    @discord.ui.button(label="Add User", style=discord.ButtonStyle.success, custom_id="ticket_add_user", emoji=get_emoji("add_user"))
     async def add_user_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not await self._check_staff_permission(interaction):
             return
         await interaction.response.send_modal(AddUserModal(interaction.channel))
 
-    @discord.ui.button(label="Remove User", style=discord.ButtonStyle.secondary, custom_id="ticket_remove_user")
+    @discord.ui.button(label="Remove User", style=discord.ButtonStyle.secondary, custom_id="ticket_remove_user", emoji=get_emoji("remove_user"))
     async def remove_user_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not await self._check_staff_permission(interaction):
             return
         await interaction.response.send_modal(RemoveUserModal(interaction.channel))
 
-    @discord.ui.button(label="Rename", style=discord.ButtonStyle.secondary, custom_id="ticket_rename")
+    @discord.ui.button(label="Rename", style=discord.ButtonStyle.secondary, custom_id="ticket_rename", emoji=get_emoji("rename_ticket"))
     async def rename_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not await self._check_staff_permission(interaction):
             return
@@ -408,6 +431,7 @@ class Ticket(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self._claim_locks = {}
+        self._ticket_lock = asyncio.Lock()
 
     async def _ensure_tables(self):
         async with aiosqlite.connect(DB_PATH) as db:
@@ -431,8 +455,7 @@ class Ticket(commands.Cog):
             await db.commit()
 
     async def get_ticket_types(self, guild_id: int):
-        await self._ensure_tables()
-        async with aiosqlite.connect(DB_PATH) as db:
+        async with aiosqlite.connect(DB_PATH, timeout=10.0) as db:
             db.row_factory = aiosqlite.Row
             cursor = await db.execute("SELECT * FROM ticket_types WHERE guild_id = ?", (guild_id,))
             return await cursor.fetchall()
@@ -457,17 +480,18 @@ class Ticket(commands.Cog):
             return await cursor.fetchone()
 
     async def _next_ticket_number(self, guild_id):
-        async with aiosqlite.connect(DB_PATH) as db:
-            cursor = await db.execute("SELECT counter FROM ticket_counter WHERE guild_id = ?", (guild_id,))
-            row = await cursor.fetchone()
-            if row:
-                num = row[0] + 1
-                await db.execute("UPDATE ticket_counter SET counter = ? WHERE guild_id = ?", (num, guild_id))
-            else:
-                num = 1
-                await db.execute("INSERT INTO ticket_counter (guild_id, counter) VALUES (?, ?)", (guild_id, num))
-            await db.commit()
-            return num
+        async with self._ticket_lock:
+            async with aiosqlite.connect(DB_PATH, timeout=10.0) as db:
+                cursor = await db.execute("""
+                    INSERT INTO ticket_counter (guild_id, counter) VALUES (?, 1)
+                    ON CONFLICT(guild_id) DO UPDATE SET counter = ticket_counter.counter + 1
+                    RETURNING counter
+                """, (guild_id,))
+                row = await cursor.fetchone()
+                await db.commit()
+                if row:
+                    return row[0]
+                return 1
 
     async def save_ticket_metadata(self, guild_id, ticket_number, channel_id, user_id, ticket_type):
         async with aiosqlite.connect(DB_PATH) as db:
@@ -504,11 +528,24 @@ class Ticket(commands.Cog):
     @staticmethod
     async def increment_staff_stat(guild_id, user_id, column):
         async with aiosqlite.connect(DB_PATH) as db:
-            await db.execute(
-                f"INSERT INTO staff_stats (guild_id, user_id, {column}) VALUES (?, ?, 1) "
-                f"ON CONFLICT(guild_id, user_id) DO UPDATE SET {column} = {column} + 1",
-                (guild_id, user_id)
-            )
+            if column == "tickets_claimed":
+                await db.execute(
+                    "INSERT INTO staff_stats (guild_id, user_id, tickets_claimed) VALUES (?, ?, 1) "
+                    "ON CONFLICT(guild_id, user_id) DO UPDATE SET tickets_claimed = tickets_claimed + 1",
+                    (guild_id, user_id)
+                )
+            elif column == "tickets_closed":
+                await db.execute(
+                    "INSERT INTO staff_stats (guild_id, user_id, tickets_closed) VALUES (?, ?, 1) "
+                    "ON CONFLICT(guild_id, user_id) DO UPDATE SET tickets_closed = tickets_closed + 1",
+                    (guild_id, user_id)
+                )
+            elif column == "leave_days":
+                await db.execute(
+                    "INSERT INTO staff_stats (guild_id, user_id, leave_days) VALUES (?, ?, 1) "
+                    "ON CONFLICT(guild_id, user_id) DO UPDATE SET leave_days = leave_days + 1",
+                    (guild_id, user_id)
+                )
             await db.commit()
 
     async def get_panel_config(self, guild_id):
@@ -945,4 +982,7 @@ class Ticket(commands.Cog):
 
 
 async def setup(bot):
-    await bot.add_cog(Ticket(bot))
+    cog = Ticket(bot)
+    await cog._ensure_tables()
+    await bot.add_cog(cog)
+    bot.add_view(TicketView(cog))
